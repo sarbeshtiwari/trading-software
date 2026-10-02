@@ -306,7 +306,14 @@ class PaperExecution:
             elif not order.status.is_terminal:
                 await self.sync(order.id)
         known = {order.broker_reference_id for order in orders}
-        if any(order.reference_id not in known for order in await self.broker.list_orders()):
+        untracked = [order for order in await self.broker.list_orders()
+                     if order.reference_id not in known]
+        if untracked:
+            async with db_session.session_scope() as session:
+                await discrepancies.observe_order_failure(
+                    session, local=orders, broker=untracked,
+                    reason="UNTRACKED_PAPER_BROKER_ORDER", clock=self.clock,
+                )
             raise SafetyError("UNTRACKED_PAPER_BROKER_ORDER")
         await self._reconcile(allow_review_pending=True)
         self.gate.clear("paper_recovery")
@@ -798,6 +805,14 @@ class PaperExecution:
                 )
                 await self._audit(session, order, "ORDER_UNKNOWN", {"retry": "LOOKUP_ONLY"})
 
+    async def _order_discrepancy(self, order, remote, reason):
+        async with db_session.session_scope() as session:
+            current = await session.get(Order, order.id)
+            await discrepancies.observe_order_failure(
+                session, local=[current], broker=[remote] if remote else [],
+                reason=reason, clock=self.clock,
+            )
+
     @storage_guard
     async def sync(self, identifier):
         async with db_session.session_scope() as session:
@@ -808,9 +823,11 @@ class PaperExecution:
             )
         except Exception:
             await self._unknown(identifier)
+            await self._order_discrepancy(order, None, "BROKER_LOOKUP_UNAVAILABLE")
             raise
         if remote is None:
             await self._unknown(identifier)
+            await self._order_discrepancy(order, None, "REFERENCE_NOT_OBSERVED")
             raise SafetyError("ORDER_UNKNOWN_NO_BLIND_RESUBMISSION")
         fills = await self.broker.list_trades(remote.broker_order_id, order.segment)
         if (
@@ -823,6 +840,7 @@ class PaperExecution:
             or sum(fill.quantity for fill in fills) != remote.filled_quantity
         ):
             await self._unknown(identifier)
+            await self._order_discrepancy(order, remote, "BROKER_ORDER_OR_FILL_MISMATCH")
             raise SafetyError("BROKER_ORDER_OR_FILL_MISMATCH")
         async with db_session.session_scope() as session:
             order = await session.get(Order, identifier, with_for_update=True)
@@ -1503,6 +1521,39 @@ class PaperExecution:
         await incidents.observe("RECONCILIATION_DISCREPANCY", active=result is False)
 
     async def _reconcile_state(self, *, allow_review_pending=False):
+        remote_orders = await self.broker.list_orders()
+        async with db_session.session_scope() as session:
+            local_orders = list(await session.scalars(
+                sa.select(Order).where(Order.mode == TradingMode.PAPER)
+            ))
+            known = {order.broker_reference_id for order in local_orders}
+            untracked = [order for order in remote_orders if order.reference_id not in known]
+            by_reference = {order.reference_id: order for order in remote_orders}
+            inconsistent = []
+            for order in local_orders:
+                remote_order = by_reference.get(order.broker_reference_id)
+                if remote_order is None:
+                    if order.submitted_at is not None or order.broker_order_id is not None:
+                        inconsistent.append(order)
+                elif any(getattr(order, field) != getattr(remote_order, field) for field in (
+                    "quantity", "trading_symbol", "transaction_type", "product",
+                    "segment", "exchange", "order_type", "price",
+                )):
+                    inconsistent.append(order)
+            if untracked:
+                await discrepancies.observe_order_failure(
+                    session, local=local_orders, broker=untracked,
+                    reason="UNTRACKED_PAPER_BROKER_ORDER", clock=self.clock,
+                )
+            elif inconsistent:
+                await discrepancies.observe_order_failure(
+                    session, local=inconsistent, broker=remote_orders,
+                    reason="PAPER_ORDER_SNAPSHOT_MISMATCH", clock=self.clock,
+                )
+        if untracked:
+            raise SafetyError("UNTRACKED_PAPER_BROKER_ORDER")
+        if inconsistent:
+            raise SafetyError("PAPER_ORDER_RECONCILE_REQUIRED")
         remote_positions = await self.broker.get_positions()
         remote = {
             (item.exchange, item.trading_symbol, item.segment, item.product): item.net_quantity

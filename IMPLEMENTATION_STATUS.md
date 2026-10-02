@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 141 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 154 | |
+| `[~]` In progress | 142 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 153 | |
 | **Total** | **533** | |
 
 ---
@@ -5959,3 +5959,27 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   orders during recovery. Existing startup currently raises on an untracked broker
   reference before persisting the exact discrepancy. Preserve no-retry submission,
   block entries, and distinguish an unknown broker outcome from definite absence.
+
+### PAPER order discrepancy evidence (2026-10-03)
+
+- Previous checkpoint **c62211c7b99bfec4e569ababf5bf87289b057b9f** is pushed and
+  remote-verified under the configured owner identity only. Working implementation
+  now records untracked broker orders before recovery refuses startup, and records
+  lookup-unavailable, reference-not-observed and order/fill mismatch evidence when
+  synchronization refuses. Raw broker payloads/exception text are not retained.
+- Fresh reconciliation checks references and request terms before account matching:
+  broker-only, submitted local-only and changed terms cannot be dismissed through
+  the owner review path. Missing lookup is explicitly an observation, not proof of
+  non-execution; no automatic resubmission or economics correction is introduced.
+- Targeted execution/recovery/discrepancy regression **26 passed**. Broader
+  unit/safety/PAPER regression **788 passed / 0 failed / 0 skipped**, one existing
+  serializer warning; session 24489 finished, log
+  `backend/logs/order-discrepancy-regression.txt`. New helper/tests pass Ruff and
+  git diff check passes. Frontend unchanged: prior **62 passed**, build successful.
+- REC-002 moves only to partial. Counts **228 verified / 142 partial / 10
+  unverified / 153 not started**. Latest full-suite baseline remains 1699;
+  PostgreSQL/browser evidence is not reclassified as new full-suite acceptance.
+- Next: verify terminal broker/local status disagreements and trade-list failure/
+  fill-regression recovery. Current request-term comparison intentionally does not
+  treat a normal in-flight status update as corruption. Preserve valid pending
+  synchronization while refusing unsafe regressions and retaining exact evidence.

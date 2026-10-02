@@ -17,6 +17,30 @@ KIND = "PAPER_RECONCILIATION"
 MAX_AUDIT_RECORDS = 1000
 
 
+def order_snapshot(order):
+    if order is None:
+        return None
+    fields = (
+        "id", "broker_order_id", "broker_reference_id", "reference_id", "status",
+        "trading_symbol", "exchange", "segment", "product", "transaction_type",
+        "order_type", "quantity", "filled_quantity", "price", "average_fill_price",
+    )
+    return freeze_snapshot({
+        field: getattr(order, field) for field in fields if hasattr(order, field)
+    })
+
+
+async def observe_order_failure(session, *, local, broker, reason, clock):
+    return await observe(
+        session,
+        local={"mode": "PAPER", "orders": [order_snapshot(row) for row in local]},
+        broker={"mode": "PAPER", "orders": [order_snapshot(row) for row in broker],
+                "observation": reason},
+        delta={"order_failure": reason, "automatic_resubmission": False},
+        clock=clock,
+    )
+
+
 def snapshot(row):
     return freeze_snapshot({
         "id": row.id, "kind": row.kind, "local_state": row.local_state,
