@@ -5604,3 +5604,23 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   semantics against the existing Redis server before wiring operational publishers
   and dashboard consumers. Do not graft UI transport onto unsafe event delivery or
   claim that an in-memory test certifies a production Redis bus.
+
+### Full Market checkpoint acceptance completed (2026-10-03)
+
+- Session **86771 is finished**: **1683 passed / 0 failed / 0 skipped**, three
+  existing warnings, 59m47s. Actual PostgreSQL and browser acceptance were enabled;
+  log `backend/logs/full-market-stream-checkpoint.txt`. Source/tests remained frozen
+  during the run. Do not poll or restart the completed session. This supersedes
+  the prior full baseline of 1660, not the separate M1/M2 acceptance contract.
+- Frontend latest verified state: **52 passed**, production build successful.
+  Actual quote-stream browser acceptance is included in the full backend run.
+- Audit correction **e280145** is pushed and remote-verified. Counts remain
+  **228 verified / 138 partial / 10 unverified / 157 not started**. Passing the
+  full suite does not reverse the evidence-based ARCH-016 downgrade.
+- Exact next task: repair durable Redis pending-message recovery, poison-message
+  retention and acknowledgment semantics in the existing event bus. Verify real
+  Redis restart/redelivery and failure behavior before connecting runtime OMS/UI
+  events. Preserve existing publisher abstractions, no parallel trading pipeline.
+- PAPER remains default. Groww read-only data access still has an unresolved
+  observed 403; live execution, external delivery, profitability and time-based
+  PAPER validation are not inferred from these tests.
