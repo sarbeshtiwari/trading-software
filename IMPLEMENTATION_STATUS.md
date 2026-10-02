@@ -5793,3 +5793,16 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   Redis and Edge acceptance enabled for the accumulated event integrations.
   Observe that exact process to completion before additional feature work, then
   address failures or continue operational risk/health/alert visibility.
+
+### Full execution-event acceptance in progress (2026-10-03)
+
+- Fill/position checkpoint **515efc5** is pushed and remote-verified on origin/main,
+  configured owner author only, no co-author. Unrelated owner changes preserved.
+- Full backend acceptance is running as session **97886**, log
+  `backend/logs/full-execution-events-checkpoint.txt`. Actual PostgreSQL, Redis
+  and Edge acceptance are enabled. No final result yet. Source and tests remain
+  frozen while it runs; documentation-only checkpoint recording is permitted.
+- Poll this exact session to completion. Do not restart because output is quiet
+  or an observation times out. Next: inspect failures if any, record the genuine
+  full-suite result, then continue remaining operational integration. Last full
+  passing baseline remains 1683 at 249a032. PAPER default and LIVE lock unchanged.
