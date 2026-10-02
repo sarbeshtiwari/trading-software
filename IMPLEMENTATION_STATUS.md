@@ -5200,3 +5200,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: represent date-scoped unavailable special sessions explicitly and expose
   them through session/monitoring behavior; retain exchange coverage blockers.
   Cross-dialect correction checkpoint **e08c819** was pushed and remote-verified.
+
+### Explicit unavailable special-session hours (2026-10-02)
+
+- Announced special sessions can now retain their date/name/provenance with
+  unavailable hours rather than disappearing or falling back to weekday hours.
+  Invalid paired/local time bounds fail configuration validation. The known
+  November 8 announcement retains null hours; no new exchange timings invented.
+- Unknown-hours dates have no executable session bounds. Entry scheduling
+  reports `SPECIAL_SESSION_UNAVAILABLE` and actual market health reports
+  `SPECIAL SESSION HOURS UNAVAILABLE`; unrelated dates are unaffected. Existing
+  position monitoring remains independent of new-entry eligibility. Instrument
+  maintenance also handles the nullable schedule without crashing.
+- Calendar/session/worker focused run: **45 passed**. Expanded unit and actual
+  worker/maintenance regression: **763 passed / 0 failed / 0 skipped**, one
+  pre-existing serializer warning. The actual worker test proves no PAPER order
+  is created even when the year is otherwise complete and the day is a weekday.
+  No new full-suite or browser/UI acceptance claim for this health detail.
+- EXCH-003 evidence updated; EXCH-001 still partial because external coverage
+  remains incomplete. Counts unchanged: **229 verified / 130 partial /
+  10 unverified / 164 not started**. Frontend source/build unchanged.
+- Next: inspect and close remaining runtime PAPER preflight/circuit/expiry
+  protections using actual OMS acceptance, not a second compliance pipeline.
+  Groww live prices/execution and full exchange calendars remain unverified.

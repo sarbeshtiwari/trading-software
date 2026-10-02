@@ -75,6 +75,8 @@ def phase_at(
 
     special = cal.special_session(day)
     if special is not None:
+        if not special.hours_available:
+            return SessionPhase.CLOSED
         if special.start <= when.time() < special.end:
             return SessionPhase.REGULAR
         return SessionPhase.CLOSED
@@ -119,6 +121,8 @@ def session_bounds(
     cal = calendar or get_trading_calendar()
     special = cal.special_session(day)
     if special is not None:
+        if not special.hours_available:
+            return None
         return (
             datetime.combine(day, special.start, tzinfo=IST),
             datetime.combine(day, special.end, tzinfo=IST),

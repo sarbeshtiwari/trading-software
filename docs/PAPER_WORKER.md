@@ -139,3 +139,13 @@ and special-session coverage against official sources. Publication timestamps
 must describe when that information was available, not the session date or an
 invented historical approval. The shipped production years remain incomplete;
 this fix does not grant runtime trading permission or infer Muhurat hours.
+
+An announced special session with unpublished hours is recorded with both
+`start` and `end` set to null. On that date, entry scheduling reports
+`SPECIAL_SESSION_UNAVAILABLE`, market health reports
+`SPECIAL SESSION HOURS UNAVAILABLE`, and session bounds remain unavailable.
+Even a weekday does not fall back to regular market hours. Other dates retain
+their own calendar behavior. A one-sided, reversed, equal or timezone-bearing
+local-time pair is rejected as invalid configuration. Replace null hours only
+using a published source with its own availability timestamp; never infer them
+from prior years. Existing open positions still require ordinary monitoring.

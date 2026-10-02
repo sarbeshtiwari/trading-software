@@ -46,8 +46,24 @@ class SpecialSession:
 
     day: date
     name: str
-    start: time
-    end: time
+    start: time | None
+    end: time | None
+
+    def __post_init__(self):
+        if self.start is None and self.end is None:
+            return
+        if (
+            self.start is None
+            or self.end is None
+            or self.start.tzinfo is not None
+            or self.end.tzinfo is not None
+            or self.start >= self.end
+        ):
+            raise ConfigurationError("Special session requires valid paired local start/end times")
+
+    @property
+    def hours_available(self) -> bool:
+        return self.start is not None and self.end is not None
 
 
 class TradingCalendar:
@@ -112,8 +128,8 @@ class TradingCalendar:
                     SpecialSession(
                         day=date.fromisoformat(row["date"]),
                         name=row["name"],
-                        start=time.fromisoformat(row["start"]),
-                        end=time.fromisoformat(row["end"]),
+                        start=time.fromisoformat(row["start"]) if row.get("start") else None,
+                        end=time.fromisoformat(row["end"]) if row.get("end") else None,
                     )
                 )
 
@@ -141,9 +157,16 @@ class TradingCalendar:
 
     def is_trading_day(self, day: date) -> bool:
         """A special session makes an otherwise closed day a trading day."""
-        if self.special_session(day) is not None:
-            return True
+        special = self.special_session(day)
+        if special is not None:
+            return special.hours_available
         return not self.is_weekend(day) and not self.is_holiday(day)
+
+    def session_warning(self, day: date) -> str | None:
+        special = self.special_session(day)
+        if special is not None and not special.hours_available:
+            return f"SPECIAL SESSION HOURS UNAVAILABLE: {day.isoformat()} ({special.name})"
+        return None
 
     def next_trading_day(self, day: date, *, inclusive: bool = False) -> date:
         candidate = day if inclusive else day + timedelta(days=1)

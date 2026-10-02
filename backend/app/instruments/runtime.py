@@ -119,7 +119,7 @@ class InstrumentRuntime:
                     self.status = "CURRENT"
                     return
             special = self.calendar.special_session(now.date())
-            cutoff = min(time(9), special.start) if special else time(9)
+            cutoff = min(time(9), special.start) if special and special.hours_available else time(9)
             if not time(8) <= now.time().replace(tzinfo=None) < cutoff:
                 self.status = "AWAITING_PREOPEN" if now.hour < 8 else "REFRESH_MISSED"
                 return

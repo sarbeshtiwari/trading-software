@@ -8,7 +8,7 @@ import pytest
 import sqlalchemy as sa
 from apscheduler.events import EVENT_JOB_EXECUTED
 
-from app.core.calendar import TradingCalendar
+from app.core.calendar import SpecialSession, TradingCalendar
 from app.core.enums import Exchange, Segment
 from app.core.errors import SafetyError
 from app.db import session as db_session
@@ -114,15 +114,27 @@ async def test_worker_error_survives_restart_without_silently_rearming(
         await client.aclose()
 
 
+@pytest.mark.parametrize("unknown_session", [False, True])
 async def test_incomplete_calendar_blocks_entries_and_source_does_not_invent_quotes(
-    db_engine, credentials, fake_clock, tmp_path
+    db_engine, credentials, fake_clock, tmp_path, unknown_session
 ):
     engine, _, _, client, _ = await setup_execution(credentials, fake_clock)
-    worker = PaperWorker(engine, calendar=TradingCalendar(), lock_path=tmp_path / "worker.lock")
+    calendar = (
+        TradingCalendar(
+            complete_years=[2026],
+            special_sessions=[
+                SpecialSession(fake_clock.now().date(), "Isolated unknown", None, None)
+            ],
+        )
+        if unknown_session
+        else TradingCalendar()
+    )
+    worker = PaperWorker(engine, calendar=calendar, lock_path=tmp_path / "worker.lock")
     try:
         await worker.start(schedule=False)
         await worker.cycle()
-        assert worker.phase == "CALENDAR_UNAVAILABLE"
+        expected = "SPECIAL_SESSION_UNAVAILABLE" if unknown_session else "CALENDAR_UNAVAILABLE"
+        assert worker.phase == expected
         assert await engine.broker.list_orders() == []
         assert (
             await StoredQuoteSource(fake_clock)(InstrumentRef("TEST", Exchange.NSE, Segment.CASH))

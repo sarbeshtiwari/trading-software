@@ -249,7 +249,7 @@ class MarketStatusCheck(HealthCheck):
             "server_time_ist": now.isoformat(),
         }
 
-        warning = calendar.completeness_warning(now.year)
+        warning = calendar.session_warning(now.date()) or calendar.completeness_warning(now.year)
         if warning:
             # A missing holiday makes the system think a closed market is open.
             return HealthStatus.DEGRADED, warning, context

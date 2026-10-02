@@ -26,6 +26,8 @@ def entry_window(moment, settings, *, calendar=None):
     calendar = calendar or get_trading_calendar()
     now = moment.astimezone(IST)
     identity = {"calendar_source": calendar.source}
+    if calendar.session_warning(now.date()):
+        return EntryWindow(phase="SPECIAL_SESSION_UNAVAILABLE", **identity)
     if not calendar.is_year_complete(now.year):
         return EntryWindow(phase="CALENDAR_UNAVAILABLE", **identity)
     bounds = session_bounds(now.date(), calendar=calendar)

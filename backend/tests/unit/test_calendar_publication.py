@@ -29,7 +29,8 @@ def test_confirmed_cash_holidays_do_not_include_settlement_only_dates():
     for day in (date(2026, 3, 3), date(2026, 5, 28), date(2026, 9, 14)):
         assert calendar.is_holiday(day)
     assert not calendar.is_holiday(date(2026, 4, 1))
-    assert calendar.special_session(date(2026, 11, 8)) is None
+    assert not calendar.special_session(date(2026, 11, 8)).hours_available
+    assert calendar.session_warning(date(2026, 11, 8)) is not None
     assert not calendar.is_year_complete(2026)
 
 
