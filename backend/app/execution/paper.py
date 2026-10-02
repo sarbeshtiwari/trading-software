@@ -829,7 +829,21 @@ class PaperExecution:
             await self._unknown(identifier)
             await self._order_discrepancy(order, None, "REFERENCE_NOT_OBSERVED")
             raise SafetyError("ORDER_UNKNOWN_NO_BLIND_RESUBMISSION")
-        fills = await self.broker.list_trades(remote.broker_order_id, order.segment)
+        try:
+            fills = await self.broker.list_trades(remote.broker_order_id, order.segment)
+        except Exception:
+            await self._unknown(identifier)
+            await self._order_discrepancy(order, remote, "BROKER_TRADES_UNAVAILABLE")
+            raise
+        refusal = None
+        if remote.filled_quantity < order.filled_quantity:
+            refusal = "FILL_REGRESSION"
+        elif order.status.is_terminal and remote.status != order.status:
+            refusal = "TERMINAL_ORDER_STATUS_MISMATCH"
+        if refusal:
+            await self._unknown(identifier)
+            await self._order_discrepancy(order, remote, refusal)
+            raise SafetyError(refusal)
         if (
             remote.quantity != order.quantity
             or remote.trading_symbol != order.trading_symbol
@@ -1539,6 +1553,10 @@ class PaperExecution:
                     "quantity", "trading_symbol", "transaction_type", "product",
                     "segment", "exchange", "order_type", "price",
                 )):
+                    inconsistent.append(order)
+                elif remote_order.filled_quantity < order.filled_quantity or (
+                    order.status.is_terminal and remote_order.status != order.status
+                ):
                     inconsistent.append(order)
             if untracked:
                 await discrepancies.observe_order_failure(

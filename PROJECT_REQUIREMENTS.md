@@ -51,6 +51,13 @@ Evidence reads fail closed above the configured audit-chain capacity rather than
 silently verifying a truncated chain. REC-003/004 remain partial; general order
 reconciliation and scalable archival verification are not implied.
 
+PAPER order-recovery evidence now includes terminal-status disagreement, regressed
+filled quantity and unavailable trade retrieval. These refuse synchronization
+before applying fills and retain discrepancy evidence. Fresh account reconciliation
+also rejects terminal-state/quantity regressions; ordinary in-flight updates still
+use the OMS transition rules. `test_order_discrepancies.py` verifies persisted
+positions/fills remain unchanged after refusals. REC-002 remains partial.
+
 Each requirement has a stable ID of the form `AREA-NNN`. IDs are **never reused or renumbered** once approved. New requirements are appended with the next free number in their area.
 
 | Prefix | Area | Prefix | Area |

@@ -5983,3 +5983,27 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   fill-regression recovery. Current request-term comparison intentionally does not
   treat a normal in-flight status update as corruption. Preserve valid pending
   synchronization while refusing unsafe regressions and retaining exact evidence.
+
+### Terminal order and fill-recovery refusal (2026-10-03)
+
+- Prior checkpoint **ff36c5d1c91db60619d478c4535b51ccda5fd302** is pushed and
+  remote-verified on origin/main, owner-author only. PAPER synchronization now
+  retains unavailable trade-list evidence and refuses regressed filled quantity
+  or changed terminal status before applying fills. Terminal local state is not
+  rewritten to UNKNOWN; the durable discrepancy independently blocks entry.
+- Fresh reconciliation rejects the same terminal-status/quantity regressions,
+  preventing owner resolution against a still-inconsistent broker snapshot.
+  Existing normal partial-fill/restart/exit behavior remains covered. No forced
+  resubmission, fabricated fill, automatic economic repair or live broker call.
+- Targeted order/execution selection **25 passed**. Additional assertions prove
+  refused reports leave persisted position quantities, prices, P&L, charges and
+  fill rows unchanged. Broad regression **792 passed / 0 failed / 0 skipped**,
+  one existing warning, session 86137 finished; log
+  `backend/logs/order-recovery-regression.txt`. New test module passes Ruff.
+- Frontend unchanged: prior **62 passed**, build successful. Counts remain
+  **228 verified / 142 partial / 10 unverified / 153 not started**. No requirement
+  promotion, M1/M2 or external verification claim; full-suite baseline is 1699.
+- Next: freeze source/tests and run full backend acceptance with actual existing
+  PostgreSQL, Redis and Edge enabled for the accumulated reconciliation changes.
+  Observe the exact process to completion; then fix failures or continue remaining
+  recovery acceptance. Do not restart a quiet test process.
