@@ -10,13 +10,13 @@ API-backed React dashboard. It is **not production-complete or LIVE-ready**.
 
 | Contract status | Requirements |
 |---|---:|
-| Implemented, tested and integrated | 227 |
-| Partial | 128 |
+| Implemented, tested and integrated | 226 |
+| Partial | 129 |
 | Implemented but not fully verified | 13 |
 | Not started | 165 |
 | Total | 533 |
 
-43% of requirements meet the strict verified ledger status. This is not a
+42% of requirements meet the strict verified ledger status. This is not a
 weighted estimate of development effort or an assertion of production readiness.
 
 ## What works in verified application tests

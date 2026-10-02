@@ -4881,3 +4881,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: verify the production exchange calendar against authoritative exchange
   sources and persist its provenance; continue market-data readiness without
   bypassing the unresolved Groww 403 or enabling real orders.
+
+### Source-grounded calendar corrections (2026-10-02)
+
+- Inspected official NSE CMTR71775/FAOP71777 annual circulars, CMTR72260 election
+  amendment and CMTR72349 Budget special-session circular. Recorded source URLs,
+  publication dates, actual 2026 holidays and the 09:15-15:30 February 1 session.
+  Did not confuse settlement-only closures (e.g. April 1) with CASH holidays.
+- Added timezone-aware `as_of` loading and per-entry availability filters;
+  publication time without an official intraday timestamp conservatively becomes
+  next-day midnight IST. Future amendments/special sessions are not injected into
+  earlier calendar snapshots. Legacy entries remain explicitly unverified.
+- No inferred Muhurat hours: November 8 timing remains unavailable in the checked
+  official circulars. BSE/full-segment and 2027 coverage still require verification.
+  `complete` stays false, so runtime calendar gates are not weakened.
+- Corrected EXCH-001 from verified to partial because the contract explicitly
+  requires current AND next-year NSE/BSE coverage. Counts now **226 verified /
+  129 partial / 13 unverified / 165 not started**; no requirement removed.
+- Focused calendar/session/maintenance tests: **37 passed / 0 failed / 0 skipped**.
+  Complete backend suite launched as execution session **78042**, log
+  `backend/logs/full-runtime-calendar-checkpoint.txt`; poll, do not restart.
+- Next: finish authoritative exchange/segment calendar coverage and date-scoped
+  unavailable special-session handling, while full regression runs. Groww data
+  403 remains external/unresolved; no orders or fabricated market evidence.

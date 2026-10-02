@@ -2,30 +2,52 @@
   "_comment": [
     "NSE/BSE trading holidays (EXCH-001).",
     "",
-    "INCOMPLETE BY DESIGN. Only fixed-date national holidays are listed here,",
-    "because those are the only ones that can be stated without consulting the",
-    "exchange circular. Most Indian market holidays follow lunar calendars",
-    "(Holi, Diwali/Laxmi Pujan, Eid, Gurunanak Jayanti, ...) and their dates",
-    "change every year. Inventing them would be worse than leaving them out:",
-    "the system would believe the market is open when it is closed.",
+    "NSE capital-market 2026 dates checked against official circulars on 2026-10-02.",
+    "BSE and full segment coverage are not yet independently verified.",
+    "2026 Muhurat session timing remains unavailable; never infer its hours.",
+    "Publication times are conservatively represented by next-day midnight IST.",
+    "Entries without availability remain legacy unverified data.",
     "",
     "ACTION REQUIRED: replace `complete: false` with the full list from the",
     "official NSE holiday circular for each year, then set `complete: true`.",
     "The calendar raises a health warning while a year is marked incomplete."
   ],
   "source": "https://www.nseindia.com/resources/exchange-communication-holidays",
-  "updated": "2026-09-18",
+  "updated": "2026-10-02",
+  "verified_sources": [
+    {"id": "CMTR71775", "published_on": "2025-12-12", "url": "https://nsearchives.nseindia.com/content/circulars/CMTR71775.pdf", "scope": "NSE CASH 2026 holidays"},
+    {"id": "FAOP71777", "published_on": "2025-12-12", "url": "https://nsearchives.nseindia.com/content/circulars/FAOP71777.pdf", "scope": "NSE FNO base 2026 holidays"},
+    {"id": "CMTR72260", "published_on": "2026-01-12", "url": "https://nsearchives.nseindia.com/content/circulars/CMTR72260.pdf", "scope": "NSE CASH election closure"},
+    {"id": "CMTR72349", "published_on": "2026-01-16", "url": "https://nsearchives.nseindia.com/content/circulars/CMTR72349.pdf", "scope": "NSE CASH budget session"}
+  ],
   "years": {
     "2026": {
       "complete": false,
       "holidays": [
-        { "date": "2026-01-26", "name": "Republic Day" },
-        { "date": "2026-05-01", "name": "Maharashtra Day" },
-        { "date": "2026-08-15", "name": "Independence Day" },
-        { "date": "2026-10-02", "name": "Gandhi Jayanti" },
-        { "date": "2026-12-25", "name": "Christmas" }
+        { "date": "2026-01-15", "name": "Municipal Corporation Election", "source_id": "CMTR72260", "available_at": "2026-01-13T00:00:00+05:30" },
+        { "date": "2026-01-26", "name": "Republic Day", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-02-15", "name": "Mahashivratri", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-03-03", "name": "Holi", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-03-21", "name": "Id-Ul-Fitr", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-03-26", "name": "Ram Navami", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-03-31", "name": "Mahavir Jayanti", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-04-03", "name": "Good Friday", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-04-14", "name": "Ambedkar Jayanti", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-05-01", "name": "Maharashtra Day", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-05-28", "name": "Bakri Id", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-06-26", "name": "Muharram", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-08-15", "name": "Independence Day", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-09-14", "name": "Ganesh Chaturthi", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-10-02", "name": "Gandhi Jayanti", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-10-20", "name": "Dussehra", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-11-08", "name": "Diwali - special session hours unavailable", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-11-10", "name": "Diwali Balipratipada", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-11-24", "name": "Guru Nanak Jayanti", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" },
+        { "date": "2026-12-25", "name": "Christmas", "source_id": "CMTR71775", "available_at": "2025-12-13T00:00:00+05:30" }
       ],
-      "special_sessions": []
+      "special_sessions": [
+        {"date": "2026-02-01", "name": "Union Budget", "start": "09:15", "end": "15:30", "source_id": "CMTR72349", "available_at": "2026-01-17T00:00:00+05:30"}
+      ]
     },
     "2027": {
       "complete": false,

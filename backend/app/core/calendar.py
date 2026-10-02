@@ -19,7 +19,7 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Iterable, Optional
 
-from app.core.clock import ensure_ist
+from app.core.clock import ensure_ist, get_clock
 from app.core.errors import ConfigurationError
 from app.core.logging import get_logger
 
@@ -67,7 +67,9 @@ class TradingCalendar:
     # --- Construction -----------------------------------------------------
 
     @classmethod
-    def from_file(cls, path: Optional[Path] = None) -> "TradingCalendar":
+    def from_file(
+        cls, path: Optional[Path] = None, *, as_of: Optional[datetime] = None
+    ) -> "TradingCalendar":
         resolved = Path(path or DEFAULT_HOLIDAY_FILE)
         if not resolved.exists():
             raise ConfigurationError(
@@ -76,6 +78,18 @@ class TradingCalendar:
                 context={"path": str(resolved)},
             )
         data = json.loads(resolved.read_text(encoding="utf-8"))
+        cutoff = as_of or get_clock().now()
+        if cutoff.tzinfo is None:
+            raise ConfigurationError("Calendar as_of must be timezone-aware")
+
+        def available(row):
+            published = row.get("available_at")
+            if published is None:
+                return True
+            moment = datetime.fromisoformat(published)
+            if moment.tzinfo is None:
+                raise ConfigurationError("Calendar availability must be timezone-aware")
+            return moment <= cutoff
 
         holidays: list[Holiday] = []
         specials: list[SpecialSession] = []
@@ -86,8 +100,12 @@ class TradingCalendar:
             if year_data.get("complete"):
                 complete.append(year)
             for row in year_data.get("holidays", []):
+                if not available(row):
+                    continue
                 holidays.append(Holiday(day=date.fromisoformat(row["date"]), name=row["name"]))
             for row in year_data.get("special_sessions", []):
+                if not available(row):
+                    continue
                 specials.append(
                     SpecialSession(
                         day=date.fromisoformat(row["date"]),
@@ -176,9 +194,9 @@ class TradingCalendar:
         known = sum(1 for day in self._holidays if day.year == year)
         return (
             f"Holiday data for {year} is marked incomplete ({known} dates known). "
-            f"Lunar-calendar holidays are missing, so the system may believe the market "
-            f"is open on a closed day. Update data/holidays.json from "
-            f"{self.source or 'the exchange circular'} and set complete=true."
+            f"Exchange/segment coverage or special-session timings remain unverified. "
+            f"Verify data/holidays.json against {self.source or 'the exchange circular'} "
+            f"before marking the calendar complete."
         )
 
 
