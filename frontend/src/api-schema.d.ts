@@ -2838,6 +2838,11 @@ export interface components {
         EventFailureView: {
             /** Status */
             status: string;
+            /**
+             * Publication Status
+             * @default NOT_RUNNING
+             */
+            publication_status: string;
             /** Retained Count */
             retained_count?: number | null;
             /**

@@ -34,8 +34,8 @@ pending work and retry budgets across consumer recreation. Enable them with
 
 ## Remaining integration
 
-ARCH-016 and ERR-006 remain partial. Runtime producer/outbox integration and
-durable alert linkage are pending.
+ARCH-016 and ERR-006 remain partial. Runtime producer/consumer integration and
+complete operational acceptance remain pending.
 Do not connect non-idempotent order placement directly to this transport. The
 existing deterministic risk/OMS workflow remains authoritative and unchanged.
 
@@ -54,12 +54,35 @@ payloads, arbitrary handler labels and exception messages remain withheld. The
 UI polls every ten seconds, clears failed reads, labels truncated history and
 does not equate an empty dead-letter stream with healthy runtime delivery.
 This is read-only: no replay, acknowledgment, deletion or trading control is
-offered. Durable audit/notification publication is the next integration step;
-neither this read API nor a visible alert proves external notification delivery.
+offered. Neither this read API nor a visible alert proves external notification delivery.
 
 Acceptance includes actual Redis failed-handler retention, authenticated API
 access, metadata non-disclosure and actual Edge rendering. Test keys are uniquely
 prefixed; production streams are never deleted or overwritten by these tests.
+
+## Audit and notification publication
+
+Application startup starts a separate bounded background publisher. It reads at
+most fifty retained records per cycle and persists a sanitized audit record and
+critical notification request using the existing outbox. It does not send directly
+to a remote channel. Its operation runs with a ten-second deadline and five-second
+poll interval; shutdown cancels it and releases its owned Redis connection.
+
+The last verified audit-chain entry is the cursor. Cursor progress, failure
+evidence and notification requests commit in the same database transaction. A
+failed enqueue rolls the entire batch back; restart reads the same source entries
+again. Concurrent cursor changes fail rather than overwrite. Invalid/tampered or
+future cursor evidence stops publication. Read APIs never advance this cursor.
+The cursor is scoped by configured Redis identity, stream and monitoring mode.
+That monitoring mode is not verification of an original event's trading mode.
+
+Monitoring exposes NOT_RUNNING, STARTING, PUBLISHING or
+EVENT_PUBLICATION_UNAVAILABLE for this publisher independently of retained counts.
+PUBLISHING is audit/outbox operation, not proof of remote delivery or fully wired
+runtime events. Remote notification configuration and routing remain authoritative.
+Integration tests verify actual Redis plus PostgreSQL temporary-table rollback,
+restart idempotency, tamper rejection and bounded background lifecycle. Runtime
+OMS/strategy event production is still the next integration dependency.
 
 Reference semantics: [Redis XAUTOCLAIM](https://redis.io/docs/latest/commands/xautoclaim/)
 and [Redis XACK](https://redis.io/docs/latest/commands/xack/).

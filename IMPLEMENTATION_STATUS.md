@@ -5677,3 +5677,29 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   durable cursor, atomic cursor/notification persistence, restart idempotency and
   database-failure recovery. Reuse existing notification/audit services, and keep
   reads free of side effects. Then wire runtime event producers/consumers.
+
+### Retained failures publish into durable audit/outbox (2026-10-03)
+
+- Inspection checkpoint **71d8e8f** is pushed and remote-verified. Added an
+  application-lifecycle background publisher using the existing audit/outbox
+  services. A verified audit chain carries its cursor; each bounded batch commits
+  receipt evidence and notification requests atomically. No direct channel send.
+- Restart does not duplicate committed notifications. Enqueue/database failure
+  rolls cursor progress back; tampered/future cursor evidence fails closed.
+  Monitoring displays publisher state separately from Redis availability, without
+  claiming external notification delivery or original event trading-mode identity.
+  Shared sanitized summaries keep raw payloads out of API/audit/notification text.
+- Real Redis + isolated database publication/restart/lifecycle **2 passed**.
+  Actual PostgreSQL temporary-table rollback and actual Redis/API/Edge selection
+  **2 passed**. Broader unit/safety/auth regression **764 passed**, one existing
+  warning; `backend/logs/event-publication-regression.txt`, session 30607 finished.
+  Frontend **54 passed**, production build successful. New modules pass Ruff.
+  Tests caught an invalid severity enum during development; corrected to existing
+  CRITICAL before final acceptance. No live broker or remote-delivery claim.
+- Counts unchanged: **228 verified / 139 partial / 10 unverified / 156 not
+  started**. ARCH-016/ERR-006 remain partial for runtime event integration and
+  full operational acceptance. Last whole-suite baseline remains 1683 at 249a032.
+- Exact next task: integrate transactional runtime event production with the
+  existing durable OMS/audit commits and Redis publication, then connect operational
+  dashboard consumers. Publication must not precede database commit or authorize
+  broker orders, and Redis outages must preserve retryable outbox evidence.
