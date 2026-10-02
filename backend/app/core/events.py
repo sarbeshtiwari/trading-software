@@ -120,7 +120,9 @@ EventHandler = Callable[[Event], Awaitable[None]]
 class EventBus(Protocol):
     async def publish(self, event: Event) -> None: ...
 
-    def subscribe(self, event_type: EventType, handler: EventHandler, *, name: str = "") -> None: ...
+    def subscribe(
+        self, event_type: EventType, handler: EventHandler, *, name: str = ""
+    ) -> None: ...
 
     async def start(self) -> None: ...
 
@@ -226,6 +228,8 @@ class RedisStreamEventBus(_BaseBus):
         consumer: str = "worker",
         max_attempts: int = 3,
         block_ms: int = 1000,
+        claim_idle_ms: int = 60000,
+        handler_timeout_seconds: float = 5,
     ) -> None:
         super().__init__(max_attempts=max_attempts)
         self._redis = redis_client
@@ -233,11 +237,23 @@ class RedisStreamEventBus(_BaseBus):
         self._group = group
         self._consumer = consumer
         self._block_ms = block_ms
+        if block_ms <= 0 or claim_idle_ms <= 0 or handler_timeout_seconds <= 0:
+            raise ValueError("positive stream timing limits required")
+        self._claim_idle_ms = claim_idle_ms
+        self._handler_timeout = handler_timeout_seconds
         self._tasks: list[asyncio.Task[None]] = []
         self._running = False
 
     def _stream(self, event_type: EventType) -> str:
         return f"{self._prefix}:{event_type.value}"
+
+    def subscribe(self, event_type: EventType, handler: EventHandler, *, name: str = "") -> None:
+        label = name or getattr(handler, "__qualname__", "")
+        if self._running or not label or any(
+            existing == label for existing, _handler in self.handlers_for(event_type)
+        ):
+            raise ValueError("register unique stable consumer names before starting Redis bus")
+        super().subscribe(event_type, handler, name=label)
 
     async def publish(self, event: Event) -> None:
         await self._redis.xadd(
@@ -246,9 +262,12 @@ class RedisStreamEventBus(_BaseBus):
         )
 
     async def start(self) -> None:
-        self._running = True
+        if self._running:
+            return
         for event_type in list(self._handlers):
             await self._ensure_group(event_type)
+        self._running = True
+        for event_type in list(self._handlers):
             self._tasks.append(asyncio.create_task(self._consume(event_type)))
 
     async def _ensure_group(self, event_type: EventType) -> None:
@@ -262,8 +281,20 @@ class RedisStreamEventBus(_BaseBus):
 
     async def _consume(self, event_type: EventType) -> None:
         stream = self._stream(event_type)
+        cursor = "0-0"
         while self._running:
             try:
+                claimed = await self._redis.xautoclaim(
+                    stream,
+                    self._group,
+                    self._consumer,
+                    self._claim_idle_ms,
+                    start_id=cursor,
+                    count=10,
+                )
+                cursor = claimed[0]
+                for entry_id, fields in claimed[1]:
+                    await self._process_entry(event_type, entry_id, fields)
                 response = await self._redis.xreadgroup(
                     self._group,
                     self._consumer,
@@ -271,34 +302,89 @@ class RedisStreamEventBus(_BaseBus):
                     count=10,
                     block=self._block_ms,
                 )
+                for _stream_name, entries in response or []:
+                    for entry_id, fields in entries:
+                        await self._process_entry(event_type, entry_id, fields)
             except asyncio.CancelledError:  # pragma: no cover - shutdown
                 raise
             except Exception as exc:  # noqa: BLE001
                 logger.error(
-                    "Event stream read failed", extra={"stream": stream, "error": str(exc)}
+                    "Event stream processing failed; unacknowledged work remains pending",
+                    extra={"stream": stream, "error_type": type(exc).__name__},
                 )
                 await asyncio.sleep(1.0)
                 continue
 
-            for _stream_name, entries in response or []:
-                for entry_id, fields in entries:
-                    raw = fields.get(b"data") or fields.get("data")
-                    if isinstance(raw, bytes):
-                        raw = raw.decode()
-                    try:
-                        event = Event.from_dict(json.loads(raw))
-                    except Exception as exc:  # noqa: BLE001
-                        logger.error(
-                            "Undecodable event; acknowledging to avoid a poison loop",
-                            extra={"stream": stream, "entry_id": str(entry_id), "error": str(exc)},
-                        )
-                        await self._redis.xack(stream, self._group, entry_id)
-                        continue
+    async def _retain_failure(self, stream, entry_id, raw, handler, reason):
+        await self._redis.xadd(
+            f"{self._prefix}:dead-letter",
+            {
+                "stream": stream,
+                "group": self._group,
+                "entry_id": entry_id,
+                "handler": handler,
+                "reason": reason,
+                "data": raw or b"",
+            },
+        )
+        logger.error(
+            "Event retained in durable dead-letter stream",
+            extra={
+                "stream": stream,
+                "entry_id": str(entry_id),
+                "handler": handler,
+            },
+        )
 
-                    await self._dispatch(event)
-                    # Acked after dispatch: handlers that failed have already been
-                    # dead-lettered with their error recorded.
-                    await self._redis.xack(stream, self._group, entry_id)
+    async def _process_entry(self, event_type, entry_id, fields):
+        stream = self._stream(event_type)
+        raw = fields.get(b"data", fields.get("data"))
+        try:
+            data = json.loads(raw)
+            if (
+                not isinstance(data.get("id"), str)
+                or not data["id"]
+                or not data.get("occurred_at")
+                or not isinstance(data.get("payload"), dict)
+            ):
+                raise ValueError("missing event identity")
+            event = Event.from_dict(data)
+            if event.type != event_type or event.occurred_at.utcoffset() is None:
+                raise ValueError("invalid event envelope")
+        except (ValueError, TypeError, KeyError, AttributeError):
+            await self._retain_failure(stream, entry_id, raw, "decoder", "INVALID_ENVELOPE")
+            await self._redis.xack(stream, self._group, entry_id)
+            return
+        identity = entry_id.decode() if isinstance(entry_id, bytes) else entry_id
+        receipt = f"{stream}:{self._group}:receipt:{identity}"
+        for label, handler in self.handlers_for(event_type):
+            await self._deliver_durable(
+                event, handler, label, receipt, stream=stream, entry_id=entry_id, raw=raw
+            )
+        await self._redis.xack(stream, self._group, entry_id)
+        await self._redis.delete(receipt)
+
+    async def _deliver_durable(self, event, handler, label, receipt, *, stream, entry_id, raw):
+        if await self._redis.hexists(receipt, f"done:{label}"):
+            return
+        failure = "RETRY_BUDGET_EXHAUSTED"
+        while True:
+            attempts = await self._redis.hincrby(receipt, f"attempts:{label}", 1)
+            if attempts > self._max_attempts:
+                break
+            try:
+                await asyncio.wait_for(handler(event), timeout=self._handler_timeout)
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:
+                failure = type(error).__name__
+                if attempts < self._max_attempts:
+                    await asyncio.sleep(min(0.1 * attempts, 1.0))
+                continue
+            await self._redis.hset(receipt, f"done:{label}", "DELIVERED")
+            return
+        await self._retain_failure(stream, entry_id, raw, label, failure)
+        await self._redis.hset(receipt, f"done:{label}", "DEAD_LETTER")
 
     async def stop(self) -> None:
         self._running = False

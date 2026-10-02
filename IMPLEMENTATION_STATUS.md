@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 138 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 157 | |
+| `[~]` In progress | 139 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 156 | |
 | **Total** | **533** | |
 
 ---
@@ -5624,3 +5624,31 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - PAPER remains default. Groww read-only data access still has an unresolved
   observed 403; live execution, external delivery, profitability and time-based
   PAPER validation are not inferred from these tests.
+
+### Redis pending and poison-event recovery (2026-10-03)
+
+- Full acceptance checkpoint **249a032** is pushed and remote-verified. Repaired
+  existing RedisStreamEventBus rather than replacing it: pending entries can be
+  reclaimed after consumer interruption, handler attempts and completion receipts
+  survive consumer recreation, and handlers have bounded timeouts.
+- Failed handlers and malformed/raw-byte events are retained in a Redis
+  dead-letter stream before acknowledgment. If retention fails, original work
+  remains pending. Retry budget survives that failure/restart. Healthy handlers
+  still receive the event. Stable unique handler names are required before start;
+  repeated start is idempotent. No raw payload/exception message is logged here.
+- Actual Redis isolated-prefix tests **4 passed / 0 failed / 0 skipped**. They
+  use existing infrastructure, no FLUSHDB or container recreation. Concurrency
+  unit selection **15 passed**; broader unit/safety/worker/quote regression
+  **765 passed**, one existing warning; log `backend/logs/redis-recovery-regression.txt`.
+  Sessions 49967 and 37577 finished. Test scopes overlap. Existing event-file
+  legacy lint warnings remain; no blanket clean-lint claim. Frontend unchanged
+  from 52 passing tests/build. Last full suite remains 1683 at the prior checkpoint.
+- Delivery remains at-least-once: crash windows can redeliver side effects or
+  duplicate retained failures. Consumers must be idempotent; this transport is
+  not order authorization. Redis-server disaster recovery is not certified.
+- ERR-006 moves to partial; ARCH-016 remains partial. Counts **228 verified /
+  139 partial / 10 unverified / 156 not started**. See `docs/EVENT_DELIVERY.md`.
+- Exact next task: connect durable dead-letter inspection and health/alert
+  visibility to authenticated Monitoring using existing notification/audit
+  services, then wire transactional runtime event production and consumers.
+  Do not claim integrated operational delivery while publishers remain unwired.
