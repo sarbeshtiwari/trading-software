@@ -37,7 +37,7 @@ class Candle(Base):
     __table_args__ = (
         sa.PrimaryKeyConstraint("instrument_id", "interval_minutes", "ts", name="pk_candles"),
         sa.Index("ix_candles_instrument_ts", "instrument_id", "ts"),
-        sa.Index("candles_ts_idx", sa.text("ts DESC")),
+        sa.Index("candles_ts_idx", sa.column("ts").desc()),
         sa.CheckConstraint("high >= low", name="high_ge_low"),
         sa.CheckConstraint("interval_minutes > 0", name="interval_positive"),
         sa.CheckConstraint("volume >= 0", name="volume_non_negative"),

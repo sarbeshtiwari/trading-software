@@ -5132,3 +5132,51 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: stable-source full backend/browser regression, then the remaining PAPER
   runtime readiness and market/calendar gaps. Groww price HTTP 403 and incomplete
   exchange coverage remain external/unverified; no live orders or arming.
+
+- Published replacement checkpoint: **00527ce** on **main**, pushed successfully
+  to the existing `origin`; remote hash verified. Author is the configured
+  `sarbeshtiwari`, no co-author. Worker startup/review regression also passed
+  **6 / 0 / 0**. Unrelated README/chat/test-line-ending changes were excluded.
+- Full backend plus opt-in browser regression is running as execution session
+  **56875**, log `backend/logs/full-replacement-checkpoint.txt`. Poll that handle;
+  do not restart because output is quiet. Keep application/schema source stable.
+- Read-only next-dependency inspection identified a calendar correctness gap:
+  per-row publication timestamps are filtered, but year completeness is not
+  availability-scoped. After the stable regression, address point-in-time
+  completeness and date-scoped unknown special sessions without guessing
+  exchange times or declaring BSE/2027 coverage verified.
+
+- Read-only reproduction while the full suite runs: an in-memory deterministic
+  calendar with year `available_at=2026-01-13` and a matching dated holiday,
+  loaded as of January 12, incorrectly reports `is_year_complete(2026)=True`
+  with `holiday_count=0`. No production calendar or market data was modified.
+  This confirms the point-in-time completeness defect independently of a
+  proposed fix. Preserve source until session 56875 completes, then add the
+  failing boundary test and fix availability-scoped completeness.
+- Bounded official-source follow-up: BSE notice 20251212-8 still returns HTTP403
+  through the documentation fetch. NSE's current holiday page still says
+  November 8 Muhurat timings will be notified subsequently. No hours inferred,
+  no BSE/next-year completeness claim, no additional Groww token/data retries.
+
+- Full-suite observation: session **56875** remains live after six consecutive
+  five-minute waits. Progress advanced from 8% to **35%**, with skips but no
+  failure markers in the captured progress. This is not a passing result.
+  Continue polling the same session; it has not been restarted or terminated.
+
+### Full-suite result and cross-dialect index correction (2026-10-02)
+
+- Session **56875 is finished**: **1618 passed / 1 failed / 7 skipped**, three
+  warnings, 56m03s. Do not poll it as running. Log:
+  `backend/logs/full-replacement-checkpoint.txt`. This is not a green baseline.
+- Failure: SQLite migration roundtrip compared a reflected column index with
+  the textual `ts DESC` metadata expression and falsely reported remove/add
+  drift. Replaced the textual expression with a structured descending column
+  expression; the actual descending index is retained, not excluded from checks.
+- SQLite regime/migration regression: **4 passed**. Actual PostgreSQL fresh
+  install, drift detection and database-schema/safety selection: **25 passed /
+  0 failed / 0 skipped**. No migration rewrite or owner-data change was needed.
+  The failing full-suite scenario now passes; no new complete-suite success is
+  claimed. Frontend unchanged from 42 passing tests/build/browser verification.
+- Requirements unchanged: 229 verified / 130 partial / 10 unverified / 164 not
+  started. Next: fix the independently reproduced calendar completeness
+  look-ahead defect and verify source availability/session gates.
