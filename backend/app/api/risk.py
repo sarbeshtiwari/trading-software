@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 import sqlalchemy as sa
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import Field
 
 from app.analysis.equity import EvidenceModel
@@ -14,6 +14,7 @@ from app.core.data_origin import DataOrigin
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent, ConfigChange
 from app.db.models.config import RiskConfigVersion
+from app.db.models.decision import RiskDecision
 from app.db.models.system import SINGLETON_ID, SystemState
 from app.fno.restrictions import BanAdmission, BanState
 from app.fno.restrictions import admit as admit_ban
@@ -28,6 +29,7 @@ from app.risk.event_controls import EventControlChange, EventControlState
 from app.risk.event_controls import list_states as event_states
 from app.risk.event_controls import publish as publish_events
 from app.risk.event_controls import state_at as event_state
+from app.risk.inspection import RiskDecisionInspection, RiskDecisionPage, index, inspect_decision
 from app.risk.instrument_blocks import InstrumentBlockChange, InstrumentBlockState, list_states
 from app.risk.instrument_blocks import configure as configure_instrument_block
 from app.risk.instrument_blocks import state as instrument_block_state
@@ -37,6 +39,35 @@ from app.risk.safety import RiskSafety
 from app.risk.state import RiskUtilisation, utilisation
 
 router = APIRouter(prefix="/risk", tags=["risk"])
+
+
+@router.get("/decisions", response_model=RiskDecisionPage)
+async def list_risk_decisions(offset: int = Query(default=0, ge=0)):
+    async with db_session.session_scope() as session:
+        rows = list(
+            await session.scalars(
+                sa.select(RiskDecision)
+                .where(
+                    RiskDecision.mode == get_settings().trading_mode,
+                    RiskDecision.evaluated_at <= get_clock().utcnow(),
+                )
+                .order_by(RiskDecision.evaluated_at.desc(), RiskDecision.id.desc())
+                .offset(offset)
+                .limit(51)
+            )
+        )
+    return RiskDecisionPage(items=tuple(index(row) for row in rows[:50]), has_more=len(rows) > 50)
+
+
+@router.get("/decisions/{identifier}", response_model=RiskDecisionInspection)
+async def read_risk_decision(identifier: str):
+    if not 1 <= len(identifier) <= 40:
+        raise HTTPException(422, "Invalid decision identifier")
+    async with db_session.session_scope() as session:
+        result = await inspect_decision(session, identifier, get_settings().trading_mode)
+    if result is None:
+        raise HTTPException(404, "Risk decision unavailable")
+    return result
 
 
 @router.get("/utilisation", response_model=RiskUtilisation)

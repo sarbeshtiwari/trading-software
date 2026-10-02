@@ -2801,6 +2801,92 @@
         }
       }
     },
+    "/api/v1/risk/decisions": {
+      "get": {
+        "tags": [
+          "risk"
+        ],
+        "summary": "List Risk Decisions",
+        "operationId": "list_risk_decisions_api_v1_risk_decisions_get",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDecisionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/risk/decisions/{identifier}": {
+      "get": {
+        "tags": [
+          "risk"
+        ],
+        "summary": "Read Risk Decision",
+        "operationId": "read_risk_decision_api_v1_risk_decisions__identifier__get",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskDecisionInspection"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/risk/utilisation": {
       "get": {
         "tags": [
@@ -6424,6 +6510,83 @@
         ],
         "title": "DataOrigin",
         "description": "Where a datum came from."
+      },
+      "Decision": {
+        "properties": {
+          "entry_policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EntryEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "formula_version": {
+            "type": "string",
+            "enum": [
+              "1.0.0",
+              "1.1.0"
+            ],
+            "title": "Formula Version",
+            "default": "1.0.0"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          },
+          "binding_rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Rule"
+          },
+          "rejection_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Code"
+          },
+          "approved_quantity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Approved Quantity"
+          },
+          "risk_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Risk Amount"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleResult"
+            },
+            "type": "array",
+            "title": "Rules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approved",
+          "binding_rule",
+          "rejection_code",
+          "approved_quantity",
+          "risk_amount",
+          "rules"
+        ],
+        "title": "Decision"
       },
       "DecisionView": {
         "properties": {
@@ -13234,6 +13397,134 @@
         ],
         "title": "RevisionView"
       },
+      "RiskDecisionIndex": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Evaluated At"
+          },
+          "is_preflight": {
+            "type": "boolean",
+            "title": "Is Preflight"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "proposal_id",
+          "evaluated_at",
+          "is_preflight"
+        ],
+        "title": "RiskDecisionIndex"
+      },
+      "RiskDecisionInspection": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "evaluated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Evaluated At"
+          },
+          "is_preflight": {
+            "type": "boolean",
+            "title": "Is Preflight"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DataOrigin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "configuration_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Version"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Decision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "historical_only": {
+            "type": "boolean",
+            "title": "Historical Only",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "proposal_id",
+          "evaluated_at",
+          "is_preflight",
+          "status",
+          "mode"
+        ],
+        "title": "RiskDecisionInspection"
+      },
+      "RiskDecisionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RiskDecisionIndex"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "title": "RiskDecisionPage"
+      },
       "RiskLimits": {
         "properties": {
           "version": {
@@ -13668,6 +13959,51 @@
           "status"
         ],
         "title": "RiskUtilisation"
+      },
+      "RuleResult": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "rejection_code": {
+            "type": "string",
+            "title": "Rejection Code"
+          },
+          "inputs": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Inputs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rule",
+          "passed",
+          "rejection_code",
+          "inputs"
+        ],
+        "title": "RuleResult"
       },
       "RunDetail": {
         "properties": {

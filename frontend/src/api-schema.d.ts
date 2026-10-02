@@ -810,6 +810,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/risk/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Risk Decisions */
+        get: operations["list_risk_decisions_api_v1_risk_decisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/risk/decisions/{identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Risk Decision */
+        get: operations["read_risk_decision_api_v1_risk_decisions__identifier__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/risk/utilisation": {
         parameters: {
             query?: never;
@@ -2186,6 +2220,28 @@ export interface components {
          * @enum {string}
          */
         DataOrigin: "LIVE" | "HISTORICAL" | "REPLAY" | "SYNTHETIC";
+        /** Decision */
+        Decision: {
+            entry_policy?: components["schemas"]["EntryEvidence"] | null;
+            /**
+             * Formula Version
+             * @default 1.0.0
+             * @enum {string}
+             */
+            formula_version: "1.0.0" | "1.1.0";
+            /** Approved */
+            approved: boolean;
+            /** Binding Rule */
+            binding_rule: string | null;
+            /** Rejection Code */
+            rejection_code: string | null;
+            /** Approved Quantity */
+            approved_quantity: number;
+            /** Risk Amount */
+            risk_amount: string;
+            /** Rules */
+            rules: components["schemas"]["RuleResult"][];
+        };
         /** DecisionView */
         DecisionView: {
             /** Id */
@@ -4333,6 +4389,54 @@ export interface components {
              */
             occurred_at: string;
         };
+        /** RiskDecisionIndex */
+        RiskDecisionIndex: {
+            /** Id */
+            id: string;
+            /** Proposal Id */
+            proposal_id: string;
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+            /** Is Preflight */
+            is_preflight: boolean;
+        };
+        /** RiskDecisionInspection */
+        RiskDecisionInspection: {
+            /** Id */
+            id: string;
+            /** Proposal Id */
+            proposal_id: string;
+            /**
+             * Evaluated At
+             * Format: date-time
+             */
+            evaluated_at: string;
+            /** Is Preflight */
+            is_preflight: boolean;
+            /** Status */
+            status: string;
+            /** Mode */
+            mode: string;
+            origin?: components["schemas"]["DataOrigin"] | null;
+            /** Configuration Version */
+            configuration_version?: number | null;
+            decision?: components["schemas"]["Decision"] | null;
+            /**
+             * Historical Only
+             * @default true
+             */
+            historical_only: boolean;
+        };
+        /** RiskDecisionPage */
+        RiskDecisionPage: {
+            /** Items */
+            items: components["schemas"]["RiskDecisionIndex"][];
+            /** Has More */
+            has_more: boolean;
+        };
         /** RiskLimits */
         RiskLimits: {
             /** Version */
@@ -4409,6 +4513,19 @@ export interface components {
              * @default []
              */
             metrics: components["schemas"]["UtilisationMetric"][];
+        };
+        /** RuleResult */
+        RuleResult: {
+            /** Rule */
+            rule: string;
+            /** Passed */
+            passed: boolean;
+            /** Rejection Code */
+            rejection_code: string;
+            /** Inputs */
+            inputs: {
+                [key: string]: string | number | boolean | null;
+            };
         };
         /** RunDetail */
         RunDetail: {
@@ -6965,6 +7082,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmergencyResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_risk_decisions_api_v1_risk_decisions_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskDecisionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_risk_decision_api_v1_risk_decisions__identifier__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskDecisionInspection"];
                 };
             };
             /** @description Validation Error */

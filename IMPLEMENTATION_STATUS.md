@@ -5420,3 +5420,34 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   the same dashboard, including rejected proposals, without reinterpreting an
   old approval as current order authorization. Then progress market-view/chart
   integration using stored, provenance-labelled observations rather than fake LTP.
+
+### Receipt-bound risk decisions in the existing Risk view (2026-10-02)
+
+- Prior checkpoint **d5a82be** is pushed and remote-verified. Added authenticated
+  paginated decision index and typed inspection API, consumed by the existing
+  Risk page. Initial/preflight evaluations show actual engine inputs and limits,
+  per-trade risk, formula/configuration identity and binding rejection rules.
+  Historical approval is explicitly not current execution permission.
+- New shared-pipeline, standalone risk and PAPER preflight writes atomically bind
+  a digest of database-normalized decision values into the audit ledger. Reads
+  require the receipt and deterministic replay; corrupted or legacy-unsealed rows
+  cannot appear verified. Preflight receipt failure rolls back before submission.
+- Tests exposed an actual SQLite timestamp defect: initial decisions stored IST
+  wall time while reads compared UTC. Both initial writers now normalize to UTC.
+  New decisions are visible at the correct instant; future decisions are hidden.
+  Legacy timestamps/receipts are not rewritten or retroactively certified.
+- Focused inspection: **6 passed**. Expanded unit/safety/pipeline/OMS/risk/audit/
+  journal/replacement regression: **854 passed / 0 failed / 0 skipped**, one
+  existing warning; `backend/logs/risk-inspection-regression.txt`. Actual PostgreSQL
+  receipt/numeric reload/tampering test: **1 passed**, rollback-only temporary
+  tables on the existing server. Actual Edge: **1 passed**, including rejected
+  per-trade inspection and prior stale/latch polling. Frontend: **45 passed**,
+  production build successful. Scoped counts overlap; no new full-suite claim.
+- RISK-020 and FE-011 remain partial: inspection is historical, not all-limit live
+  utilisation. Counts unchanged: **229 verified / 134 partial / 10 unverified /
+  160 not started**. Groww LIVE, external notification delivery and M1/M2 remain
+  unverified/incomplete. Owner changes remain outside this checkpoint.
+- Next: connect the existing Market view to stored instrument/candle observations
+  with explicit origin, availability and closed-bar boundaries, then add charts
+  using backend indicator values. Reuse existing ingestion/storage; no fake LTP,
+  inferred missing candles or new parallel market-data service.

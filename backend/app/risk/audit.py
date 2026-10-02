@@ -1,10 +1,12 @@
 """Persist complete risk decisions outside the pure engine and verify replay."""
 
+from app.agents.validation import _utc
 from app.db import session as db_session
 from app.db.models.decision import RiskDecision
 from app.risk.config import RiskLimits
 from app.risk.engine import evaluate
 from app.risk.entry_policy import apply_entry_policy
+from app.risk.evidence import bind_decision
 from app.risk.models import Decision, MarketState, PortfolioState, RiskProposal
 
 
@@ -38,11 +40,12 @@ class RiskAudit:
                 approved_quantity=decision.approved_quantity,
                 risk_amount=decision.risk_amount,
                 mode=market.mode,
-                evaluated_at=market.as_of,
+                evaluated_at=_utc(market.as_of),
                 is_preflight=is_preflight,
             )
             session.add(row)
             await session.flush()
+            await bind_decision(session, row)
             return row.id, decision
 
     async def replay(self, identifier: str) -> Decision:

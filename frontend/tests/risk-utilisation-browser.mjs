@@ -16,6 +16,12 @@ try {
   await panel.getByText('PAPER / SYNTHETIC: AVAILABLE', { exact: true }).waitFor();
   assert.equal(await panel.getByRole('progressbar').count(), 6);
   assert.match(await panel.innerText(), /gross exposure: 25000/);
+  const evidence = page.getByRole('region', { name: 'Decision risk evidence', exact: true });
+  await evidence.getByRole('button', { name: `Inspect risk ${process.argv[3]}`, exact: true }).click();
+  const inspected = evidence.getByRole('article', { name: 'Inspected risk decision', exact: true });
+  await inspected.getByText('AUDIT_BOUND_REPLAY_VERIFIED', { exact: true }).waitFor();
+  await inspected.getByText(/^Per-trade risk \/ limit: 502(?:\.0+)? \/ 500(?:\.0+)?$/).waitFor();
+  await inspected.getByText('HISTORICAL REJECTION — PER_TRADE_RISK_EXCEEDED', { exact: true }).waitFor();
   console.log('RISK_AVAILABLE');
   await panel.getByText('PAPER / SYNTHETIC: ACCOUNT_EVIDENCE_STALE', { exact: true }).waitFor({ timeout: 35000 });
   await panel.getByText('TRADING DISARMED — RISK_ERROR_LATCHED', { exact: true }).waitFor();

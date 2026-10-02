@@ -66,6 +66,7 @@ from app.risk.audit import RiskAudit
 from app.risk.engine import evaluate
 from app.risk.entry_history import load_entry_history
 from app.risk.entry_policy import apply_entry_policy, entry_rules
+from app.risk.evidence import bind_decision
 from app.risk.models import BookLevel, Exposure, PortfolioState, RiskProposal
 from app.risk.safety import RiskSafety
 from app.strategies.base import StrategySpec
@@ -525,7 +526,7 @@ class PaperExecution:
                 },
             )
             session.add(preflight)
-            await session.flush()
+            await bind_decision(session, preflight, clock=self.clock, actor="paper_preflight")
             if decision.approved:
                 event_control = await self.safety.require_entries_in_session(
                     session, market, limits, strategy_id=proposal.strategy_id

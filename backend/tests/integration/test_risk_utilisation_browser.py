@@ -6,8 +6,11 @@ from datetime import timedelta
 
 import pytest
 
+from app.risk.audit import RiskAudit
 from tests.integration.test_paper_browser import ROOT, credentials, live_dashboard
 from tests.integration.test_paper_execution import setup_execution
+from tests.unit.test_risk import limits, market, portfolio
+from tests.unit.test_risk import proposal as risk_proposal
 
 __all__ = ["credentials", "live_dashboard"]
 
@@ -19,10 +22,14 @@ async def test_actual_risk_utilisation_polling(db_engine, credentials, fake_cloc
     try:
         await engine.submit(proposal)
         await engine.monitor_once()
+        rejected_id, _decision = await RiskAudit().evaluate_and_record(
+            risk_proposal(quantity=251), portfolio(), market(), limits()
+        )
         process = await asyncio.create_subprocess_exec(
             "node",
             str(ROOT / "frontend/tests/risk-utilisation-browser.mjs"),
             live_dashboard,
+            rejected_id,
             env={**os.environ, "ATS_TEST_OWNER_PASSWORD": credentials[1]},
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

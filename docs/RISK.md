@@ -73,3 +73,24 @@ identity. Strategy counts apply only to the strategy named in that observation.
 Per-candidate risk, concentration, liquidity, margin and other market-dependent
 rule utilisation still require fuller dashboard integration; RISK-020 and FE-011
 remain partial. No LIVE account values or permission are inferred from PAPER.
+
+## Historical decision inspection
+
+The Risk view also lists initial evaluations and execution preflights through
+authenticated `/api/v1/risk/decisions` and `/api/v1/risk/decisions/{id}`. The list
+is bounded and paginated; future evaluations and other modes are excluded.
+Inspection displays the actual engine's per-trade amount/limit, every evaluated
+rule's inputs, binding rejection rule, configuration and formula version.
+
+New pipeline, standalone risk and PAPER preflight decisions receive an immutable
+digest receipt in their existing transaction. Receipts bind database-normalized
+values, including exact persisted numeric precision. Inspection requires both
+receipt integrity and deterministic replay. Receipt failure rolls back the
+decision; preflight receipt failure cannot submit an order. Initial evaluation
+timestamps are normalized to UTC before storage, including SQLite.
+
+Legacy rows are not silently sealed or certified: `LEGACY_UNSEALED` withholds the
+verified conclusion. Corruption and replay mismatch also withhold it. No legacy
+timestamp migration is inferred from naive timestamps. Historical approval is
+never current execution authorization: current quotes, limits, sizing, risk and
+preflight must still pass. This view is not full live utilisation of every limit.

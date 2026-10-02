@@ -38,6 +38,7 @@ from app.risk.engine import evaluate
 from app.risk.entry_history import load_entry_history
 from app.risk.entry_policy import apply_entry_policy
 from app.risk.event_controls import EventControlError, require_event_entries
+from app.risk.evidence import bind_decision
 from app.risk.instrument_blocks import InstrumentEntryError, require_instrument_entries
 from app.risk.models import EvidenceTime, MarketState, PortfolioState, RiskProposal
 from app.risk.news_halts import NewsHaltError, require_no_news_halt
@@ -317,26 +318,28 @@ class DecisionPipeline:
                 )
             )
             if decision:
-                session.add(
-                    RiskDecision(
-                        proposal_id=identifier,
-                        approved=decision.approved,
-                        binding_rule=decision.binding_rule,
-                        rejection_code=decision.rejection_code,
-                        approved_quantity=quantity,
-                        risk_amount=decision.risk_amount,
-                        risk_config_version=context.limits.version,
-                        mode=context.market.mode,
-                        evaluated_at=context.market.as_of,
-                        rules_evaluated=[rule.model_dump(mode="json") for rule in decision.rules],
-                        state_snapshot={
-                            "proposal": risk_proposal.model_dump(mode="json"),
-                            "portfolio": context.portfolio.model_dump(mode="json"),
-                            "market": context.market.model_dump(mode="json"),
-                            "config": context.limits.model_dump(mode="json"),
-                            "decision": decision.model_dump(mode="json"),
-                        },
-                    )
+                recorded_risk = RiskDecision(
+                    proposal_id=identifier,
+                    approved=decision.approved,
+                    binding_rule=decision.binding_rule,
+                    rejection_code=decision.rejection_code,
+                    approved_quantity=quantity,
+                    risk_amount=decision.risk_amount,
+                    risk_config_version=context.limits.version,
+                    mode=context.market.mode,
+                    evaluated_at=_utc(context.market.as_of),
+                    rules_evaluated=[rule.model_dump(mode="json") for rule in decision.rules],
+                    state_snapshot={
+                        "proposal": risk_proposal.model_dump(mode="json"),
+                        "portfolio": context.portfolio.model_dump(mode="json"),
+                        "market": context.market.model_dump(mode="json"),
+                        "config": context.limits.model_dump(mode="json"),
+                        "decision": decision.model_dump(mode="json"),
+                    },
+                )
+                session.add(recorded_risk)
+                await bind_decision(
+                    session, recorded_risk, clock=self.validator.clock, actor="decision_pipeline"
                 )
             session.add(candidate)
             await AuditService(self.validator.clock).append_in_session(

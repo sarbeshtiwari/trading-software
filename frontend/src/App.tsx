@@ -14,6 +14,7 @@ import { FnoBanPanel } from './FnoBanPanel';
 import { RuntimeReadinessPanel } from './RuntimeReadinessPanel';
 import { OrderControls } from './OrderControls';
 import { RiskUtilisationPanel } from './RiskUtilisationPanel';
+import { RiskDecisionPanel } from './RiskDecisionPanel';
 
 const pages = ['Dashboard', 'Positions', 'Orders', 'Strategies', 'Risk', 'Market / F&O', 'Decisions', 'Journal', 'Audit', 'Monitoring', 'Backtests'] as const;
 type Page = typeof pages[number];
@@ -58,6 +59,7 @@ function RiskPanel({ api, onChange }: { api: Api; onChange: () => void }) {
     <label>Reason<input value={reason} onChange={event => setReason(event.target.value)} /></label>
     <label>Data origin<select aria-label="Data origin" value={origin} onChange={event => setOrigin(event.target.value)}>{['LIVE', 'HISTORICAL', 'REPLAY', 'SYNTHETIC'].map(item => <option key={item}>{item}</option>)}</select></label>
     <RiskUtilisationPanel api={api} origin={origin} />
+    <RiskDecisionPanel api={api} />
     <label>Type REARM PAPER RISK<input value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>
     <button disabled={busy || confirmation !== 'REARM PAPER RISK' || reason.length < 10} onClick={() => void mutate('rearm')}>Request authenticated re-arm</button>
     <details><summary>Versioned risk configuration</summary><p>No capital is assumed. Supply an explicitly approved configuration; increment its version when changing it.</p>
