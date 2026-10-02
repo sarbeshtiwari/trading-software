@@ -15,6 +15,7 @@ import { RuntimeReadinessPanel } from './RuntimeReadinessPanel';
 import { OrderControls } from './OrderControls';
 import { RiskUtilisationPanel } from './RiskUtilisationPanel';
 import { RiskDecisionPanel } from './RiskDecisionPanel';
+import { MarketPanel } from './MarketPanel';
 
 const pages = ['Dashboard', 'Positions', 'Orders', 'Strategies', 'Risk', 'Market / F&O', 'Decisions', 'Journal', 'Audit', 'Monitoring', 'Backtests'] as const;
 type Page = typeof pages[number];
@@ -184,7 +185,7 @@ export function App({ api: supplied }: { api?: Api }) {
         {page === 'Backtests' && <HistoricalPanel api={api} />}
         {page === 'Audit' && <AuditPanel api={api} />}
         {page === 'Monitoring' && <><RuntimeReadinessPanel api={api} /><Records rows={data.components} /><h2>Durable notification outcomes</h2><p>A channel acknowledgement is not independently verified message delivery. Pending/failed notices do not imply a trading failure.</p><Records rows={data.notifications ?? []} /><PaperSummaryPanel api={api} /></>}
-        {page === 'Market / F&O' && <><p>Recorded option-chain summaries; indices, Greeks and futures views remain unavailable until connected.</p><Records rows={data.chains} /><NewsSourcesPanel api={api} /></>}
+        {page === 'Market / F&O' && <><MarketPanel api={api} /><p>Recorded option-chain summaries; live indices, Greeks and futures views remain unavailable until connected.</p><Records rows={data.chains} /><NewsSourcesPanel api={api} /></>}
         {page === 'Risk' && <RiskPanel api={api} onChange={() => void load()} />}</>}
     </main></div>;
 }

@@ -1436,6 +1436,150 @@
         }
       }
     },
+    "/api/v1/market/instruments": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Instruments",
+        "operationId": "instruments_api_v1_market_instruments_get",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "default": "",
+              "title": "Query"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/market/candles/{instrument_id}": {
+      "get": {
+        "tags": [
+          "market"
+        ],
+        "summary": "Candles",
+        "operationId": "candles_api_v1_market_candles__instrument_id__get",
+        "parameters": [
+          {
+            "name": "instrument_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "name": "origin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/DataOrigin"
+            }
+          },
+          {
+            "name": "interval",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Interval"
+            }
+          },
+          {
+            "name": "as_of",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 300,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandleChart"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/news/research/{instrument_id}": {
       "get": {
         "tags": [
@@ -5874,6 +6018,58 @@
         ],
         "title": "CancellationObservation"
       },
+      "CandleChart": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/DataOrigin"
+          },
+          "interval_minutes": {
+            "type": "integer",
+            "title": "Interval Minutes"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "bars": {
+            "items": {
+              "$ref": "#/components/schemas/ChartBar"
+            },
+            "type": "array",
+            "title": "Bars",
+            "default": []
+          },
+          "discontinuities": {
+            "type": "integer",
+            "title": "Discontinuities",
+            "default": 0
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "Stored observations only; not live LTP or tradability. No missing bars are inferred."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "origin",
+          "interval_minutes",
+          "as_of",
+          "status"
+        ],
+        "title": "CandleChart"
+      },
       "CashContractSource": {
         "properties": {
           "instrument_id": {
@@ -6006,6 +6202,75 @@
           "data_origin"
         ],
         "title": "ChainView"
+      },
+      "ChartBar": {
+        "properties": {
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Closed At"
+          },
+          "ingested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ingested At"
+          },
+          "open": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Open"
+          },
+          "high": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "High"
+          },
+          "low": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Low"
+          },
+          "close": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Close"
+          },
+          "volume": {
+            "type": "integer",
+            "title": "Volume"
+          },
+          "sma20": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma20"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ts",
+          "closed_at",
+          "ingested_at",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume",
+          "sma20"
+        ],
+        "title": "ChartBar"
       },
       "Claim": {
         "properties": {
@@ -9206,6 +9471,28 @@
         ],
         "title": "InstrumentBlockState"
       },
+      "InstrumentPage": {
+        "properties": {
+          "instruments": {
+            "items": {
+              "$ref": "#/components/schemas/MarketInstrument"
+            },
+            "type": "array",
+            "title": "Instruments"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instruments",
+          "has_more"
+        ],
+        "title": "InstrumentPage"
+      },
       "InterpretRequest": {
         "properties": {
           "expected_event_id": {
@@ -10056,6 +10343,45 @@
           "minimum_days_to_expiry"
         ],
         "title": "LongOptionContractSource"
+      },
+      "MarketInstrument": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "symbol": {
+            "type": "string",
+            "title": "Symbol"
+          },
+          "exchange": {
+            "type": "string",
+            "title": "Exchange"
+          },
+          "segment": {
+            "type": "string",
+            "title": "Segment"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "restricted": {
+            "type": "boolean",
+            "title": "Restricted"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "symbol",
+          "exchange",
+          "segment",
+          "active",
+          "restricted"
+        ],
+        "title": "MarketInstrument"
       },
       "MarketRegime": {
         "type": "string",

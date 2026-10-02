@@ -13,7 +13,7 @@ longer investigation.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Sequence
 
 import sqlalchemy as sa
@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.clock import Clock, ensure_ist, get_clock
+from app.core.clock import UTC, Clock, ensure_ist, get_clock
 from app.core.data_origin import DataOrigin
 from app.core.logging import get_logger
 from app.db import session as db_session
@@ -137,6 +137,40 @@ class CandleStore:
 
     # --- Read -------------------------------------------------------------
 
+    async def closed_observations(
+        self,
+        instrument_id: str,
+        interval_minutes: int,
+        *,
+        origin: DataOrigin,
+        as_of: datetime,
+        limit: int = 300,
+    ) -> list[Candle]:
+        if (
+            as_of.tzinfo is None
+            or as_of > self._clock.now()
+            or interval_minutes <= 0
+            or not 1 <= limit <= 1000
+        ):
+            raise ValueError("Invalid closed-candle observation request")
+        async with db_session.session_scope() as session:
+            rows = list(
+                await session.scalars(
+                    sa.select(Candle)
+                    .where(
+                        Candle.instrument_id == instrument_id,
+                        Candle.interval_minutes == interval_minutes,
+                        Candle.data_origin == origin,
+                        Candle.ts <= ensure_ist(as_of - timedelta(minutes=interval_minutes)),
+                        Candle.ingested_at.is_not(None),
+                        Candle.ingested_at <= as_of.astimezone(UTC),
+                    )
+                    .order_by(Candle.ts.desc())
+                    .limit(limit)
+                )
+            )
+        return list(reversed(rows))
+
     async def read(
         self,
         instrument_id: str,
@@ -236,13 +270,17 @@ class CandleStore:
     ) -> set[datetime]:
         async with db_session.session_scope() as session:
             rows = (
-                await session.execute(
-                    sa.select(Candle.ts).where(
-                        Candle.instrument_id == instrument_id,
-                        Candle.interval_minutes == interval_minutes,
-                        Candle.ts >= ensure_ist(start),
-                        Candle.ts <= ensure_ist(end),
+                (
+                    await session.execute(
+                        sa.select(Candle.ts).where(
+                            Candle.instrument_id == instrument_id,
+                            Candle.interval_minutes == interval_minutes,
+                            Candle.ts >= ensure_ist(start),
+                            Candle.ts <= ensure_ist(end),
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
         return {ensure_ist(ts) for ts in rows}

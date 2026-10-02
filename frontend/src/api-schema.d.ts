@@ -414,6 +414,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/market/instruments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Instruments */
+        get: operations["instruments_api_v1_market_instruments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/market/candles/{instrument_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Candles */
+        get: operations["candles_api_v1_market_candles__instrument_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/news/research/{instrument_id}": {
         parameters: {
             query?: never;
@@ -1992,6 +2026,36 @@ export interface components {
             /** Error */
             error: string | null;
         };
+        /** CandleChart */
+        CandleChart: {
+            /** Instrument Id */
+            instrument_id: string;
+            origin: components["schemas"]["DataOrigin"];
+            /** Interval Minutes */
+            interval_minutes: number;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Status */
+            status: string;
+            /**
+             * Bars
+             * @default []
+             */
+            bars: components["schemas"]["ChartBar"][];
+            /**
+             * Discontinuities
+             * @default 0
+             */
+            discontinuities: number;
+            /**
+             * Scope
+             * @default Stored observations only; not live LTP or tradability. No missing bars are inferred.
+             */
+            scope: string;
+        };
         /** CashContractSource */
         CashContractSource: {
             /** Instrument Id */
@@ -2036,6 +2100,36 @@ export interface components {
             max_pain_strike: string | null;
             /** Data Origin */
             data_origin: string;
+        };
+        /** ChartBar */
+        ChartBar: {
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /**
+             * Closed At
+             * Format: date-time
+             */
+            closed_at: string;
+            /**
+             * Ingested At
+             * Format: date-time
+             */
+            ingested_at: string;
+            /** Open */
+            open: string;
+            /** High */
+            high: string;
+            /** Low */
+            low: string;
+            /** Close */
+            close: string;
+            /** Volume */
+            volume: number;
+            /** Sma20 */
+            sma20: string | null;
         };
         /** Claim */
         Claim: {
@@ -3007,6 +3101,13 @@ export interface components {
              */
             catalog_evidence: "CURRENT_CATALOG_NOT_VERIFIED_EXCHANGE_BAN";
         };
+        /** InstrumentPage */
+        InstrumentPage: {
+            /** Instruments */
+            instruments: components["schemas"]["MarketInstrument"][];
+            /** Has More */
+            has_more: boolean;
+        };
         /** InterpretRequest */
         InterpretRequest: {
             /** Expected Event Id */
@@ -3300,6 +3401,21 @@ export interface components {
             kind: "LONG_OPTION";
             /** Minimum Days To Expiry */
             minimum_days_to_expiry: number;
+        };
+        /** MarketInstrument */
+        MarketInstrument: {
+            /** Id */
+            id: string;
+            /** Symbol */
+            symbol: string;
+            /** Exchange */
+            exchange: string;
+            /** Segment */
+            segment: string;
+            /** Active */
+            active: boolean;
+            /** Restricted */
+            restricted: boolean;
         };
         /**
          * MarketRegime
@@ -6191,6 +6307,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JournalDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    instruments_api_v1_market_instruments_get: {
+        parameters: {
+            query?: {
+                query?: string;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstrumentPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    candles_api_v1_market_candles__instrument_id__get: {
+        parameters: {
+            query: {
+                origin: components["schemas"]["DataOrigin"];
+                interval?: number;
+                as_of?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandleChart"];
                 };
             };
             /** @description Validation Error */

@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 134 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 160 | |
+| `[~]` In progress | 135 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 159 | |
 | **Total** | **533** | |
 
 ---
@@ -5451,3 +5451,29 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   with explicit origin, availability and closed-bar boundaries, then add charts
   using backend indicator values. Reuse existing ingestion/storage; no fake LTP,
   inferred missing candles or new parallel market-data service.
+
+### Stored candle charts reach the existing Market view (2026-10-02)
+
+- Added authenticated instrument catalog and closed-candle APIs over the existing
+  ingestion store. Origin, closed-bar time and ingestion-time filters exclude
+  future/unavailable observations. Invalid windows are withheld; stale and empty
+  states remain explicit. Current revisions are not a versioned candle archive.
+- Existing Market view renders real Lightweight Charts candlesticks and backend
+  SMA20 with selectable interval, origin, instrument search and bounded polling.
+  Restricted/inactive catalog entries are labelled, never granted permission.
+  Full scope and time conventions: `docs/MARKET_VIEW.md`.
+- Actual browser testing caught integer Literal query parameters rejecting the
+  browser's explicit interval. Replaced them with parsed integers and a checked
+  interval allowlist; API and actual Edge acceptance now pass.
+- API/store selection: **24 passed** before the query correction; final direct
+  API **2 passed**. Actual PostgreSQL **1 passed**, actual Edge **1 passed**.
+  Expanded unit/safety/store/reference-worker/chart regression: **788 passed /
+  0 failed / 0 skipped**, one existing warning; session 58305 finished, log
+  `backend/logs/market-chart-regression.txt`. Frontend **47 passed**, production
+  build successful. No new full-suite or external market verification claim.
+- FE-005 moves to partial, not complete: instrument fundamentals remain pending.
+  FE-004's live WebSocket watchlist is not delivered by a stored chart. Counts:
+  **229 verified / 135 partial / 10 implemented-unverified / 159 not started**.
+- Exact next task: connect source-grounded point-in-time fundamentals to the
+  selected instrument using the existing fundamentals store/API, typed response
+  contracts and explicit unavailable/stale evidence. Do not invent vendor data.
