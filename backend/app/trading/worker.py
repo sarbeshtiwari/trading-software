@@ -31,6 +31,7 @@ from app.execution.paper import PaperExecution
 from app.execution.replacement_state import recover_replacements
 from app.marketdata.live import LiveMarketDataProvider
 from app.marketdata.models import DepthLevel, Quote
+from app.marketdata.stored_quotes import stored_quote
 from app.modes import TradingMode
 from app.monitoring.gate import get_trading_gate
 from app.news.reactions import cycle as news_reaction_cycle
@@ -83,6 +84,9 @@ class StoredQuoteSource:
         self.clock = clock or get_clock()
 
     async def __call__(self, instrument):
+        observation = await stored_quote(instrument, as_of=self.clock.utcnow())
+        if observation is not None:
+            return observation
         async with db_session.session_scope() as session:
             row = await session.scalar(
                 sa.select(Tick)

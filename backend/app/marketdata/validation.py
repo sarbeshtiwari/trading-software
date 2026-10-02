@@ -17,6 +17,7 @@ from enum import Enum
 from typing import Optional, Sequence
 
 from app.core.logging import get_logger
+from app.marketdata.circuits import circuit_status
 from app.marketdata.models import Bar, Quote
 
 logger = get_logger("marketdata.validation")
@@ -121,16 +122,9 @@ def validate_quote(
     if quote.open_interest is not None and quote.open_interest < 0:
         result.add(Anomaly.NEGATIVE_OPEN_INTEREST, f"oi={quote.open_interest}")
 
-    if quote.upper_circuit is not None and quote.ltp > quote.upper_circuit:
-        result.add(
-            Anomaly.OUTSIDE_CIRCUIT,
-            f"ltp {quote.ltp} is above the upper circuit {quote.upper_circuit}",
-        )
-    if quote.lower_circuit is not None and quote.ltp < quote.lower_circuit:
-        result.add(
-            Anomaly.OUTSIDE_CIRCUIT,
-            f"ltp {quote.ltp} is below the lower circuit {quote.lower_circuit}",
-        )
+    circuit = circuit_status(quote, [quote.ltp, *(level.price for level in (*quote.bids, *quote.asks))])
+    if circuit not in {"AVAILABLE", "UNAVAILABLE"}:
+        result.add(Anomaly.OUTSIDE_CIRCUIT, circuit)
 
     if previous_price is not None and previous_price > 0:
         move = abs(quote.ltp - previous_price) / previous_price * Decimal(100)

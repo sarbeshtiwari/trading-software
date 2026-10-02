@@ -161,7 +161,16 @@ slippage, so it cannot manufacture a fill outside a supplied band.
 
 Two missing bounds are explicitly recorded as `UNAVAILABLE`, never derived from
 previous close or replaced by invented percentages. This is not complete circuit
-protection: the stored-tick/replay paths do not yet preserve all provider circuit
+protection: legacy tick-only and candle-only replay inputs have no circuit
 evidence, and missing-band admission policy remains unresolved. Live execution
 remains locked. EXCH-005 stays partial until source persistence, dispatch-time
 refresh and complete acceptance are verified.
+
+The stored quote source now prefers complete provider observations already
+persisted by reference ingestion in the hash-chained audit. It checks the chain,
+instrument, origin, publication and observation chronology before reconstructing
+the quote; no new quote timestamp is invented. Query cutoffs normalize to UTC
+for SQLite/PostgreSQL consistency. Recording roundtrips preserve the same bands
+and replay exposes them only after publication. Invalid source bands are rejected
+at ingestion. Legacy tick-only fallback still has unavailable bands; this is
+not a claim that those ticks acquired circuit evidence retroactively.

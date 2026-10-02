@@ -5245,3 +5245,28 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: persist and reconstruct provider circuit evidence through ingestion,
   stored observations and historical replay, then enforce dispatch-time updates
   and define explicit unavailable-band safety behavior before completing EXCH-005.
+
+### Recover complete provider circuit evidence (2026-10-02)
+
+- Inspection verified that reference ingestion and typed recordings already
+  retain full quote fields, including circuit bands. Reused those records rather
+  than adding duplicate quote storage or a migration. StoredQuoteSource now
+  prefers complete LIVE-origin observations from the existing PAPER ingestion
+  audit, verifies their hash chain, and checks identity/provenance/chronology.
+  Legacy sampled ticks remain only a fallback without invented band values.
+- A failing cutoff test caught UTC-versus-IST SQL comparison behavior on SQLite;
+  normalized aware query cutoffs to UTC and reject naive cutoffs. Future records
+  are not reconstructed. Recording roundtrip/replay preserves bands and requires
+  the real replay publication step. Audit tampering fails closed.
+- Source validation now rejects malformed, nonfinite, reversed and partial
+  bands before ingestion/recording, using the same pure supplied-band checker.
+  Deterministic external fixtures are confined to tests, including LIVE-origin
+  parser/source tests; they do not claim a real market response.
+- Unit/ingestion/worker/circuit regression: **774 passed / 0 failed / 0 skipped**,
+  one existing serializer warning. Final stored-source selection: **4 passed**.
+  Counts remain **229 verified / 131 partial / 10 unverified / 163 not started**.
+  No full-suite, live-data or frontend-browser claim added.
+- Next: revalidate current bands immediately before dispatch, and explicitly
+  refuse unavailable bands for market-fed entry authorization while retaining
+  truthful historical-source limitations; verify no-broker-call refusal and
+  failure/recovery behavior through the existing OMS before upgrading EXCH-005.
