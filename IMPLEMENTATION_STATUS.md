@@ -4904,3 +4904,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: finish authoritative exchange/segment calendar coverage and date-scoped
   unavailable special-session handling, while full regression runs. Groww data
   403 remains external/unresolved; no orders or fabricated market evidence.
+
+### Operational blockers exposed in existing Monitoring view (2026-10-02)
+
+- Official BSE annual-notice lookup was unavailable; no BSE verification claimed.
+  Continued independent runtime/UI work rather than weakening calendar gates.
+- Added authenticated typed `/api/v1/system/readiness`, reporting actual gate
+  blockers, worker configuration/state, cached health age, calendar warning,
+  persisted/restricted catalog counts and latest nonfuture snapshot audit/source.
+  It makes no broker calls and never claims that catalog presence permits trading.
+- Connected the existing Monitoring page to this endpoint with 10-second polling,
+  loading/error/unavailable states and explicit stale health. Failed requests
+  clear old displayed readiness rather than retaining a misleading healthy state.
+  No additional page or hardcoded trading values. OpenAPI client regenerated.
+- Backend API/boot selection: **13 passed / 0 failed / 0 skipped**. Frontend:
+  **37 passed**, TypeScript and production build successful. Actual browser
+  acceptance for this new panel remains unverified; prior lifecycle browser
+  evidence is not claimed as a new run.
+- Full backend suite session **78042** is still running; latest observed progress
+  9%, no final outcome yet. Do not restart based on quiet buffered output.
+- Requirement counts unchanged (**226 verified / 129 partial / 13 unverified /
+  165 not started**). FE-015 remains partial. Next: complete runtime acceptance
+  and inspect full-suite failures, then continue safe market-data/PAPER operation;
+  BSE/calendar gaps and Groww JSON 403 remain explicitly unresolved.

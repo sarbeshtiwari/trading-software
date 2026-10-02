@@ -6,6 +6,27 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/system/readiness": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Readiness",
+        "operationId": "readiness_api_v1_system_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeReadinessView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -13312,6 +13333,143 @@
           "has_more"
         ],
         "title": "RunsView"
+      },
+      "RuntimeReadinessView": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "trading_mode": {
+            "type": "string",
+            "title": "Trading Mode"
+          },
+          "execution_worker_enabled": {
+            "type": "boolean",
+            "title": "Execution Worker Enabled"
+          },
+          "worker_state": {
+            "type": "string",
+            "title": "Worker State"
+          },
+          "entry_gate_open": {
+            "type": "boolean",
+            "title": "Entry Gate Open"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blockers"
+          },
+          "health_state": {
+            "type": "string",
+            "title": "Health State"
+          },
+          "health_checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Checked At"
+          },
+          "calendar_warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calendar Warning"
+          },
+          "instrument_count": {
+            "type": "integer",
+            "title": "Instrument Count"
+          },
+          "restricted_instrument_count": {
+            "type": "integer",
+            "title": "Restricted Instrument Count"
+          },
+          "instrument_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Snapshot Id"
+          },
+          "instrument_snapshot_received_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Snapshot Received At"
+          },
+          "instrument_snapshot_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Snapshot Source"
+          },
+          "instrument_snapshot_audit_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instrument Snapshot Audit Verified"
+          },
+          "groww_live_execution": {
+            "type": "string",
+            "const": "UNVERIFIED",
+            "title": "Groww Live Execution",
+            "default": "UNVERIFIED"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "trading_mode",
+          "execution_worker_enabled",
+          "worker_state",
+          "entry_gate_open",
+          "blockers",
+          "health_state",
+          "health_checked_at",
+          "calendar_warning",
+          "instrument_count",
+          "restricted_instrument_count",
+          "instrument_snapshot_id",
+          "instrument_snapshot_received_at",
+          "instrument_snapshot_source",
+          "instrument_snapshot_audit_verified"
+        ],
+        "title": "RuntimeReadinessView"
       },
       "SampleView": {
         "properties": {

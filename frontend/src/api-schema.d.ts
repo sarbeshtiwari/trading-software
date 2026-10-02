@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/system/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness */
+        get: operations["readiness_api_v1_system_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -4285,6 +4302,48 @@ export interface components {
              */
             scope: string;
         };
+        /** RuntimeReadinessView */
+        RuntimeReadinessView: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Trading Mode */
+            trading_mode: string;
+            /** Execution Worker Enabled */
+            execution_worker_enabled: boolean;
+            /** Worker State */
+            worker_state: string;
+            /** Entry Gate Open */
+            entry_gate_open: boolean;
+            /** Blockers */
+            blockers: string[];
+            /** Health State */
+            health_state: string;
+            /** Health Checked At */
+            health_checked_at: string | null;
+            /** Calendar Warning */
+            calendar_warning: string | null;
+            /** Instrument Count */
+            instrument_count: number;
+            /** Restricted Instrument Count */
+            restricted_instrument_count: number;
+            /** Instrument Snapshot Id */
+            instrument_snapshot_id: string | null;
+            /** Instrument Snapshot Received At */
+            instrument_snapshot_received_at: string | null;
+            /** Instrument Snapshot Source */
+            instrument_snapshot_source: string | null;
+            /** Instrument Snapshot Audit Verified */
+            instrument_snapshot_audit_verified: boolean | null;
+            /**
+             * Groww Live Execution
+             * @default UNVERIFIED
+             * @constant
+             */
+            groww_live_execution: "UNVERIFIED";
+        };
         /** SampleView */
         SampleView: {
             /**
@@ -5040,6 +5099,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    readiness_api_v1_system_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeReadinessView"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;

@@ -64,8 +64,10 @@ On 2026-10-02:
 - Latest full baseline: **1526 passed, 0 failed, 3 PostgreSQL-only skipped**.
 - Latest affected research regression: **800 passed, 0 failed, 0 skipped**.
 - Readiness regression: **792 passed, 0 failed, 0 skipped**.
-- Frontend: **35 passed**; production build succeeds; actual Edge lifecycle tests
+- Frontend: **37 passed**; production build succeeds; actual Edge lifecycle tests
   cover PAPER, historical/OOS and research cancellation.
+- Monitoring now includes API-backed runtime readiness: worker enablement, entry
+  blockers, calendar coverage, stale health, catalog counts and snapshot audit.
 - GitHub: `https://github.com/sarbeshtiwari/trading-software`, branch `main`.
   Initial published snapshot: `b8a1572`, equivalent to verified local `07c5695`.
 - Publication uses the owner's configured identity without co-author trailers.

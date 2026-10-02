@@ -38,6 +38,7 @@ from app.api import reports as reports_api
 from app.api import risk as risk_api
 from app.api import strategies as strategies_api
 from app.api import system as system_api
+from app.api import readiness as readiness_api
 from app.api import workspace as workspace_api
 from app.api.deps import AuthenticationMiddleware
 from app.backtest.jobs import HistoricalJobs
@@ -191,6 +192,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.walkforward_jobs = WalkForwardJobs(app.state.historical_jobs)
     app.state.news_runtime = NewsRuntime(resolved)
     app.state.instrument_runtime = InstrumentRuntime(resolved)
+    app.include_router(readiness_api.router, prefix=API_PREFIX)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(AuthenticationMiddleware)
     app.add_middleware(
