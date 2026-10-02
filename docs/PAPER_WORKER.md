@@ -125,3 +125,17 @@ reserved proposal becomes blocked. Failed original cancellations continue throug
 the existing supervisor. Filled/partial/unknown orders and protective exits are
 not eligible. General cross-broker modification remains unimplemented; OMS-004
 is partial, not a LIVE execution certification.
+
+### Calendar publication safety
+
+File-loaded yearly completeness requires both `complete: true` and an explicit
+timezone-aware `available_at`. A future year-level publication withholds the
+year's rows and completeness until that timestamp. Undated legacy rows can
+still be inspected, but an undated completeness claim cannot enable trading.
+Later individual amendments retain their own availability cutoffs.
+
+Only set year completeness after verifying the required exchange/segment scope
+and special-session coverage against official sources. Publication timestamps
+must describe when that information was available, not the session date or an
+invented historical approval. The shipped production years remain incomplete;
+this fix does not grant runtime trading permission or infer Muhurat hours.

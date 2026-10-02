@@ -8,8 +8,9 @@
     "Publication times are conservatively represented by next-day midnight IST.",
     "Entries without availability remain legacy unverified data.",
     "",
-    "ACTION REQUIRED: replace `complete: false` with the full list from the",
-    "official NSE holiday circular for each year, then set `complete: true`.",
+    "ACTION REQUIRED: verify the full exchange/segment list and special sessions",
+    "against official circulars before setting complete=true. Record the year's",
+    "timezone-aware available_at; undated completeness is never trusted.",
     "The calendar raises a health warning while a year is marked incomplete."
   ],
   "source": "https://www.nseindia.com/resources/exchange-communication-holidays",

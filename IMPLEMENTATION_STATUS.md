@@ -5180,3 +5180,23 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Requirements unchanged: 229 verified / 130 partial / 10 unverified / 164 not
   started. Next: fix the independently reproduced calendar completeness
   look-ahead defect and verify source availability/session gates.
+
+### Calendar completeness publication gate (2026-10-02)
+
+- Fixed the reproduced look-ahead defect: file-loaded year completeness now
+  requires an explicit timezone-aware availability timestamp. A future year
+  publication withholds its rows and completeness; undated legacy completeness
+  remains unverified rather than enabling trading. Individual amendment cutoffs
+  are preserved. Shipped years remain incomplete, with no invented session times.
+- Calendar/session/entry-window/actual worker tests: **40 passed / 0 failed /
+  0 skipped**. Complete unit selection: **747 passed / 0 failed / 0 skipped**,
+  one existing serializer warning. New tests check before/exact publication,
+  missing publication and naive timestamps. Existing calendar-file roundtrip
+  fixture now declares its deterministic publication timestamp.
+- Updated calendar maintenance instructions and EXCH-001 evidence; requirement
+  remains partial and counts remain 229 / 130 / 10 / 164. Existing legacy typing
+  and global-cache lint findings in calendar.py were not silently relabeled as
+  a clean lint result or expanded into unrelated refactoring.
+- Next: represent date-scoped unavailable special sessions explicitly and expose
+  them through session/monitoring behavior; retain exchange coverage blockers.
+  Cross-dialect correction checkpoint **e08c819** was pushed and remote-verified.

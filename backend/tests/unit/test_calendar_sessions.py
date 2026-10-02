@@ -112,6 +112,7 @@ def test_calendar_file_round_trips(tmp_path: Path) -> None:
                 "years": {
                     "2026": {
                         "complete": True,
+                        "available_at": "2025-12-13T00:00:00+05:30",
                         "holidays": [{"date": "2026-03-04", "name": "Test Holiday"}],
                         "special_sessions": [
                             {

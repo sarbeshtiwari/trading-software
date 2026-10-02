@@ -97,7 +97,9 @@ class TradingCalendar:
 
         for year_text, year_data in (data.get("years") or {}).items():
             year = int(year_text)
-            if year_data.get("complete"):
+            if not available(year_data):
+                continue
+            if year_data.get("complete") is True and year_data.get("available_at") is not None:
                 complete.append(year)
             for row in year_data.get("holidays", []):
                 if not available(row):
