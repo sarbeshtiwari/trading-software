@@ -4715,3 +4715,22 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Exact next task: application readiness/startup verification against these
   services in explicitly non-executing PAPER mode, then diagnose authorized
   Groww read-only data access without sending orders.
+
+### Actual PAPER startup and instrument-source check (2026-10-02)
+
+- Published readiness checkpoint `0240c7e` to configured GitHub `main`; verified
+  configured author and no co-author trailer. Unrelated owner changes excluded.
+- Started actual Uvicorn on localhost port 8011 using process-only PAPER/paper
+  overrides, worker disabled, news polling and outbound notifications disabled.
+  Private configuration unchanged. Startup completed against Docker PostgreSQL
+  and Redis; unauthenticated HTTP request correctly returned 401.
+- Startup correctly refuses trading: instrument master is empty. Startup
+  coverage also reports missing news/order-service checks. This is not a ready
+  trading deployment or authenticated dashboard verification.
+- Existing public Groww CSV download succeeds independently of LTP HTTP 403.
+  Existing parser accepts 98,783 rows; rejects 36,501 unsupported COMMODITY rows
+  and one missing-identity row. No instrument database writes performed yet.
+  This verifies public download access, not live quotes or order execution.
+- Next: validate real CSV lot/tick/type/expiry semantics and ingestion safety
+  before populating the instrument master; then verify runtime readiness again.
+  Diagnostic Uvicorn process is tracked by execution session 77242.
