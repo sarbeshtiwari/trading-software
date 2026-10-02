@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Api } from './api';
+import { FundamentalSources } from './FundamentalSources';
 import type { components } from './api-schema';
 
 type Detail = components['schemas']['FundamentalDetail'];
@@ -25,6 +26,7 @@ export function FundamentalPanel({ api, instrument }: { api: Api; instrument: st
   }, [api, instrument, selection]);
   function submit(event: FormEvent) { event.preventDefault(); setSelection(source.trim()); }
   return <section aria-label="Instrument fundamentals"><h3>Instrument fundamentals</h3>
+    <FundamentalSources key={instrument} api={api} instrument={instrument} onSelect={value => { setSource(value); setSelection(value); }} />
     <p>Manual source evidence only. Enter the source identifier used by your imported CSV/JSON. No Groww fundamentals feed is assumed.</p>
     <form onSubmit={submit}><label>Fundamentals source<input value={source} onChange={event => setSource(event.target.value)} required /></label><button disabled={!source.trim()}>Inspect fundamentals</button></form>
     {selection && !data && !error && <p>Loading fundamental evidence…</p>}

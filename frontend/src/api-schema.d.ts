@@ -1137,6 +1137,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fundamentals/{instrument_id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sources */
+        get: operations["sources_api_v1_fundamentals__instrument_id__sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fundamentals/{instrument_id}": {
         parameters: {
             query?: never;
@@ -3067,6 +3084,37 @@ export interface components {
             };
             /** Score */
             score: string | null;
+        };
+        /** FundamentalSourceReceipt */
+        FundamentalSourceReceipt: {
+            /** Source */
+            source: string;
+            /** Record Id */
+            record_id: string;
+            /**
+             * Known At
+             * Format: date-time
+             */
+            known_at: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+        };
+        /** FundamentalSources */
+        FundamentalSources: {
+            /** Instrument Id */
+            instrument_id: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Sources */
+            sources: components["schemas"]["FundamentalSourceReceipt"][];
+            /** Has More */
+            has_more: boolean;
         };
         /** FundamentalView */
         FundamentalView: {
@@ -7971,6 +8019,40 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    sources_api_v1_fundamentals__instrument_id__sources_get: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FundamentalSources"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

@@ -25,8 +25,7 @@ try {
   await panel.getByText('SYNTHETIC: UNAVAILABLE', { exact: true }).waitFor();
   assert.equal(await panel.locator('canvas').count(), 0);
   const fundamentals = panel.getByRole('region', { name: 'Instrument fundamentals', exact: true });
-  await fundamentals.getByLabel('Fundamentals source').fill('browser-fixture');
-  await fundamentals.getByRole('button', { name: 'Inspect fundamentals' }).click();
+  await fundamentals.getByRole('button', { name: 'Inspect source browser-fixture', exact: true }).click();
   await fundamentals.getByRole('cell', { name: '12.5', exact: true }).waitFor();
   assert.ok((await fundamentals.innerText()).includes('source: browser-fixture'));
   await fundamentals.getByLabel('Fundamentals source').fill('missing-source');

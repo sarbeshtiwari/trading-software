@@ -5498,3 +5498,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   so the owner need not know an imported source identifier, with source receipt
   provenance and stale/unavailable handling. Continue existing Market detail,
   not a new screen or vendor-data substitute. Groww LIVE remains unverified.
+
+### Imported fundamental source discovery (2026-10-03)
+
+- Prior checkpoint **b0c8ef0** is pushed and remote-verified. The selected
+  instrument now discovers imported sources rather than requiring a memorized
+  identifier. Typed authenticated source receipts include known/received dates,
+  latest visible revision and bounded 50-source pagination. Future or late-received
+  evidence is excluded from earlier cutoffs; receipt availability is not freshness.
+- UI selection reuses the existing fundamental detail path. Missing/failed
+  catalogs remain explicit, with manual inspection available. No vendor data or
+  external verification is fabricated.
+- Final API/browser/actual PostgreSQL selection: **7 passed / 0 failed /
+  0 skipped**. PostgreSQL verifies pagination and receipt cutoffs in temporary,
+  rollback-only tables; actual Edge discovers a fixture source, inspects its
+  values and removes them after a missing-source request. Frontend **49 passed**,
+  production build successful; changed backend modules pass Ruff.
+- FE-005 remains partial for broader acceptance. Counts unchanged: **229 verified /
+  135 partial / 10 unverified / 159 not started**. Last full backend regression
+  remains 1660 passing at its earlier checkpoint, not a new whole-suite claim.
+- Next: integrate a provenance-labelled market quote/watchlist view using existing
+  persisted quote evidence and authenticated update transport. Preserve missing,
+  stale and broker-unavailable states; do not present stored quotes as an externally
+  verified live feed. Inspect existing quote storage/worker/transport before coding.

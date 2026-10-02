@@ -3711,6 +3711,76 @@
         }
       }
     },
+    "/api/v1/fundamentals/{instrument_id}/sources": {
+      "get": {
+        "tags": [
+          "fundamentals"
+        ],
+        "summary": "Sources",
+        "operationId": "sources_api_v1_fundamentals__instrument_id__sources_get",
+        "parameters": [
+          {
+            "name": "instrument_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "name": "as_of",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundamentalSources"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/fundamentals/{instrument_id}": {
       "get": {
         "tags": [
@@ -9414,6 +9484,70 @@
           "score"
         ],
         "title": "FundamentalScore"
+      },
+      "FundamentalSourceReceipt": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "record_id": {
+            "type": "string",
+            "title": "Record Id"
+          },
+          "known_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Known At"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "record_id",
+          "known_at",
+          "received_at"
+        ],
+        "title": "FundamentalSourceReceipt"
+      },
+      "FundamentalSources": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/FundamentalSourceReceipt"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "as_of",
+          "sources",
+          "has_more"
+        ],
+        "title": "FundamentalSources"
       },
       "FundamentalView": {
         "properties": {

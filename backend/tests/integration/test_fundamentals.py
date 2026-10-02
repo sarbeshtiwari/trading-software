@@ -127,3 +127,41 @@ async def test_valuation_api(db_engine, fake_clock):
         assert response.json()["valuation"]["dividend_yield"] == "0"
         missing = await client.get("/api/v1/fundamentals/missing", params={"source": "manual-test"})
         assert missing.json()["status"] == "UNAVAILABLE"
+
+
+async def test_source_discovery_respects_receipt_cutoff_and_latest_revision(db_engine, fake_clock):
+    fake_clock.advance(OBSERVED - fake_clock.now())
+    await seed()
+    store = FundamentalStore(fake_clock)
+    original = await store.import_source(
+        ManualJSONSource(), encoded(evidence()), max_age=timedelta(days=365)
+    )
+    fake_clock.advance(timedelta(hours=1))
+    revised = await store.import_source(
+        ManualJSONSource(),
+        encoded(evidence(known_at=fake_clock.now(), metrics={})),
+        max_age=timedelta(days=365),
+    )
+    await store.import_source(
+        ManualJSONSource(),
+        encoded(evidence(source="late-receipt")),
+        max_age=timedelta(days=365),
+    )
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app()), base_url="http://test"
+    ) as client:
+        path = "/api/v1/fundamentals/ins-test/sources"
+        earlier = await client.get(path, params={"as_of": OBSERVED.isoformat()})
+        assert earlier.status_code == 200
+        assert [row["record_id"] for row in earlier.json()["sources"]] == list(original)
+        current = (await client.get(path)).json()
+        assert len(current["sources"]) == 2
+        assert current["sources"][1]["record_id"] == revised[0]
+        assert current["sources"][0]["received_at"] != current["sources"][0]["known_at"]
+        assert (await client.get(path, params={"offset": 2})).json()["sources"] == []
+        assert (
+            await client.get(
+                path, params={"as_of": (fake_clock.now() + timedelta(seconds=1)).isoformat()}
+            )
+        ).status_code == 422
+        assert (await client.get("/api/v1/fundamentals/missing/sources")).json()["sources"] == []

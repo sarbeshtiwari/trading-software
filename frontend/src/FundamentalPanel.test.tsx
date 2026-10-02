@@ -15,7 +15,7 @@ test('source-grounded stale evidence never substitutes an excluded metric', asyn
   vi.stubGlobal('fetch', fetcher);
   const api = new Api();
   const { rerender } = render(<FundamentalPanel api={api} instrument="instrument" />);
-  expect(fetcher).not.toHaveBeenCalled();
+  expect(fetcher).toHaveBeenCalledWith('/api/v1/fundamentals/instrument/sources?offset=0', expect.anything());
   fireEvent.change(screen.getByLabelText('Fundamentals source'), { target: { value: 'manual-source' } });
   fireEvent.click(screen.getByRole('button', { name: 'Inspect fundamentals' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('FUNDAMENTALS STALE');

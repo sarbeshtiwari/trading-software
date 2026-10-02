@@ -36,8 +36,8 @@ actual Edge test signs in, selects stored test observations, renders the real
 canvas, verifies backend SMA values and switches to an unavailable interval.
 Deterministic fixtures remain test-only, not real-market evidence.
 
-Instrument fundamentals use the existing point-in-time manual source API. Enter
-the imported source identifier to inspect values, source/period/knowledge dates,
+Instrument fundamentals use the existing point-in-time manual source API. Select
+an imported source or enter its identifier to inspect values, source/period/knowledge dates,
 metric exclusions and backend scoring evidence. Stale metrics are withheld from
 usable values and scores; record availability is not metric completeness. A
 source change refetches; an instrument change clears prior evidence. No vendor
@@ -45,7 +45,15 @@ feed or automatic source selection is invented. The typed API includes the
 query cutoff and freshness policy. Actual browser acceptance loads an imported
 fixture metric, then selects a missing source and verifies the old value disappears.
 
-FE-005 remains partial pending broader detail acceptance and source discovery.
+Source discovery uses authenticated `/api/v1/fundamentals/{instrument_id}/sources`.
+It returns at most 50 source receipts per page, selecting each source's latest
+revision known and received by the cutoff. Future cutoffs are refused. Receipt
+availability is not freshness or independent verification of vendor evidence.
+Selecting a source inspects its current point-in-time detail. Receipt knowledge
+and ingestion times remain distinct; late imports cannot appear in earlier
+catalogs. Manual source inspection remains available when discovery fails.
+
+FE-005 remains partial pending broader detail acceptance.
 This is not FE-004's live WebSocket watchlist. Daily/weekly chart
 intervals and advanced overlays are not included yet.
 
