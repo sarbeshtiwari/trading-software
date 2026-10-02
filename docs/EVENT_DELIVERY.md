@@ -103,9 +103,9 @@ state rather than treating an event as an instruction to execute an order.
 
 Publication is bounded to fifty intents per cycle, with network/cycle timeouts.
 Redis unavailability does not invent delivery or broker success. Monitoring shows
-the publisher state separately. Runtime dashboard consumers, fill/position-specific
-events and the remaining event families are not complete merely because order
-events now reach Redis. No event is permission to bypass deterministic execution.
+the publisher state separately. The dashboard order consumer is described below;
+fill/position-specific events and the remaining event families are not complete
+merely because orders reach Redis. No event permits bypassing deterministic execution.
 
 Fresh PostgreSQL upgrade/downgrade/schema checks pass on a disposable database;
 the additive migration is applied to the existing database. Do not downgrade a
@@ -115,3 +115,23 @@ Redis lost-reply/restart behavior and rollback before broker submission.
 
 Reference semantics: [Redis XAUTOCLAIM](https://redis.io/docs/latest/commands/xautoclaim/)
 and [Redis XACK](https://redis.io/docs/latest/commands/xack/).
+
+## Authenticated dashboard invalidation
+
+`/api/v1/workspace/stream` shares the quote socket's Origin allowlist, connection
+cap and bounded first-message authentication. No token is accepted in a URL.
+Session validity is checked before every send, including heartbeat messages.
+The connection tails the fixed order streams, then requests a fresh workspace
+HTTP read on initial connection and new events. Every browser reads all events;
+these ephemeral observers do not compete in a consumer group or acknowledge OMS
+work. Reconnect reads current API state rather than attempting to replay account
+mutations. Event payloads never become displayed account values or broker commands.
+
+Repeated event identities are suppressed in a bounded 1,024-entry window. Older
+duplicates can cause harmless extra reads. HTTP requests are serialized/coalesced
+and bounded; responses from a previous login generation are discarded. Existing
+ten-second polling remains active for other state and transport fallback. The UI
+labels disconnection/staleness, makes bounded reconnect attempts and refreshes an
+expired access token before retrying. Redis failures close the stream, not claim
+connectivity. This is not a sub-second all-event delivery guarantee or external
+market-feed verification. Fill/position-specific publication remains pending.

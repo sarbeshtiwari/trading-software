@@ -58,6 +58,10 @@ async def _serve(socket: WebSocket):
 
 @router.websocket("/stream")
 async def stream(socket: WebSocket):
+    await guarded_stream(socket, _serve)
+
+
+async def guarded_stream(socket: WebSocket, handler):
     if socket.headers.get("origin") not in get_settings().cors_origins or socket.query_params:
         await socket.close(code=1008)
         return
@@ -67,7 +71,7 @@ async def stream(socket: WebSocket):
     _connections.add(socket)
     try:
         await socket.accept()
-        await _serve(socket)
+        await handler(socket)
     except WebSocketDisconnect:
         pass
     except AuthError:

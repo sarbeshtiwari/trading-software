@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { WorkspaceUpdates } from './WorkspaceUpdates';
 import { Api, ApiError, type Workspace, type RiskLimits } from './api';
 import { HistoricalPanel } from './HistoricalPanel';
 import { StrategyEvidencePanel } from './StrategyEvidencePanel';
@@ -150,15 +151,35 @@ export function App({ api: supplied }: { api?: Api }) {
   const [error, setError] = useState('');
   const [data, setData] = useState<Workspace>();
   const [page, setPage] = useState<Page>('Dashboard');
+  const loading = useRef(false);
+  const queued = useRef(false);
+  const generation = useRef(0);
   const load = useCallback(async () => {
-    try { setData(await api.request<Workspace>('/workspace')); setError(''); }
-    catch (failure) { setError(String(failure)); if (failure instanceof ApiError && failure.status === 401) { setSignedIn(false); setData(undefined); } }
+    if (loading.current) { queued.current = true; return; }
+    loading.current = true;
+    const session = generation.current;
+    try {
+      do {
+        queued.current = false;
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 8000);
+        try {
+          const result = await api.request<Workspace>('/workspace', { signal: controller.signal });
+          if (session === generation.current) { setData(result); setError(''); }
+        } catch (failure) {
+          if (session === generation.current) {
+            setError(String(failure));
+            if (failure instanceof ApiError && failure.status === 401) { setSignedIn(false); setData(undefined); }
+          }
+        } finally { window.clearTimeout(timeout); }
+      } while (queued.current && session === generation.current);
+    } finally { loading.current = false; }
   }, [api]);
   useEffect(() => { api.refresh().then(setSignedIn).catch(() => setError('API UNAVAILABLE')).finally(() => setChecked(true)); }, [api]);
   useEffect(() => {
     if (!signedIn) return;
     void load(); const timer = window.setInterval(() => void load(), 10000);
-    return () => window.clearInterval(timer);
+    return () => { generation.current += 1; queued.current = false; window.clearInterval(timer); };
   }, [load, signedIn]);
   async function login(event: FormEvent) {
     event.preventDefault(); setError('');
@@ -173,6 +194,7 @@ export function App({ api: supplied }: { api?: Api }) {
   return <div className="shell"><aside><p className="eyebrow">ATS / CONTROL ROOM</p><h2>Trading workspace</h2><nav>{pages.map(item => <button className={page === item ? 'active' : ''} key={item} onClick={() => setPage(item)}>{item}</button>)}</nav>
     <button onClick={() => void api.logout().catch(failure => setError(String(failure))).finally(() => { setSignedIn(false); setData(undefined); })}>Sign out</button></aside>
     <main><header><div><p className="eyebrow">{data?.trading_mode ?? 'MODE UNAVAILABLE'}</p><h1>{page}</h1></div><button onClick={() => void load()}>Refresh</button></header>
+      <WorkspaceUpdates api={api} refresh={load} />
       <div className={data?.new_entries_allowed ? 'status' : 'status blocked'}>{data ? (data.new_entries_allowed ? 'Entry gate clear — not proof of execution readiness' : `ENTRIES BLOCKED — ${data.blockers.join('; ')}`) : 'Loading application state…'}</div>
       <p className="muted">Groww LIVE execution: {data?.broker_verification ?? 'UNAVAILABLE'}. Persisted snapshots are not a live market feed. P&amp;L is gross unless explicitly labelled net. Charges may be incomplete; estimates are not broker bills.</p>
       {error && <p role="alert" className="error">API ERROR — {error}. Displayed data may be stale.</p>}

@@ -5732,3 +5732,34 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   updates with idempotent handling and reconnect/current-state recovery, then
   extend the same transactional path to fill/position transitions. Do not issue
   broker commands from an event consumer or treat arrival order as account truth.
+
+### Authenticated committed-order dashboard refresh (2026-10-03)
+
+- New workspace WebSocket tails the existing committed order streams. It shares
+  Origin/query-token rejection, bounded owner authentication and the connection
+  cap with quote streaming. Sessions are revalidated before each send. Messages
+  contain refresh hints only: the existing workspace API remains authoritative.
+- Connection/reconnection requests a current-state API read. Bounded event-ID
+  deduplication prevents ordinary replay refresh storms; requests are serialized
+  and coalesced, with timeouts and previous-login response suppression. Ten-second
+  polling remains the fallback and covers state not yet published as events.
+  Disconnect/stale transport is visible; retries and token refresh are bounded.
+- Actual Redis/OMS/network authentication and Edge acceptance **4 passed / 0 failed
+  / 0 skipped**. Browser acceptance disables ordinary workspace polling and proves
+  a newly committed PAPER order appears without manual refresh. Duplicate delivery
+  does not create another broker order; reconnect, revocation and unavailable Redis
+  are covered. An initial browser assertion incorrectly expected FILLED instead of
+  this OMS's EXECUTED enum; corrected and rerun successfully.
+- Broader unit/safety/auth/PAPER/worker/quote regression **792 passed / 0 failed /
+  0 skipped**, one existing warning; `backend/logs/workspace-stream-regression.txt`.
+  Sessions 66703 and 87287 finished. Last full-suite baseline remains 1683 at
+  249a032; this targeted regression is not a new whole-suite claim.
+- Frontend **56 passed**, fresh production build successful, session 5923 finished.
+  The added concurrency assertion initially used an unsupported testing-library
+  matcher option; removed it and reran tests/build. New Python modules pass Ruff.
+- BE-009/ARCH-016 remain partial. Counts unchanged: **228 verified / 139 partial /
+  10 unverified / 156 not started**. No sub-second all-event, Groww LIVE, external
+  market-data/delivery, or M1/M2 completion claim.
+- Next: publish fill and position transitions through the same transactional
+  outbox, extend the read-only consumer, verify partial fills/exit/restart, and
+  retain independent risk/execution authority. No broker commands from streams.
