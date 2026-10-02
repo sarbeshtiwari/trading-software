@@ -4,10 +4,12 @@ from datetime import timedelta
 
 from app.agents.pipeline import DecisionContext
 from app.analysis.regime.classifier import RegimeDecision, evidence_fresh_at
+from app.config import get_settings
 from app.core.enums import Segment
 from app.core.errors import SafetyError
 from app.db import session as db_session
 from app.db.models.instrument import Instrument
+from app.execution.expiry import expiry_blocker
 from app.execution.option_policy import require_long_option_policy
 from app.news.availability import research_at
 from app.news.research_sentiment import AdvisorySentiment, sentiment_at
@@ -57,6 +59,10 @@ async def require_entry_sources(proposal, limits, now):
         await require_instrument_entries(session, context.market)
         await require_event_entries(session, context.market, strategy_id=context.strategy.id)
         instrument = await session.get(Instrument, proposal.instrument_id)
+    if instrument is not None:
+        reason = expiry_blocker(instrument, now, get_settings().fno_expiry_entry_cutoff_time)
+        if reason:
+            raise SafetyError(reason)
     if instrument is not None and (instrument.is_option or context.market.greeks is not None):
         try:
             await require_option_observation(

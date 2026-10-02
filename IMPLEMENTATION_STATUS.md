@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 131 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 163 | |
+| `[~]` In progress | 132 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 162 | |
 | **Total** | **533** | |
 
 ---
@@ -5297,3 +5297,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   `fno_expiry_entry_cutoff_time` has no consumer outside Settings; implement
   this existing setting through the shared execution/monitoring path rather
   than adding another disconnected expiry helper.
+
+### Configured expiry admission and durable position alerts (2026-10-02)
+
+- Connected the existing F&O expiry cutoff to shared entry-source validation,
+  including dispatch. The cutoff is inclusive in IST and validated as local
+  HH:MM. Missing/past contract expiry refuses new entries; no exchange weekday
+  or settlement price is inferred. Existing minimum-DTE gates remain intact.
+- Startup/periodic monitoring records position-linked critical expiry warnings
+  and durable notification requests in one transaction, before quote-dependent
+  protection checks. Repeated observations do not duplicate a warning; existing
+  warning integrity is checked. Future-opened positions are excluded by UTC
+  cutoff. No automatic settlement, fabricated exit or external delivery claim.
+- Boundary/configuration plus actual option position/approval tests: **6 passed**.
+  Unit/safety/option/worker regression: **773 passed / 0 failed / 0 skipped**,
+  one existing warning. Tests prove no broker submission after corrected contract
+  expiry reaches cutoff, and an actual PAPER option position remains auditable
+  when its later expiry warning occurs with stale market data.
+- EXCH-006 is partial. Counts: **229 verified / 132 partial / 10 unverified /
+  162 not started**. Frontend source unchanged; alerts use existing audit/outbox.
+- Exact next task: cancel pending F&O entry remainders at expiry cutoff through
+  the existing durable hygiene/recovery service before settlement can create new
+  fills. Verify cancellation failure blocks further processing, restart recovery,
+  protective-exit exclusion and notification/API-visible state.

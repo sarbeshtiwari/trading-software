@@ -328,7 +328,7 @@ class Settings(BaseSettings):
     def _missing_llm_tariff(cls, value):
         return None if isinstance(value, str) and not value.strip() else value
 
-    @field_validator("intraday_squareoff_time")
+    @field_validator("intraday_squareoff_time", "fno_expiry_entry_cutoff_time")
     @classmethod
     def _squareoff_time(cls, value):
         parsed = time.fromisoformat(value)

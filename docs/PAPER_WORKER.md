@@ -190,3 +190,19 @@ reconciles its reservation without calling the broker. Restart does not revive
 that order. Protective exits do not acquire this entry-only admission gate;
 actual simulated fills still enforce supplied bounds independently. Dispatch
 also refuses order price/quantity changes relative to the approved proposal.
+
+### Expiry admission and position warnings
+
+The existing `FNO_EXPIRY_ENTRY_CUTOFF_TIME` setting is validated as local HH:MM
+and enforced in shared entry-source validation, including dispatch. F&O expiry
+is taken from the instrument record, never inferred from a weekday. Missing or
+past expiry is refused; on the expiry date the cutoff is inclusive in IST.
+The option strategy's minimum-DTE rule remains an additional independent veto.
+
+Startup and periodic PAPER monitoring record `FNO_EXPIRY_ACTION_REQUIRED` for
+open positions requiring attention, and atomically enqueue a critical alert.
+Repeated checks reuse durable warning identity. Alerts are produced before
+quote-dependent protection checks so missing prices do not hide the expiry
+condition. They do not imply an exit, settlement, P&L or external delivery.
+Expired pending-entry cancellation and complete expiry lifecycle acceptance
+remain pending; EXCH-006 is partial rather than complete.

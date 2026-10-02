@@ -26,6 +26,7 @@ from app.db.models.market_data import Tick
 from app.db.models.system import Heartbeat
 from app.db.models.trading import Order, Position
 from app.emergency.controls import EmergencyControls
+from app.execution.expiry import warn_expiring_positions
 from app.execution.hygiene import PaperOrderHygiene
 from app.execution.paper import PaperExecution
 from app.execution.replacement_state import recover_replacements
@@ -147,6 +148,7 @@ class PaperWorker:
                 await self.reference_runtime.connect()
             await self.executor.recover()
             await recover_replacements(self.executor)
+            await warn_expiring_positions(self.executor)
             await self.executor.verify_protection()
             await EmergencyControls(self.clock).restore()
             async with db_session.session_scope() as session:
