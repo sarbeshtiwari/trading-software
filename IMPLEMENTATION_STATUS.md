@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 130 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 164 | |
+| `[~]` In progress | 131 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 163 | |
 | **Total** | **533** | |
 
 ---
@@ -5223,3 +5223,25 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: inspect and close remaining runtime PAPER preflight/circuit/expiry
   protections using actual OMS acceptance, not a second compliance pipeline.
   Groww live prices/execution and full exchange calendars remain unverified.
+
+### Supplied circuit-band PAPER enforcement (2026-10-02)
+
+- Inspection found quote circuit limits were parsed but not enforced against
+  actual order prices. Added a shared supplied-band check to existing PAPER
+  entry preflight and fill simulation, not a second decision/risk pipeline.
+  Invalid/one-sided bands and out-of-band entry/depth reject before broker
+  submission. Simulated slippage cannot generate an out-of-band fill.
+- Preflight persists proposal-linked band status, values, observation time and
+  entry price. Both bounds absent is explicitly `UNAVAILABLE`, not invented
+  percentages or a claim of complete circuit verification. Stored-tick/replay
+  preservation, missing-band admission policy and dispatch refresh remain to do.
+- Focused circuit/OMS run: **20 passed**; existing constraint/latency/exchange
+  selection: **18 passed**; post-refactor circuit selection: **6 passed**.
+  Broader unit/safety/OMS/option/replacement regression: **802 passed / 0 failed /
+  0 skipped**, one pre-existing warning. Scopes overlap; do not sum counts.
+- EXCH-005 moved from not-started to partial. Counts now **229 verified /
+  131 partial / 10 implemented-unverified / 163 not started**. Frontend unchanged;
+  audit uses the existing API-visible ledger. No new full-suite/live claim.
+- Next: persist and reconstruct provider circuit evidence through ingestion,
+  stored observations and historical replay, then enforce dispatch-time updates
+  and define explicit unavailable-band safety behavior before completing EXCH-005.

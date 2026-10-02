@@ -79,6 +79,8 @@ async def setup_execution(credentials, fake_clock, *, risk_cost=Decimal(0), fill
             DataOrigin.SYNTHETIC,
             bids=(DepthLevel(market["bid"], quantity),),
             asks=market.get("asks", (DepthLevel(market["ask"], quantity),)),
+            lower_circuit=market.get("lower_circuit"),
+            upper_circuit=market.get("upper_circuit"),
         )
 
     engine = PaperExecution(

@@ -149,3 +149,19 @@ their own calendar behavior. A one-sided, reversed, equal or timezone-bearing
 local-time pair is rejected as invalid configuration. Replace null hours only
 using a published source with its own availability timestamp; never infer them
 from prior years. Existing open positions still require ordinary monitoring.
+
+### Supplied circuit-band checks
+
+PAPER entry preflight records `ENTRY_CIRCUIT_PREFLIGHT` with the proposal,
+observation timestamp, supplied bounds and entry price. Inverted, nonfinite,
+nonpositive or one-sided bands are rejected. A supplied valid band is inclusive;
+an entry or quoted depth outside it is rejected before calling the broker.
+The PAPER fill engine independently applies the same check, including after
+slippage, so it cannot manufacture a fill outside a supplied band.
+
+Two missing bounds are explicitly recorded as `UNAVAILABLE`, never derived from
+previous close or replaced by invented percentages. This is not complete circuit
+protection: the stored-tick/replay paths do not yet preserve all provider circuit
+evidence, and missing-band admission policy remains unresolved. Live execution
+remains locked. EXCH-005 stays partial until source persistence, dispatch-time
+refresh and complete acceptance are verified.

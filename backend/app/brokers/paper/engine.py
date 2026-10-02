@@ -25,6 +25,7 @@ from typing import Optional, Sequence
 from app.brokers.paper.constraints import FillConstraints
 from app.core.enums import OrderStatus, OrderType, TransactionType
 from app.core.money import quantize_money
+from app.marketdata.circuits import circuit_status
 from app.marketdata.models import DepthLevel, Quote
 
 __all__ = ["FillConfig", "SimulatedFill", "FillOutcome", "FillEngine"]
@@ -107,9 +108,12 @@ class FillEngine:
                 reason="no market data available; order remains open",
             )
 
+        prices = [quote.ltp, *(level.price for level in (*quote.bids, *quote.asks))]
+        prices.extend(price for price in (limit_price, trigger_price) if price is not None)
+        circuit = circuit_status(quote, prices)
+        if circuit not in {"AVAILABLE", "UNAVAILABLE"}:
+            return FillOutcome(status=OrderStatus.REJECTED, reason=circuit)
         if constraints is not None:
-            prices = [quote.ltp, *(level.price for level in (*quote.bids, *quote.asks))]
-            prices.extend(price for price in (limit_price, trigger_price) if price is not None)
             if quantity % constraints.lot_size or any(
                 not constraints.on_tick(price) for price in prices
             ):
@@ -139,6 +143,9 @@ class FillEngine:
         else:
             outcome = self._fill_limit(transaction_type, quantity, limit_price, quote, constraints)
         outcome.stop_triggered = order_type in (OrderType.STOP_LOSS, OrderType.STOP_LOSS_MARKET)
+        circuit = circuit_status(quote, [fill.price for fill in outcome.fills])
+        if circuit not in {"AVAILABLE", "UNAVAILABLE"}:
+            return FillOutcome(status=OrderStatus.REJECTED, reason=circuit)
         return outcome
 
     # --- Market -----------------------------------------------------------

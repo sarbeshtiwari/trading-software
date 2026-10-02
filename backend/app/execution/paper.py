@@ -34,6 +34,7 @@ from app.core.enums import (
     TransactionType,
 )
 from app.core.errors import SafetyError
+from app.core.ids import new_id
 from app.core.money import quantize_money
 from app.db import session as db_session
 from app.db.models.decision import Proposal, RiskDecision
@@ -46,6 +47,7 @@ from app.emergency.rejections import observe_rejection
 from app.execution.freshness import require_entry_sources
 from app.execution.replacement_state import replacement_parent
 from app.execution.state import transition
+from app.marketdata.circuits import circuit_status
 from app.marketdata.models import InstrumentRef
 from app.modes import TradingMode
 from app.monitoring.gate import get_trading_gate
@@ -471,6 +473,7 @@ class PaperExecution:
             or quote.data_origin != context.market.data_origin
         ):
             raise SafetyError("QUOTE_DEPTH_OR_PROVENANCE_UNAVAILABLE")
+        await self._circuit_preflight(proposal, quote)
         await self._reconcile()
         portfolio = await self._account(context)
         market = context.market.model_copy(
@@ -604,6 +607,37 @@ class PaperExecution:
                 }
             )
         return risk_proposal, tariff
+
+    async def _circuit_preflight(self, proposal, quote):
+        circuit = circuit_status(
+            quote,
+            [
+                proposal.entry_price,
+                quote.ltp,
+                *(level.price for level in (*quote.bids, *quote.asks)),
+            ],
+        )
+        await AuditService(self.clock).append(
+            AuditIdentity(
+                chain_id=new_id("cir"),
+                event_type="ENTRY_CIRCUIT_PREFLIGHT",
+                actor="paper_execution",
+                mode=TradingMode.PAPER,
+            ),
+            {
+                "proposal_id": proposal.id,
+                "instrument_id": proposal.instrument_id,
+                "result": {
+                    "status": circuit,
+                    "observed_at": quote.observed_at.isoformat(),
+                    "lower": str(quote.lower_circuit) if quote.lower_circuit is not None else None,
+                    "upper": str(quote.upper_circuit) if quote.upper_circuit is not None else None,
+                    "entry": str(proposal.entry_price),
+                },
+            },
+        )
+        if circuit not in {"AVAILABLE", "UNAVAILABLE"}:
+            raise SafetyError(circuit)
 
     async def _dispatch(self, identifier, *, market=None, limits=None):
         if self.settings.trading_mode != TradingMode.PAPER:
