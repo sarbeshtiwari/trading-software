@@ -5320,3 +5320,30 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   the existing durable hygiene/recovery service before settlement can create new
   fills. Verify cancellation failure blocks further processing, restart recovery,
   protective-exit exclusion and notification/API-visible state.
+
+### Expiry cancellation and settlement refusal (2026-10-02)
+
+- Pending PAPER F&O entries now enter the existing durable cancellation flow
+  at the configured expiry cutoff, even before their generic age timeout.
+  Missing/past expiry also cancels pending entries; protective exit orders are
+  excluded. Original intent reasons survive retry and interrupted-result recovery.
+- Fixed a worker ordering defect: failed cancellation previously allowed the
+  monitor to settle pending orders before raising. Worker now refuses that path;
+  direct execution monitoring independently runs the same cancellation guard.
+  Existing position protection checks and expiry warnings remain available.
+- Actual option strategy/OMS tests cover successful cancellation, worker/direct
+  monitor cancellation failure with zero settlement calls, restart and interrupted
+  audit-result storage. Authenticated journal API exposes the cancellation and
+  audited reason without inventing a closed trade or P&L. Advancing to expiry
+  correctly expires the test login; API verification obtains a fresh owner login.
+- Focused lifecycle regression: **25 passed**. Final API/recovery selection:
+  **4 passed**. Expanded unit/safety/OMS/worker/option/cancel/replace/protection
+  regression: **850 passed / 0 failed / 0 skipped**, one existing serializer
+  warning; log `backend/logs/expiry-cancellation-regression.txt`. Scopes overlap.
+  Changed production modules pass Ruff. Frontend unchanged from 42 tests/build.
+- EXCH-006 remains partial for broader-mode/external acceptance. Counts remain
+  **229 verified / 132 partial / 10 unverified / 162 not started**. No Groww,
+  external notification delivery, complete-suite or M1/M2 claim added.
+- Exact next task: run a stable full regression including actual PostgreSQL
+  acceptance, reconcile stale operational limitations documentation, then address
+  the next runtime integration gap identified by that acceptance run.

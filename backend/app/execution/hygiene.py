@@ -9,7 +9,9 @@ from app.core.errors import SafetyError
 from app.core.ids import new_id
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
+from app.db.models.instrument import Instrument
 from app.db.models.trading import Order
+from app.execution.expiry import expiry_blocker
 from app.journal.order_actions import record_order_action
 from app.modes import TradingMode
 
@@ -41,8 +43,22 @@ class PaperOrderHygiene:
                     if order is None or order.mode != TradingMode.PAPER or order.role != "ENTRY":
                         raise SafetyError("CANCEL_INTENT_ORDER_UNAVAILABLE")
                     orders.append(order)
+            instruments = {
+                instrument.id: instrument
+                for instrument in await session.scalars(
+                    sa.select(Instrument).where(
+                        Instrument.id.in_({order.instrument_id for order in orders})
+                    )
+                )
+            }
         resolved = True
         for order in orders:
+            instrument = instruments.get(order.instrument_id)
+            if instrument is None:
+                raise SafetyError("CANCELLATION_CONTRACT_UNAVAILABLE")
+            expiry_reason = expiry_blocker(
+                instrument, self.clock.now(), self.executor.settings.fno_expiry_entry_cutoff_time
+            )
             age = (
                 self.clock.utcnow() - _utc(order.submitted_at or order.created_at)
             ).total_seconds()
@@ -51,6 +67,7 @@ class PaperOrderHygiene:
                 and order.id not in unfinished
                 and order.id not in retries
                 and not all_pending
+                and expiry_reason is None
                 and age < self.executor.settings.paper_entry_max_age_seconds
             ):
                 continue
@@ -61,6 +78,8 @@ class PaperOrderHygiene:
                 if previous
                 else retries[order.id]
                 if order.id in retries
+                else expiry_reason
+                if expiry_reason
                 else "SESSION_CUTOFF"
                 if all_pending
                 else "STALE_ENTRY"
@@ -156,6 +175,9 @@ class PaperOrderHygiene:
                 "STALE_ENTRY",
                 "SESSION_CUTOFF",
                 "OWNER_CANCEL",
+                "FNO_EXPIRY_ENTRY_CUTOFF",
+                "FNO_CONTRACT_EXPIRED",
+                "FNO_EXPIRY_UNAVAILABLE",
             }:
                 raise SafetyError("CANCEL_INTENT_AMBIGUOUS")
             pending[intent.order_id] = intent

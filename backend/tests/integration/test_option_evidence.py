@@ -192,8 +192,12 @@ async def test_shared_decision_gate_requires_the_persisted_option_source(db_engi
     )
 
 
-async def setup_option_worker(credentials, fake_clock, tmp_path, *, missing=False, minimum_dte=2):
-    worker, provider, client = await setup_worker(credentials, fake_clock, tmp_path)
+async def setup_option_worker(
+    credentials, fake_clock, tmp_path, *, missing=False, minimum_dte=2, fill_config=None
+):
+    worker, provider, client = await setup_worker(
+        credentials, fake_clock, tmp_path, fill_config=fill_config
+    )
     try:
         _, chain = await fixture(fake_clock)
         leg = replace(chain.strikes[0].call, trading_symbol="TEST")

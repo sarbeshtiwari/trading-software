@@ -289,12 +289,14 @@ class PaperWorker:
         else:
             hygiene_ok = await PaperOrderHygiene(self.executor).run()
         await recover_replacements(self.executor)
+        if not hygiene_ok:
+            await warn_expiring_positions(self.executor)
+            await self.executor.verify_protection()
+            raise SafetyError("PAPER_ORDER_CANCELLATION_UNRESOLVED")
         await self.executor.monitor_once()
         await self.reference_exits.cycle()
         await monitor_all(clock=self.clock)
         await news_reaction_cycle()
-        if not hygiene_ok:
-            raise SafetyError("PAPER_ORDER_CANCELLATION_UNRESOLVED")
         if self.phase != "INTRADAY":
             return
         if self.reference_runtime:

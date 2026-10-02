@@ -39,10 +39,19 @@ __all__ = ["credentials"]
 
 
 async def setup_worker(
-    credentials, fake_clock, tmp_path, missing=None, costed=False, origin=DataOrigin.SYNTHETIC
+    credentials,
+    fake_clock,
+    tmp_path,
+    missing=None,
+    costed=False,
+    origin=DataOrigin.SYNTHETIC,
+    fill_config=None,
 ):
     executor, unused, _market, client, context = await setup_execution(
-        credentials, fake_clock, risk_cost=Decimal("0.5") if costed else Decimal(0)
+        credentials,
+        fake_clock,
+        risk_cost=Decimal("0.5") if costed else Decimal(0),
+        fill_config=fill_config,
     )
     if costed:
         await CostStore(fake_clock).publish(

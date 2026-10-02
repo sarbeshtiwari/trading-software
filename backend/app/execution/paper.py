@@ -46,6 +46,7 @@ from app.db.models.trading import Order, Position, Trade
 from app.emergency.rejections import observe_rejection
 from app.execution.expiry import warn_expiring_positions
 from app.execution.freshness import require_entry_sources
+from app.execution.hygiene import PaperOrderHygiene
 from app.execution.replacement_state import replacement_parent
 from app.execution.state import transition
 from app.marketdata.circuits import circuit_status
@@ -1338,6 +1339,8 @@ class PaperExecution:
             raise SafetyError("RECOVERY_REQUIRED")
         await warn_expiring_positions(self)
         await self.verify_protection()
+        if not await PaperOrderHygiene(self).run():
+            raise SafetyError("PAPER_ORDER_CANCELLATION_UNRESOLVED")
         async with db_session.session_scope() as session:
             slot = await session.get(PaperExecutionSlot, "PAPER")
             if slot is None:
