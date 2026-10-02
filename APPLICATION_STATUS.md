@@ -10,13 +10,13 @@ API-backed React dashboard. It is **not production-complete or LIVE-ready**.
 
 | Contract status | Requirements |
 |---|---:|
-| Implemented, tested and integrated | 226 |
-| Partial | 129 |
-| Implemented but not fully verified | 13 |
+| Implemented, tested and integrated | 228 |
+| Partial | 130 |
+| Implemented but not fully verified | 10 |
 | Not started | 165 |
 | Total | 533 |
 
-42% of requirements meet the strict verified ledger status. This is not a
+About 43% of requirements meet the strict verified ledger status. This is not a
 weighted estimate of development effort or an assertion of production readiness.
 
 ## What works in verified application tests
@@ -51,7 +51,7 @@ On 2026-10-02:
   healthy (TimescaleDB/PostgreSQL 16 and Redis 7), bound to localhost. Application
   configuration now passes actual PostgreSQL `SELECT 1` and Redis `PING` checks.
   Earlier connection failures are resolved; no additional installation is needed.
-- Applied migrations through `0014_broker_auth_budget`; the real local database
+- Applied migrations through `0015_serialized_fill_limits`; the real local database
   reports that migration head.
 - Actual PAPER backend startup succeeds with execution disabled; unauthenticated
   HTTP access returns 401. Audited real public instrument import now stores
@@ -64,7 +64,7 @@ On 2026-10-02:
 
 ## Verification and source publication
 
-- Latest full baseline: **1526 passed, 0 failed, 3 PostgreSQL-only skipped**.
+- Latest full baseline (`ccc8ce0`): **1609 passed, 0 failed, 5 PostgreSQL-only skipped**, including real-browser acceptance.
 - Latest affected research regression: **800 passed, 0 failed, 0 skipped**.
 - Readiness regression: **792 passed, 0 failed, 0 skipped**.
 - Frontend: **41 passed**; production build succeeds; actual Edge lifecycle tests
@@ -78,12 +78,13 @@ On 2026-10-02:
   persists all targets atomically and recovers interrupted batches; its affected
   regression is **767 passed**, with two actual single/bulk browser cases passing.
   General cancellation and risk-revalidated modification acceptance remain.
-- New complete-suite run: **1568 passed, 1 failed, 24 skipped**. The failure was
-  schema snapshot equality during concurrent schema changes; the regenerated
-  contract passes its focused check. A stable-snapshot full rerun remains needed.
-- Replacement full backend/browser run is active with required Windows subprocess
-  permissions; no final result yet. An intervening sandbox-restricted run was
-  stopped after reproduced subprocess permission errors, not counted as green.
+- Replaced three placeholder PostgreSQL checks. Real testing exposed and fixed
+  a concurrent overfill race through migration 0015. Schema-related checks:
+  **26 passed**, including six real PostgreSQL checks. Broader affected regression:
+  **794 passed / 4 opt-in skips**, separately covered against PostgreSQL.
+- Audit immutability, tick retention and fill constraints are now externally
+  verified against Docker PostgreSQL. Empty-database migration/drift acceptance
+  is explicitly pending; the prior revision-list test was insufficient.
 - GitHub: `https://github.com/sarbeshtiwari/trading-software`, branch `main`.
   Initial published snapshot: `b8a1572`, equivalent to verified local `07c5695`.
 - Publication uses the owner's configured identity without co-author trailers.

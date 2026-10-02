@@ -798,21 +798,31 @@ async def test_backtest_runs_are_always_marked_simulated(db_engine) -> None:
 
 
 @requires_postgres
-async def test_audit_append_only() -> None:  # pragma: no cover - needs a server
+async def test_audit_append_only() -> None:
     """DB-012: UPDATE and DELETE on the audit table must fail at the database."""
-    raise NotImplementedError(
-        "Requires a PostgreSQL server; see IMPLEMENTATION_STATUS.md for the "
-        "unverified-locally list."
-    )
+    from tests.postgres_checks import audit_append_only
+
+    await audit_append_only(POSTGRES_URL)
 
 
 @requires_postgres
-async def test_candles_hypertable() -> None:  # pragma: no cover - needs a server
+async def test_candles_hypertable() -> None:
     """DB-005: candles and ticks must be TimescaleDB hypertables."""
-    raise NotImplementedError("Requires a TimescaleDB server.")
+    from tests.postgres_checks import hypertables
+
+    await hypertables(POSTGRES_URL)
 
 
 @requires_postgres
-async def test_fill_sum_trigger() -> None:  # pragma: no cover - needs a server
+async def test_fill_sum_trigger() -> None:
     """DB-008: total fills may never exceed the order quantity."""
-    raise NotImplementedError("Requires a PostgreSQL server.")
+    from tests.postgres_checks import fill_limits
+
+    await fill_limits(POSTGRES_URL)
+
+
+@requires_postgres
+async def test_serialized_fill_migration_refuses_downgrade() -> None:
+    from tests.postgres_checks import downgrade_refused
+
+    await downgrade_refused(POSTGRES_URL)

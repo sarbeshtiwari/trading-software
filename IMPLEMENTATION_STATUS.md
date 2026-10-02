@@ -47,9 +47,9 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 226 | Requirement-specific evidence; not blanket end-to-end or external certification |
-| `[x]` Implemented | 13 | Code exists and runs; its specific guarantee needs a live account, PostgreSQL or Docker to verify |
-| `[~]` In progress | 129 | Partial implementation/integration; limitations recorded below |
+| `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
+| `[~]` In progress | 130 | Partial implementation/integration; limitations recorded below |
 | `[ ]` Not started | 165 | |
 | **Total** | **533** | |
 
@@ -5017,3 +5017,37 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   through the existing proposal pipeline; never directly mutate broker quantity
   or price outside deterministic approval/preflight. Finish remaining runtime
   readiness and exchange-calendar evidence in parallel with independent work.
+
+### Full regression and real PostgreSQL fill safety (2026-10-02)
+
+- Stable checkpoint `ccc8ce0` complete backend/browser run finished: **1609 passed /
+  0 failed / 5 skipped**, 29m40s, log `backend/logs/full-bulk-cancel-checkpoint.txt`.
+  Session 94518 is finished. All opt-in real-browser cases ran. Five skips were
+  PostgreSQL checks; inspection found three were still placeholder exceptions.
+- Replaced those placeholders with real PostgreSQL/Timescale checks. Actual audit
+  UPDATE/DELETE attempts fail at the deployed trigger; the temporary test row is
+  rolled back. Hypertable and scheduled 90-day tick-retention catalogs verify.
+  Fill tests use uniquely named isolated tables cloned from the migrated tables
+  and the deployed trigger functions, never committed owner-market/trade rows.
+- The concurrency test genuinely failed before the fix: two transactions could
+  each accept 60 fills against one 100-unit order. Added migration **0015**:
+  every fill serializes by updating the parent order row before summation. This
+  also produces serialization failures rather than accepting stale snapshots at
+  REPEATABLE READ/SERIALIZABLE. Order quantity reductions cannot undercut fills.
+  Existing inconsistent orders prevent migration. Downgrade deliberately refuses
+  to remove these safety guarantees; refusal leaves migration state unchanged.
+- Applied 0015 successfully to the existing Docker database. Schema-related run:
+  **26 passed / 0 failed / 0 skipped**, including six actual PostgreSQL checks
+  (four schema/safety, instrument-import atomicity and shared auth budget).
+  Broader unit/safety/OMS/schema regression: **794 passed / 0 failed / 4 skipped**;
+  the four opt-in PostgreSQL skips are covered by the separate real-database run.
+  Frontend unchanged: prior **41 passed**, build and browser evidence retained.
+- DB-006, DB-008 and DB-012 now meet their verified acceptance. DB-005 remains
+  unverified for its million-row performance/upsert scope. DB-003 was downgraded
+  to partial: the old revision-list test did not prove empty-database migration or
+  drift-free metadata. Counts: **228 verified / 130 partial / 10 unverified /
+  165 not started**. No Groww/data/notification external verification claimed.
+- Next: verify the complete migration chain and `alembic check` on an isolated
+  empty database using the existing Docker server; fix genuine migration drift
+  without changing owner data or unrelated owner edits. Then resume guarded PAPER
+  order modification/cancel-replace through fresh deterministic approval.
