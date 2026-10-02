@@ -465,6 +465,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/failures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Failures */
+        get: operations["failures_api_v1_events_failures_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/news/research/{instrument_id}": {
         parameters: {
             query?: never;
@@ -2817,6 +2834,28 @@ export interface components {
              */
             verification: "OWNER_PUBLISHED_NOT_EXTERNALLY_VERIFIED";
         };
+        /** EventFailureView */
+        EventFailureView: {
+            /** Status */
+            status: string;
+            /** Retained Count */
+            retained_count?: number | null;
+            /**
+             * Failures
+             * @default []
+             */
+            failures: components["schemas"]["RetainedFailure"][];
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+            /**
+             * Scope
+             * @default Retained event failures only; runtime event integration and external alert delivery are not certified. Raw payloads and exception messages are withheld.
+             */
+            scope: string;
+        };
         /** EvidenceReview */
         EvidenceReview: {
             /**
@@ -4641,6 +4680,19 @@ export interface components {
             /** Overfitting Flag */
             overfitting_flag: boolean | null;
             diagnostics?: components["schemas"]["OOSDiagnostics"] | null;
+        };
+        /** RetainedFailure */
+        RetainedFailure: {
+            /** Receipt Id */
+            receipt_id: string;
+            /** Event Type */
+            event_type: string;
+            /** Entry Id */
+            entry_id: string | null;
+            /** Handler Reference */
+            handler_reference: string;
+            /** Category */
+            category: string;
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -6614,6 +6666,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    failures_api_v1_events_failures_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventFailureView"];
                 };
             };
         };

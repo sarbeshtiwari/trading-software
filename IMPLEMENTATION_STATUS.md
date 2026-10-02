@@ -5652,3 +5652,28 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   visibility to authenticated Monitoring using existing notification/audit
   services, then wire transactional runtime event production and consumers.
   Do not claim integrated operational delivery while publishers remain unwired.
+
+### Retained event failures reach authenticated Monitoring (2026-10-03)
+
+- Redis recovery checkpoint **df7dcd8** is pushed and remote-verified. Added typed
+  read-only failure inspection in existing Monitoring, showing bounded metadata
+  and retained count from actual Redis. Raw payloads, arbitrary handler labels and
+  exception text are withheld. Unavailable storage never becomes zero failures.
+  Count/latest fifty records are read atomically; requests/polling are bounded.
+- Actual Windows Redis connection took about 2.08 seconds; the original two-second
+  connection budget falsely reported unavailable. Five-second connection allowance
+  and six-second overall read bound now pass. Test cleanup was made explicitly
+  unique-prefix-only after safety review; no production stream was overwritten.
+- Final actual Redis -> failed handler -> owner-authenticated API -> Edge test
+  **1 passed**, including non-disclosure and invalid-type unavailable behavior.
+  Broader unit/safety/auth regression **764 passed / 0 failed / 0 skipped**, one
+  existing warning; `backend/logs/event-monitor-regression.txt`. Sessions 86651
+  and 28998 finished. Frontend **54 passed**, fresh production build successful.
+  New API/test modules pass Ruff. Last full-suite baseline remains 1683 at 249a032.
+- ERR-006 remains partial: visible retained failure is not a durable notification
+  request or externally delivered alert. Counts unchanged: **228 verified /
+  139 partial / 10 unverified / 156 not started**. No M1/M2 or LIVE claim.
+- Next: add bounded background dead-letter-to-audit/outbox publication with a
+  durable cursor, atomic cursor/notification persistence, restart idempotency and
+  database-failure recovery. Reuse existing notification/audit services, and keep
+  reads free of side effects. Then wire runtime event producers/consumers.

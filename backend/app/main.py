@@ -29,6 +29,7 @@ from app.api import auth as auth_api
 from app.api import audit as audit_api
 from app.api import backtests as backtests_api
 from app.api import emergency as emergency_api
+from app.api import event_failures as event_failures_api
 from app.api import fundamentals as fundamentals_api
 from app.api import health as health_api
 from app.api import historical_jobs as historical_jobs_api
@@ -262,6 +263,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(historical_jobs_api.router, prefix=API_PREFIX)
     app.include_router(journal_api.router, prefix=API_PREFIX)
     app.include_router(market_api.router, prefix=API_PREFIX)
+    app.include_router(event_failures_api.router, prefix=API_PREFIX)
     app.include_router(market_stream_api.router, prefix=API_PREFIX)
     app.include_router(news_api.router, prefix=API_PREFIX)
     app.include_router(orders_api.router, prefix=API_PREFIX)

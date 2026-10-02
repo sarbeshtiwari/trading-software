@@ -34,10 +34,32 @@ pending work and retry budgets across consumer recreation. Enable them with
 
 ## Remaining integration
 
-ARCH-016 and ERR-006 remain partial. Runtime producer/outbox integration,
-operator-visible dead-letter inspection and durable alert linkage are pending.
+ARCH-016 and ERR-006 remain partial. Runtime producer/outbox integration and
+durable alert linkage are pending.
 Do not connect non-idempotent order placement directly to this transport. The
 existing deterministic risk/OMS workflow remains authoritative and unchanged.
+
+## Authenticated monitoring
+
+The existing Monitoring view reads `/api/v1/events/failures`. This endpoint
+reads the configured Redis server's default event dead-letter stream; arbitrary
+Redis keys are not accepted from the browser. Count and latest fifty records are
+read atomically, within an overall six-second deadline. Connection allowance is
+five seconds to accommodate the observed Windows localhost connection delay.
+Missing Redis or invalid stream state is unavailable, never a fabricated zero.
+
+Only receipt ID, recognized event type, original stream entry ID, a hashed
+handler reference and bounded failure classification are exposed. Raw event
+payloads, arbitrary handler labels and exception messages remain withheld. The
+UI polls every ten seconds, clears failed reads, labels truncated history and
+does not equate an empty dead-letter stream with healthy runtime delivery.
+This is read-only: no replay, acknowledgment, deletion or trading control is
+offered. Durable audit/notification publication is the next integration step;
+neither this read API nor a visible alert proves external notification delivery.
+
+Acceptance includes actual Redis failed-handler retention, authenticated API
+access, metadata non-disclosure and actual Edge rendering. Test keys are uniquely
+prefixed; production streams are never deleted or overwritten by these tests.
 
 Reference semantics: [Redis XAUTOCLAIM](https://redis.io/docs/latest/commands/xautoclaim/)
 and [Redis XACK](https://redis.io/docs/latest/commands/xack/).

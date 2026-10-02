@@ -1630,6 +1630,27 @@
         }
       }
     },
+    "/api/v1/events/failures": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Failures",
+        "operationId": "failures_api_v1_events_failures_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventFailureView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/news/research/{instrument_id}": {
       "get": {
         "tags": [
@@ -8542,6 +8563,49 @@
         ],
         "title": "EventControlState"
       },
+      "EventFailureView": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "retained_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retained Count"
+          },
+          "failures": {
+            "items": {
+              "$ref": "#/components/schemas/RetainedFailure"
+            },
+            "type": "array",
+            "title": "Failures",
+            "default": []
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "default": false
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "Retained event failures only; runtime event integration and external alert delivery are not certified. Raw payloads and exception messages are withheld."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "EventFailureView"
+      },
       "EvidenceReview": {
         "properties": {
           "simulated": {
@@ -14149,6 +14213,47 @@
           "overfitting_flag"
         ],
         "title": "ResultView"
+      },
+      "RetainedFailure": {
+        "properties": {
+          "receipt_id": {
+            "type": "string",
+            "title": "Receipt Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          },
+          "handler_reference": {
+            "type": "string",
+            "title": "Handler Reference"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "event_type",
+          "entry_id",
+          "handler_reference",
+          "category"
+        ],
+        "title": "RetainedFailure"
       },
       "ReviewRequest": {
         "properties": {
