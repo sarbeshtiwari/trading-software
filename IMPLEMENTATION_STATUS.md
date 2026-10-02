@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 135 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 159 | |
+| `[~]` In progress | 136 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 158 | |
 | **Total** | **533** | |
 
 ---
@@ -5521,3 +5521,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   persisted quote evidence and authenticated update transport. Preserve missing,
   stale and broker-unavailable states; do not present stored quotes as an externally
   verified live feed. Inspect existing quote storage/worker/transport before coding.
+
+### Audited stored quote watchlist (2026-10-03)
+
+- Source-discovery checkpoint **4cae8b1** is pushed and remote-verified. Added
+  typed authenticated quote reads reusing existing audited stored-quote recovery,
+  origin/identity validation and configured freshness policy. Missing, stale or
+  tampered evidence yields no numerical prices; unknown volume/change stays null.
+- Existing Market view supports up to ten watched instruments, origin selection,
+  removal and bounded three-second polling. Failures clear prior numbers. Stored
+  observations do not imply broker connectivity, live evidence or trade permission.
+- Provider-ingestion/API/integrity selection **5 passed**. Actual Edge **1 passed**
+  through ingestion and authenticated quote display alongside charts/fundamentals.
+  Expanded unit/safety/worker/stored-quotes/chart regression **771 passed / 0 failed /
+  0 skipped**, one existing warning; log `backend/logs/market-watchlist-regression.txt`,
+  session 36896 finished. Frontend **51 passed**, build successful. Changed backend
+  modules pass Ruff. Test scopes overlap; no new full-suite claim.
+- FE-004 moves to partial, explicitly not complete: WebSocket transport, durable
+  selection preferences and external live-feed verification remain pending. Counts:
+  **229 verified / 136 partial / 10 unverified / 158 not started**.
+- Next: authenticated watchlist WebSocket delivery with bounded subscriptions,
+  session revalidation/revocation, stale transitions and disconnect/recovery tests.
+  Reuse the quote read/evidence checks; never put bearer tokens in URLs or bypass
+  authentication. Groww LIVE remains locked and externally unverified.

@@ -11,16 +11,68 @@ from pydantic import AwareDatetime
 from app.agents.validation import _utc
 from app.analysis.equity import EvidenceModel
 from app.analysis.technical.ma import sma
+from app.config import get_settings
 from app.core.clock import ensure_ist, get_clock
 from app.core.data_origin import DataOrigin
+from app.core.errors import SafetyError
 from app.db import session as db_session
 from app.db.models.instrument import Instrument
 from app.marketdata.ingest import CandleStore
-from app.marketdata.models import Bar
-from app.marketdata.staleness import bar_is_stale
+from app.marketdata.models import Bar, InstrumentRef
+from app.marketdata.staleness import FreshnessPolicy, bar_is_stale, evaluate
+from app.marketdata.stored_quotes import stored_quote
 from app.marketdata.validation import validate_bar
 
 router = APIRouter(prefix="/market", tags=["market"])
+
+
+class StoredQuoteView(EvidenceModel):
+    instrument_id: str
+    origin: DataOrigin
+    as_of: AwareDatetime
+    status: str
+    observed_at: AwareDatetime | None = None
+    ltp: Decimal | None = None
+    change_pct: Decimal | None = None
+    volume: int | None = None
+    scope: str = (
+        "Audited stored PAPER ingestion observation; "
+        "not broker connectivity or execution permission."
+    )
+
+
+@router.get("/quotes/{instrument_id}", response_model=StoredQuoteView)
+async def quote(instrument_id: str, origin: DataOrigin):
+    now = get_clock().now()
+    result = StoredQuoteView(
+        instrument_id=instrument_id, origin=origin, as_of=now, status="UNAVAILABLE"
+    )
+    async with db_session.session_scope() as session:
+        instrument = await session.get(Instrument, instrument_id)
+    if instrument is None:
+        raise HTTPException(404, "Instrument unavailable")
+    reference = InstrumentRef(instrument.trading_symbol, instrument.exchange, instrument.segment)
+    try:
+        observed = await stored_quote(reference, as_of=now, origin=origin)
+    except SafetyError:
+        return result.model_copy(update={"status": "INVALID_EVIDENCE"})
+    if observed is None:
+        return result
+    freshness = evaluate(observed.observed_at, policy=FreshnessPolicy.from_settings(get_settings()))
+    if freshness.stale:
+        return result.model_copy(update={"status": "STALE", "observed_at": observed.observed_at})
+    change = observed.day_change_pct
+    if change is not None and not change.is_finite():
+        change = None
+    return result.model_copy(
+        update={
+            "status": "RECORDED",
+            "observed_at": observed.observed_at,
+            "ltp": observed.ltp,
+            "change_pct": change,
+            "volume": observed.volume,
+        }
+    )
 
 
 class MarketInstrument(EvidenceModel):
@@ -161,10 +213,7 @@ async def candles(
         )
         for row, bar, average in zip(rows, observations, averages, strict=True)
     )
-    gaps = sum(
-        current.ts - previous.ts != span
-        for previous, current in pairwise(observations)
-    )
+    gaps = sum(current.ts - previous.ts != span for previous, current in pairwise(observations))
     return result.model_copy(
         update={
             "bars": bars,

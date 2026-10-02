@@ -60,3 +60,23 @@ intervals and advanced overlays are not included yet.
 Rendering uses [TradingView Lightweight Charts](https://tradingview.github.io/lightweight-charts/docs).
 The UI includes the required TradingView notice/link; see the upstream
 [NOTICE](https://raw.githubusercontent.com/tradingview/lightweight-charts/master/NOTICE).
+
+## Audited quote watchlist
+
+The selected catalog instrument can be added to a bounded ten-instrument
+view-session watchlist. `/api/v1/market/quotes/{instrument_id}?origin=...` reads
+existing audited PAPER ingestion observations using the same stored-quote
+validation as execution recovery. It never fetches or fabricates a broker quote.
+Origin and instrument identities are checked; damaged audit evidence yields
+INVALID_EVIDENCE without numerical values. Missing observations are UNAVAILABLE.
+
+The configured quote freshness policy suppresses stale numerical values while
+retaining the observation timestamp. Unknown change percentage/volume remains
+unavailable, not zero. The UI independently withholds values unless the server
+reports RECORDED. That status describes evidence, not a live broker connection.
+
+Authenticated HTTP polling runs every three seconds with bounded requests,
+no overlapping poll per row, and cleanup on removal/origin changes. This is
+partial FE-004 delivery: WebSocket transport, durable user watchlist preferences
+and externally verified live feed acceptance remain pending. Deterministic
+provider fixtures verify ingestion/API/browser integration, not real-market data.

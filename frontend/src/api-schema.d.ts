@@ -414,6 +414,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/market/quotes/{instrument_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quote */
+        get: operations["quote_api_v1_market_quotes__instrument_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/market/instruments": {
         parameters: {
             query?: never;
@@ -5131,6 +5148,32 @@ export interface components {
              */
             polarity: "ASSERTED" | "NEGATED";
         };
+        /** StoredQuoteView */
+        StoredQuoteView: {
+            /** Instrument Id */
+            instrument_id: string;
+            origin: components["schemas"]["DataOrigin"];
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Status */
+            status: string;
+            /** Observed At */
+            observed_at?: string | null;
+            /** Ltp */
+            ltp?: string | null;
+            /** Change Pct */
+            change_pct?: string | null;
+            /** Volume */
+            volume?: number | null;
+            /**
+             * Scope
+             * @default Audited stored PAPER ingestion observation; not broker connectivity or execution permission.
+             */
+            scope: string;
+        };
         /** Story */
         Story: {
             /**
@@ -6461,6 +6504,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JournalDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quote_api_v1_market_quotes__instrument_id__get: {
+        parameters: {
+            query: {
+                origin: components["schemas"]["DataOrigin"];
+            };
+            header?: never;
+            path: {
+                instrument_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredQuoteView"];
                 };
             };
             /** @description Validation Error */

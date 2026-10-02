@@ -9,8 +9,10 @@ import pytest
 
 from app.analysis.fundamental.source import ManualJSONSource
 from app.analysis.fundamental.store import FundamentalStore
+from app.trading.observations import ReferenceIngestion
 from tests.integration.test_market_chart import chart_data, credentials
 from tests.integration.test_paper_browser import ROOT, live_dashboard
+from tests.integration.test_reference_ingestion import fixture_provider
 
 __all__ = ["credentials", "live_dashboard"]
 
@@ -18,6 +20,7 @@ __all__ = ["credentials", "live_dashboard"]
 @pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")
 async def test_actual_stored_candle_chart(db_engine, credentials, fake_clock, live_dashboard):
     client, instrument = await chart_data(credentials, fake_clock)
+    await ReferenceIngestion(fixture_provider(), clock=fake_clock).observe_quote(instrument)
     await FundamentalStore(fake_clock).import_source(
         ManualJSONSource(),
         json.dumps(
