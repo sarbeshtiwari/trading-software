@@ -18,6 +18,7 @@ try {
   const watchlist = panel.getByRole('region', { name: 'Stored quote watchlist', exact: true });
   await watchlist.getByRole('button', { name: 'Watch selected instrument' }).click();
   await watchlist.getByRole('cell', { name: 'RECORDED', exact: true }).waitFor();
+  await watchlist.getByRole('cell', { name: 'WebSocket', exact: true }).waitFor();
   assert.equal(Number(await watchlist.locator('tbody tr td').nth(3).innerText()), 100);
   await panel.locator('[aria-label="Stored candlestick chart"] canvas').first().waitFor();
   await panel.getByText('Stored candle values', { exact: true }).click();

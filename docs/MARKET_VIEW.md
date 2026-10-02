@@ -75,8 +75,29 @@ retaining the observation timestamp. Unknown change percentage/volume remains
 unavailable, not zero. The UI independently withholds values unless the server
 reports RECORDED. That status describes evidence, not a live broker connection.
 
-Authenticated HTTP polling runs every three seconds with bounded requests,
-no overlapping poll per row, and cleanup on removal/origin changes. This is
-partial FE-004 delivery: WebSocket transport, durable user watchlist preferences
-and externally verified live feed acceptance remain pending. Deterministic
-provider fixtures verify ingestion/API/browser integration, not real-market data.
+The dashboard uses `/api/v1/market/stream` WebSocket updates. Browser origin must
+match the configured allowlist; query parameters are refused. Authentication and
+subscription arrive in the first message, never a token-bearing URL. The server
+uses existing owner-session validation before reading and again before sending,
+so revoked/expired sessions stop receiving observations. Missing/invalid auth
+never receives market state. Connection errors return generic close codes, not
+database details or credential values.
+
+Each connection accepts one initial subscription (up to ten instruments), with
+a five-second handshake deadline and bounded read/auth/send operations. Extra
+subscription frames close the connection. A process permits at most twenty
+connections; this is not a distributed/global resource quota. Snapshots re-read
+audited evidence about every two seconds, including freshness transitions. This
+is not a sub-second event-bus or vendor-tick forwarding claim.
+
+The initial UI uses one stream per watched row. It makes at most three connection
+attempts per row mount, uses bounded backoff, and clears values on disconnect.
+Silent streams trigger a watchdog; authenticated three-second HTTP polling is
+the explicitly labelled fallback. Cleanup closes subscriptions on removal/origin
+changes. Vite's API proxy enables WebSocket upgrades; production reverse proxies
+must preserve upgrades and the configured Origin allowlist. TLS deployments use WSS.
+
+FE-004 and BE-009 remain partial: durable user preferences, broader stream events,
+sub-second event delivery and externally verified live feed acceptance remain
+pending. Deterministic provider fixtures verify ingestion/API/browser integration,
+not real-market data.

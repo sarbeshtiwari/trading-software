@@ -34,6 +34,7 @@ from app.api import health as health_api
 from app.api import historical_jobs as historical_jobs_api
 from app.api import journal as journal_api
 from app.api import market as market_api
+from app.api import market_stream as market_stream_api
 from app.api import news as news_api
 from app.api import orders as orders_api
 from app.api import reports as reports_api
@@ -261,6 +262,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(historical_jobs_api.router, prefix=API_PREFIX)
     app.include_router(journal_api.router, prefix=API_PREFIX)
     app.include_router(market_api.router, prefix=API_PREFIX)
+    app.include_router(market_stream_api.router, prefix=API_PREFIX)
     app.include_router(news_api.router, prefix=API_PREFIX)
     app.include_router(orders_api.router, prefix=API_PREFIX)
     app.include_router(reports_api.router, prefix=API_PREFIX)

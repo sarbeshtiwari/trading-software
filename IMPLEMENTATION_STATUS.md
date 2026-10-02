@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 136 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 158 | |
+| `[~]` In progress | 137 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 157 | |
 | **Total** | **533** | |
 
 ---
@@ -5544,3 +5544,33 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   session revalidation/revocation, stale transitions and disconnect/recovery tests.
   Reuse the quote read/evidence checks; never put bearer tokens in URLs or bypass
   authentication. Groww LIVE remains locked and externally unverified.
+
+### Authenticated watchlist WebSocket snapshots (2026-10-03)
+
+- Previous checkpoint **00cc263** is pushed and remote-verified. Added bounded
+  quote snapshot streaming with explicit Origin allowlist, first-message owner
+  authentication and no query tokens. Existing session validation runs before
+  reading and before sending; expiry/revocation stops updates. Handshake, reads
+  and sends have timeouts; ten-instrument subscriptions and twenty connections
+  per process are capped. Errors do not expose credentials or database details.
+- Existing watchlist uses WebSocket observations, bounded reconnect attempts,
+  silent-stream detection and labelled HTTP fallback. Disconnect clears values;
+  reconnect gets current state, never reuses an old trading authorization. Vite
+  now proxies upgrades. This is a two-second stored-observation stream, not a
+  claim of sub-second vendor ticks or all-event dashboard streaming.
+- Actual network/auth/browser/API selection **10 passed / 0 failed / 0 skipped**,
+  including invalid origins/query tokens, subscription bounds, stale quotes,
+  revoked/expired sessions and actual Edge transport. Expanded unit/safety/
+  ingestion/worker regression **771 passed**, one existing warning; session 73649
+  finished, log `backend/logs/market-stream-regression.txt`. Frontend **52 passed**
+  and fresh production build succeeds; new Python modules pass Ruff.
+- Fresh TypeScript build exposed an unsupported `exact` test matcher option
+  added after the prior build. Removed it and reran build successfully. Prior
+  checkpoint's build statement did not cover that late-added test; corrected here.
+- BE-009 moves to partial; FE-004 remains partial. Counts **229 verified /
+  137 partial / 10 unverified / 157 not started**. Order/position/alert streaming,
+  sub-second event delivery and external live-feed verification remain pending.
+- Next: freeze source and run full backend/browser/actual PostgreSQL acceptance
+  for accumulated Market integrations. Observe its exact process to completion,
+  then connect remaining operational event updates through existing services.
+  PAPER remains default; no LIVE arming, broker orders or fabricated data.

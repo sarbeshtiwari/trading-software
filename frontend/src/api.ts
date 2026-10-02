@@ -39,6 +39,13 @@ export class Api {
     }, false);
     this.access = body.access_token;
   }
+  quoteStream(instruments: string[], origin: string): WebSocket {
+    const url = new URL('/api/v1/market/stream', window.location.href);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(url);
+    socket.addEventListener('open', () => socket.send(JSON.stringify({ token: this.access, instruments, origin })));
+    return socket;
+  }
   async download(path: string): Promise<Blob> {
     let response = await this.raw(path);
     if (response.status === 401 && await this.refresh()) response = await this.raw(path);
