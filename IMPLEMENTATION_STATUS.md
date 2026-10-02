@@ -47,9 +47,9 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 137 | Partial implementation/integration; limitations recorded below |
+| `[~]` In progress | 138 | Partial implementation/integration; limitations recorded below |
 | `[ ]` Not started | 157 | |
 | **Total** | **533** | |
 
@@ -5574,3 +5574,33 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   for accumulated Market integrations. Observe its exact process to completion,
   then connect remaining operational event updates through existing services.
   PAPER remains default; no LIVE arming, broker orders or fabricated data.
+
+### Full Market integration acceptance in progress (2026-10-03)
+
+- Stream checkpoint **0589783** is pushed to origin/main and remote hash verified,
+  configured owner author only, no co-author. Unrelated owner changes preserved.
+- Full backend/browser/actual PostgreSQL acceptance is running as session
+  **86771**, log `backend/logs/full-market-stream-checkpoint.txt`. No result yet.
+  Source/tests remain frozen. Poll this exact session; do not restart because
+  output is quiet. Existing PostgreSQL/Redis infrastructure is not recreated.
+- Next: observe completion, investigate genuine failures before any further
+  feature changes, record the real full-suite result and then continue operational
+  event integration. M1/M2 and Groww LIVE remain incomplete/unverified.
+
+### Event-bus evidence correction during acceptance (2026-10-03)
+
+- Full run 86771 remains active; latest observed progress 34%, no failure marker
+  yet. Source/tests remain frozen. Only ledger/documentation edits during this run.
+- Read-only inspection found ARCH-016 overstated. Its named acceptance test uses
+  MemoryEventBus, not Redis. Runtime execution/worker/main do not instantiate the
+  bus. Redis consumption reads only new messages; durable pending recovery is not
+  established. Exhausted failures are held in an in-memory dead-letter list before
+  acknowledgment, and malformed events are acknowledged without durable retention.
+  Existing tests do not demonstrate crash-safe Redis delivery or integration.
+- Downgraded ARCH-016 to partial. Counts now **228 verified / 138 partial /
+  10 unverified / 157 not started**. No requirement removed. ERR-006 stays not
+  started because its durable dead-letter stream/operator alert contract is absent.
+- After full acceptance completes: fix durable Redis retry/dead-letter/restart
+  semantics against the existing Redis server before wiring operational publishers
+  and dashboard consumers. Do not graft UI transport onto unsafe event delivery or
+  claim that an in-memory test certifies a production Redis bus.
