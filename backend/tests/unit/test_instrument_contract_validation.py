@@ -39,3 +39,27 @@ def test_lot_size_is_exact_and_database_representable(lot):
 )
 def test_incomplete_option_contract_is_rejected(changes):
     assert parse_instrument_csv(contract_csv(**changes)) == []
+
+
+@pytest.mark.parametrize(
+    "flags,restricted",
+    [
+        ("1,1,0", False),
+        ("0,1,0", True),
+        ("1,0,0", True),
+        ("1,1,1", True),
+        ("1,,0", True),
+        ("1,1,unknown", True),
+    ],
+)
+def test_broker_permissions_are_not_assumed(flags, restricted):
+    header, row = contract_csv().splitlines()
+    content = header + ",buy_allowed,sell_allowed,is_reserved\n" + row + "," + flags + "\n"
+    values = parse_instrument_csv(content)[0].as_values()
+    assert values.get("is_restricted", False) is restricted
+
+
+def test_absent_broker_permissions_are_unavailable():
+    values = parse_instrument_csv(contract_csv())[0].as_values()
+    assert values["is_restricted"] is True
+    assert values["restriction_reason"] == "BROKER_TRADABILITY_UNAVAILABLE"

@@ -60,6 +60,9 @@ _HEADERS: dict[str, tuple[str, ...]] = {
     "strike_price": ("strike_price", "strike"),
     "option_type": ("option_type", "instrument_subtype"),
     "is_weekly": ("is_weekly", "weekly"),
+    "buy_allowed": ("buy_allowed",),
+    "sell_allowed": ("sell_allowed",),
+    "is_reserved": ("is_reserved",),
 }
 
 #: Without these the row cannot be trusted enough to trade on.
@@ -84,9 +87,10 @@ class InstrumentRow:
     strike_price: Optional[Decimal] = None
     option_type: Optional[OptionType] = None
     is_weekly_expiry: Optional[bool] = None
+    broker_restriction: Optional[str] = None
 
     def as_values(self) -> dict[str, Any]:
-        return {
+        values = {
             "exchange": self.exchange,
             "segment": self.segment,
             "trading_symbol": self.trading_symbol,
@@ -107,6 +111,10 @@ class InstrumentRow:
             "is_active": True,
             "source": "groww_csv",
         }
+        if self.broker_restriction:
+            values["is_restricted"] = True
+            values["restriction_reason"] = self.broker_restriction
+        return values
 
 
 @dataclass
@@ -223,6 +231,17 @@ def _classify(
     return InstrumentType.EQUITY
 
 
+def _broker_restriction(raw, headers):
+    expected = {"buy_allowed": True, "sell_allowed": True, "is_reserved": False}
+    for field_name, allowed in expected.items():
+        value = _text(raw, headers, field_name)
+        if value is None or value.lower() not in {"0", "1", "true", "false"}:
+            return "BROKER_TRADABILITY_UNAVAILABLE"
+        if (value.lower() in {"1", "true"}) != allowed:
+            return "BROKER_TRADING_RESTRICTED"
+    return None
+
+
 def parse_instrument_csv(content: str, result: Optional[LoadResult] = None) -> list[InstrumentRow]:
     """Parse the instrument CSV into typed rows, skipping what cannot be trusted."""
     outcome = result or LoadResult()
@@ -304,6 +323,7 @@ def parse_instrument_csv(content: str, result: Optional[LoadResult] = None) -> l
                 is_weekly_expiry=(
                     weekly_text.lower() in {"true", "1", "yes", "y"} if weekly_text else None
                 ),
+                broker_restriction=_broker_restriction(raw, headers),
             )
         )
 
@@ -348,6 +368,9 @@ class InstrumentLoader:
         result = LoadResult()
         text = content if content is not None else await self.download()
         rows = parse_instrument_csv(text, result)
+        identities = {(row.exchange, row.segment, row.trading_symbol) for row in rows}
+        if len(identities) != len(rows):
+            raise InvalidResponseError("Duplicate instrument identities; refusing ambiguous master")
 
         if not rows:
             raise InvalidResponseError(
@@ -380,6 +403,13 @@ class InstrumentLoader:
 
             changed = False
             for field_name, value in values.items():
+                if field_name == "restriction_reason" and current.is_restricted:
+                    if current.restriction_reason not in {
+                        None,
+                        "BROKER_TRADABILITY_UNAVAILABLE",
+                        "BROKER_TRADING_RESTRICTED",
+                    }:
+                        continue
                 if getattr(current, field_name) != value:
                     setattr(current, field_name, value)
                     changed = True

@@ -62,14 +62,16 @@ async def test_candle_ingest_idempotent(db_engine) -> None:
 
     # Re-ingesting an overlapping window must upsert, never duplicate: a doubled
     # bar would double the volume every indicator reads.
-    second = await store.write("ins_nifty", 5, bars[2:] + _bars(2, start=BASE + timedelta(minutes=25)))
+    second = await store.write(
+        "ins_nifty", 5, bars[2:] + _bars(2, start=BASE + timedelta(minutes=25))
+    )
     assert second.written == 5
 
     async with db_session.session_scope() as session:
         count = await session.scalar(
-            sa.select(sa.func.count()).select_from(Candle).where(
-                Candle.instrument_id == "ins_nifty"
-            )
+            sa.select(sa.func.count())
+            .select_from(Candle)
+            .where(Candle.instrument_id == "ins_nifty")
         )
     assert count == 7
 
@@ -151,14 +153,10 @@ async def test_gap_backfill(db_engine) -> None:
         return [bar for bar in all_bars if start <= bar.ts <= end]
 
     backfiller = Backfiller(fetch, store=store, calendar=calendar)
-    before = await backfiller.report(
-        "ins_gap", NIFTY, 60, BASE, BASE + timedelta(minutes=60 * 6)
-    )
+    before = await backfiller.report("ins_gap", NIFTY, 60, BASE, BASE + timedelta(minutes=60 * 6))
     assert before.gap_count == 3
 
-    after = await backfiller.backfill(
-        "ins_gap", NIFTY, 60, BASE, BASE + timedelta(minutes=60 * 6)
-    )
+    after = await backfiller.backfill("ins_gap", NIFTY, 60, BASE, BASE + timedelta(minutes=60 * 6))
     assert after.gap_count == 0
     # One targeted call for the one contiguous hole.
     assert len(fetch_calls) == 1
@@ -341,9 +339,7 @@ async def test_instrument_loader_deactivates_missing_rows(db_engine) -> None:
     assert result.deactivated == 4
     async with db_session.session_scope() as session:
         active = await session.scalar(
-            sa.select(sa.func.count()).select_from(Instrument).where(
-                Instrument.is_active.is_(True)
-            )
+            sa.select(sa.func.count()).select_from(Instrument).where(Instrument.is_active.is_(True))
         )
         total = await session.scalar(sa.select(sa.func.count()).select_from(Instrument))
     # Deactivated, never deleted: past trades still reference these rows.
@@ -357,6 +353,34 @@ async def test_empty_instrument_master_is_refused(db_engine) -> None:
     with pytest.raises(InvalidResponseError) as excinfo:
         await loader.load(header_only)
     assert "zero instruments" in str(excinfo.value)
+
+
+async def test_duplicate_instrument_master_leaves_database_unchanged(db_engine):
+    loader = InstrumentLoader()
+    await loader.load(CSV)
+    duplicate = CSV + CSV.splitlines()[1] + "\n"
+    with pytest.raises(InvalidResponseError, match="Duplicate instrument"):
+        await loader.load(duplicate)
+    async with db_session.session_scope() as session:
+        assert await session.scalar(sa.select(sa.func.count()).select_from(Instrument)) == 6
+
+
+async def test_instrument_refresh_preserves_manual_restriction(db_engine):
+    loader = InstrumentLoader()
+    await loader.load(CSV)
+    async with db_session.session_scope() as session:
+        instrument = await session.scalar(
+            sa.select(Instrument).where(Instrument.trading_symbol == "TCS")
+        )
+        instrument.is_restricted = True
+        instrument.restriction_reason = "OWNER_REVIEW_REQUIRED"
+    await loader.load(CSV)
+    async with db_session.session_scope() as session:
+        instrument = await session.scalar(
+            sa.select(Instrument).where(Instrument.trading_symbol == "TCS")
+        )
+        assert instrument.is_restricted
+        assert instrument.restriction_reason == "OWNER_REVIEW_REQUIRED"
 
 
 async def test_instrument_resolver(db_engine) -> None:

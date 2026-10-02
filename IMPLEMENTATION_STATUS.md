@@ -4752,3 +4752,24 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   tradability restrictions, duplicate handling and raw snapshot provenance,
   verify on PostgreSQL, then rerun actual runtime readiness. No instruments
   imported into owner database yet; no orders, worker activation or LIVE claims.
+
+### Broker instrument restrictions and PostgreSQL acceptance (2026-10-02)
+
+- Existing loader now consumes buy/sell permission and reserved flags. Missing
+  or malformed permission metadata is restricted, not treated as permission.
+  Either blocked side conservatively prevents new entries; this is not a
+  side-specific exit prohibition. Existing owner restriction reasons survive
+  refresh. CSV refresh never automatically clears a previously latched catalog
+  restriction; audited selective clearance is still pending.
+- Duplicate exchange/segment/symbol identities reject the entire import before
+  database writes, rather than relying on a database uniqueness failure.
+- Focused regression: **48 passed / 0 failed / 0 skipped**. Broader unit/safety/
+  market-storage regression: **754 passed / 0 failed / 0 skipped**.
+- Actual Docker PostgreSQL acceptance: **1 passed / 0 failed / 0 skipped**, using
+  a connection-local temporary table copied from the migrated instrument schema
+  and outer-transaction rollback. Verified option side, lot size, restriction,
+  idempotent reload and duplicate rejection without changing production rows.
+- Requirements remain **228 verified / 127 partial / 13 unverified / 165 not
+  started**. GRW-016 remains partial; production snapshot provenance, controlled
+  import and scheduled refresh are next. Frontend unchanged; prior 35-test/build
+  evidence is not claimed as rerun. External LTP 403 remains unresolved.
