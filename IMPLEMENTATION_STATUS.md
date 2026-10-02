@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 139 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 156 | |
+| `[~]` In progress | 141 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 154 | |
 | **Total** | **533** | |
 
 ---
@@ -5885,3 +5885,53 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   a subsequent match. REC-003/004 still lack persisted exact discrepancy evidence
   and explicit owner resolution. Integrate these without inventing broker state,
   silently correcting economics or weakening entry/exit safety. Groww LIVE stays locked.
+
+### Durable reconciliation review work in progress (2026-10-03)
+
+- Working tree adds exact PAPER discrepancy observations, transactional audit/event
+  evidence, persistent entry blocking and authenticated owner resolution against
+  a fresh matching comparison and reviewed audit hash. Resolution does not repair
+  economics or clear unrelated gates. Existing Monitoring gains a typed review
+  panel; read supersession and bounded request failures are explicit.
+- Scoped restart, emergency exit while review is pending, current-mismatch refusal,
+  tampered evidence and persistence rollback acceptance: **6 passed**. Two added
+  test assertions initially assumed immediate gate refresh and decimal string
+  formatting; corrected to require a fresh comparison and numeric equality.
+- Broader unit/safety/PAPER execution regression: **780 passed / 0 failed / 0
+  skipped**, one existing serializer warning, session 6771 finished. Log:
+  `backend/logs/reconciliation-review-regression.txt`. Frontend **62 passed**,
+  production build successful. Initial sandbox esbuild spawning failed with EPERM;
+  authorized local rerun succeeded. Full-suite baseline remains 1699, not 780.
+- This unit is **uncommitted and not accepted as complete**. Requirement counts
+  remain unchanged. Next: actual PostgreSQL discrepancy transaction/restart
+  acceptance, actual browser review workflow, changed-evidence conflict coverage,
+  and final safety inspection before documentation promotion, commit and push.
+  No live broker orders, external notification delivery or M1/M2 claim.
+
+### PAPER discrepancy review acceptance (2026-10-03)
+
+- Existing reconciliation now persists quantity/price/accounting discrepancy
+  evidence, audit and runtime publication intent atomically. Matching later state
+  does not silently dismiss owner review. Entry approval checks durable evidence;
+  recovered matching positions remain eligible for protective exits while review
+  is pending. Current mismatches continue to fail closed.
+- Authenticated GET `/api/v1/reconciliation` and POST
+  `/api/v1/reconciliation/{id}/resolve` integrate with existing Monitoring.
+  Resolution requires a running recovered PAPER worker, current matching account
+  comparison, exact reviewed hash, reason and typed confirmation. Changed evidence
+  refuses stale approval. Resolution never repairs economics or clears other gates.
+- Actual PostgreSQL temporary-table persistence/rollback, PAPER executor restart,
+  safe exit, evidence tampering, current-mismatch/changed-hash refusal, duplicate
+  resolution and actual Edge owner-review acceptance: **7 passed / 0 failed / 0
+  skipped**, session 71377 finished. Owner tables were not mutated. PostgreSQL
+  coverage uses fresh sessions, not a claim of database-server restart acceptance.
+- Prior broad regression **780 passed**, one existing warning; frontend **62
+  passed**, fresh production build successful. Latest edits after that broad run
+  are test-only. New Python modules/tests pass Ruff; git diff check passes.
+- REC-003/004 move only to partial, not verified across all modes. Counts:
+  **228 verified / 141 partial / 10 unverified / 154 not started**. Full-suite
+  baseline remains 1699; LIVE/external delivery/M1/M2 remain unverified.
+- Next: complete discrepancy evidence for FIFO-lot and unknown-order mismatches,
+  which currently have aggregate accounting/order-count context rather than exact
+  per-lot/per-order differences. Add bounded inspection/verification behavior and
+  risk-pipeline rejection acceptance, preserving the existing owner review path.

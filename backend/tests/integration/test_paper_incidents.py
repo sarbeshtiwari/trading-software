@@ -23,7 +23,7 @@ from tests.unit.test_notifications import RecordingChannel
 __all__ = ["credentials"]
 
 
-async def test_reconciliation_incident_survives_rollback_restart_and_recurrence(
+async def test_reconciliation_incident_survives_restart_and_requires_review(
     db_engine, credentials, fake_clock
 ):
     engine, proposal_id, _market, client, _context = await setup_execution(credentials, fake_clock)
@@ -51,6 +51,7 @@ async def test_reconciliation_incident_survives_rollback_restart_and_recurrence(
         async with db_session.session_scope() as session:
             (await session.get(Position, identifier)).net_quantity = quantity
         await engine.recover()
+        assert "REVIEW_REQUIRED" in get_trading_gate().reason()
         async with db_session.session_scope() as session:
             (await session.get(Position, identifier)).net_quantity += 1
         with pytest.raises(SafetyError, match="RECONCILE"):
@@ -60,7 +61,7 @@ async def test_reconciliation_incident_survives_rollback_restart_and_recurrence(
             for row in await requests()
             if row.result["notification"]["event_type"] == "RECONCILIATION_DISCREPANCY"
         ]
-        assert len(notices) == 3
+        assert len(notices) == 1
         channel = RecordingChannel()
         await NotificationOutbox(delivery(channel, fake_clock), clock=fake_clock).dispatch_once()
         assert (
@@ -71,7 +72,7 @@ async def test_reconciliation_incident_survives_rollback_restart_and_recurrence(
                     if notice.event_type == "RECONCILIATION_DISCREPANCY"
                 ]
             )
-            == 3
+            == 1
         )
         state = (await client.get("/api/v1/workspace")).json()
         assert any(

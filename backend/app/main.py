@@ -37,6 +37,7 @@ from app.api import journal as journal_api
 from app.api import market as market_api
 from app.api import market_stream as market_stream_api
 from app.api import workspace_stream as workspace_stream_api
+from app.api import reconciliation as reconciliation_api
 from app.api import news as news_api
 from app.api import orders as orders_api
 from app.api import reports as reports_api
@@ -275,6 +276,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(event_failures_api.router, prefix=API_PREFIX)
     app.include_router(market_stream_api.router, prefix=API_PREFIX)
     app.include_router(workspace_stream_api.router, prefix=API_PREFIX)
+    app.include_router(reconciliation_api.router, prefix=API_PREFIX)
     app.include_router(news_api.router, prefix=API_PREFIX)
     app.include_router(orders_api.router, prefix=API_PREFIX)
     app.include_router(reports_api.router, prefix=API_PREFIX)

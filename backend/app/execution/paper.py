@@ -45,6 +45,7 @@ from app.db.models.journal import JournalEntry
 from app.db.models.system import SINGLETON_ID, PortfolioSnapshot, SystemState
 from app.db.models.trading import Order, Position, Trade
 from app.emergency.rejections import observe_rejection
+from app.execution import discrepancies
 from app.execution.event_types import PAPER_EVENT_TYPES
 from app.execution.expiry import warn_expiring_positions
 from app.execution.freshness import require_entry_sources
@@ -307,7 +308,7 @@ class PaperExecution:
         known = {order.broker_reference_id for order in orders}
         if any(order.reference_id not in known for order in await self.broker.list_orders()):
             raise SafetyError("UNTRACKED_PAPER_BROKER_ORDER")
-        await self._reconcile()
+        await self._reconcile(allow_review_pending=True)
         self.gate.clear("paper_recovery")
         self.ready = True
 
@@ -940,7 +941,7 @@ class PaperExecution:
                 condition_key="paper_protection",
                 occurred_at=self.clock.utcnow(),
             )
-        await self._reconcile()
+        await self._reconcile(allow_review_pending=True)
         if position and not position.net_quantity:
             context = DecisionContext.from_snapshot(proposal.context_snapshot)
             async with db_session.session_scope() as session:
@@ -1147,7 +1148,7 @@ class PaperExecution:
                 return existing.id
             if existing.submitted_at is not None:
                 await self.sync(existing.id)
-            await self._reconcile()
+            await self._reconcile(allow_review_pending=True)
         if not entry.status.is_terminal:
             await self.cancel(entry.id)
         async with db_session.session_scope() as session:
@@ -1349,7 +1350,7 @@ class PaperExecution:
                 origin = proposal.context_snapshot["market"]["data_origin"]
                 await self.safety.trip_error(TradingMode.PAPER, origin)
             if reason == "PROTECTION_MISSING_OR_CHANGED":
-                await self._reconcile()
+                await self._reconcile(allow_review_pending=True)
                 await self.exit(position.id, ExitReason.EMERGENCY)
             raise SafetyError(reason)
 
@@ -1399,7 +1400,7 @@ class PaperExecution:
             )
         for order in pending:
             await self.sync(order.id)
-        await self._reconcile()
+        await self._reconcile(allow_review_pending=True)
         await self.verify_protection(quote)
         position_id = stable_id("pos", proposal.id)
         self.broker.account.mark(
@@ -1491,20 +1492,21 @@ class PaperExecution:
                 )
             )
 
-    async def _reconcile(self):
+    async def _reconcile(self, *, allow_review_pending=False):
         incidents = PaperIncidents(self.clock)
         try:
-            await self._reconcile_state()
+            result = await self._reconcile_state(allow_review_pending=allow_review_pending)
         except Exception:
             self.gate.block("paper_reconciliation", "PAPER_POSITION_OR_ORDER_DISCREPANCY")
             await incidents.observe("RECONCILIATION_DISCREPANCY", active=True)
             raise
-        await incidents.observe("RECONCILIATION_DISCREPANCY", active=False)
+        await incidents.observe("RECONCILIATION_DISCREPANCY", active=result is False)
 
-    async def _reconcile_state(self):
+    async def _reconcile_state(self, *, allow_review_pending=False):
+        remote_positions = await self.broker.get_positions()
         remote = {
             (item.exchange, item.trading_symbol, item.segment, item.product): item.net_quantity
-            for item in await self.broker.get_positions()
+            for item in remote_positions
             if item.net_quantity
         }
         async with db_session.session_scope() as session:
@@ -1544,10 +1546,63 @@ class PaperExecution:
                 .select_from(Order)
                 .where(Order.mode == TradingMode.PAPER, Order.status == OrderStatus.UNKNOWN)
             )
-            if local != remote or unknown or not await self._accounting_matches(session, positions):
+            accounting_matches = await self._accounting_matches(session, positions)
+            mismatch = local != remote or unknown or not accounting_matches
+            if mismatch:
                 self.gate.block("paper_reconciliation", "PAPER_POSITION_OR_ORDER_DISCREPANCY")
-                raise SafetyError("PAPER_RECONCILE_REQUIRED")
-            if not positions and not pending:
+                def encoded(values):
+                    return {"|".join(part.value if hasattr(part, "value") else part for part in key): value
+                            for key, value in values.items()}
+                local_quantities, remote_quantities = encoded(local), encoded(remote)
+                local_prices = {}
+                for position in positions:
+                    instrument = await session.get(Instrument, position.instrument_id)
+                    key = (instrument.exchange, position.trading_symbol,
+                           position.segment, position.product)
+                    local_prices[key] = local_prices.get(key, Decimal(0)) + (
+                        position.net_quantity * position.average_price
+                    )
+                local_prices = encoded({key: amount / local[key] if local[key] else None
+                                        for key, amount in local_prices.items()})
+                broker_prices = encoded({(item.exchange, item.trading_symbol, item.segment,
+                                          item.product): item.average_price
+                                         for item in remote_positions if item.net_quantity})
+                gross = await session.scalar(sa.select(sa.func.sum(Position.realised_pnl))
+                    .where(Position.mode == TradingMode.PAPER)) or Decimal(0)
+                charges = await session.scalar(sa.select(sa.func.sum(
+                    Trade.brokerage + Trade.taxes + Trade.other_charges
+                )).where(Trade.mode == TradingMode.PAPER)) or Decimal(0)
+                account = self.broker.account
+                await discrepancies.observe(
+                    session,
+                    local={"mode": "PAPER", "quantities": local_quantities,
+                           "average_prices": local_prices,
+                           "realised_pnl": gross, "charges": charges,
+                           "expected_cash": account.starting_capital + gross - charges,
+                           "positions": [{"id": position.id, "symbol": position.trading_symbol,
+                                          "average_price": position.average_price,
+                                          "quantity": position.net_quantity} for position in positions],
+                           "unknown_orders": unknown},
+                    broker={"mode": "PAPER", "quantities": remote_quantities,
+                            "average_prices": broker_prices,
+                            "realised_pnl": account.realised_pnl, "charges": account.charges_paid,
+                            "cash": account.cash,
+                            "positions": [{"symbol": item.trading_symbol,
+                                           "average_price": item.average_price,
+                                           "quantity": item.net_quantity} for item in remote_positions]},
+                    delta={"quantities": {key: local_quantities.get(key, 0) - remote_quantities.get(key, 0)
+                                          for key in sorted(local_quantities.keys() | remote_quantities.keys())},
+                           "average_prices": {key: local_prices[key] - broker_prices[key]
+                                              for key in local_prices.keys() & broker_prices.keys()
+                                              if local_prices[key] is not None},
+                           "realised_pnl": gross - account.realised_pnl,
+                           "charges": charges - account.charges_paid,
+                           "cash": account.starting_capital + gross - charges - account.cash,
+                           "accounting_matches": accounting_matches},
+                    clock=self.clock,
+                )
+            unresolved = await discrepancies.pending(session)
+            if not mismatch and not unresolved and not positions and not pending:
                 await session.execute(
                     sa.delete(PaperExecutionSlot).where(PaperExecutionSlot.id == "PAPER")
                 )
@@ -1555,9 +1610,18 @@ class PaperExecution:
             if system is None:
                 system = SystemState(id=SINGLETON_ID, mode=TradingMode.PAPER)
                 session.add(system)
-            if system.mode != TradingMode.PAPER or system.open_discrepancies:
+            if system.mode != TradingMode.PAPER:
                 raise SafetyError("UNRESOLVED_SYSTEM_RECONCILIATION")
-            system.last_reconciliation_at = self.clock.utcnow()
+            review_pending = bool(unresolved or system.open_discrepancies)
+            if not mismatch:
+                system.last_reconciliation_at = self.clock.utcnow()
+        if mismatch:
+            raise SafetyError("PAPER_RECONCILE_REQUIRED")
+        if review_pending:
+            self.gate.block("paper_reconciliation", "PAPER_RECONCILIATION_REVIEW_REQUIRED")
+            if not allow_review_pending:
+                raise SafetyError("UNRESOLVED_SYSTEM_RECONCILIATION")
+            return False
         self.gate.clear("paper_reconciliation")
         self.gate.clear("paper_unknown")
         if not positions:

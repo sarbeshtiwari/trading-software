@@ -482,6 +482,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_api_v1_reconciliation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliation/{identifier}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve */
+        post: operations["resolve_api_v1_reconciliation__identifier__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/news/research/{instrument_id}": {
         parameters: {
             query?: never;
@@ -2538,6 +2572,58 @@ export interface components {
              * @default PAPER_CLOSED_TRADE_WINDOW_NET; NOT_PORTFOLIO_MTM_OR_LIVE_APPROVAL
              */
             basis: string;
+        };
+        /** DiscrepancyPage */
+        DiscrepancyPage: {
+            /** Items */
+            items: components["schemas"]["DiscrepancyView"][];
+            /** Has More */
+            has_more: boolean;
+            /**
+             * Scope
+             * @default PAPER evidence only; resolution records review, never repairs economics or arms trading.
+             */
+            scope: string;
+        };
+        /** DiscrepancyRecord */
+        DiscrepancyRecord: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Local State */
+            local_state: {
+                [key: string]: unknown;
+            } | null;
+            /** Broker State */
+            broker_state: {
+                [key: string]: unknown;
+            } | null;
+            /** Delta */
+            delta: {
+                [key: string]: unknown;
+            } | null;
+            /** Detail */
+            detail: string | null;
+            /** Resolved */
+            resolved: boolean;
+            /** Resolution */
+            resolution: string | null;
+            /** Resolved By */
+            resolved_by: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+        };
+        /** DiscrepancyView */
+        DiscrepancyView: {
+            record: components["schemas"]["DiscrepancyRecord"];
+            /** Head Hash */
+            head_hash: string;
         };
         /** EmergencyAction */
         EmergencyAction: {
@@ -4724,6 +4810,15 @@ export interface components {
              */
             simulated: true;
         };
+        /** ResolveRequest */
+        ResolveRequest: {
+            /** Expected Head */
+            expected_head: string;
+            /** Reason */
+            reason: string;
+            /** Confirmation */
+            confirmation: string;
+        };
         /** ResultView */
         ResultView: {
             /**
@@ -6775,6 +6870,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventFailureView"];
+                };
+            };
+        };
+    };
+    listing_api_v1_reconciliation_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                resolved?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscrepancyPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_api_v1_reconciliation__identifier__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscrepancyView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

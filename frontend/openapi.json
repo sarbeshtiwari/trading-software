@@ -1651,6 +1651,112 @@
         }
       }
     },
+    "/api/v1/reconciliation": {
+      "get": {
+        "tags": [
+          "reconciliation"
+        ],
+        "summary": "Listing",
+        "operationId": "listing_api_v1_reconciliation_get",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "resolved",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Resolved"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscrepancyPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliation/{identifier}/resolve": {
+      "post": {
+        "tags": [
+          "reconciliation"
+        ],
+        "summary": "Resolve",
+        "operationId": "resolve_api_v1_reconciliation__identifier__resolve_post",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscrepancyView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/news/research/{instrument_id}": {
       "get": {
         "tags": [
@@ -7500,6 +7606,169 @@
           "auto_disabled"
         ],
         "title": "DegradationView"
+      },
+      "DiscrepancyPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DiscrepancyView"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "PAPER evidence only; resolution records review, never repairs economics or arms trading."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "title": "DiscrepancyPage"
+      },
+      "DiscrepancyRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "local_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local State"
+          },
+          "broker_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Broker State"
+          },
+          "delta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delta"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "detected_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Detected At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "local_state",
+          "broker_state",
+          "delta",
+          "detail",
+          "resolved",
+          "resolution",
+          "resolved_by",
+          "resolved_at",
+          "detected_at"
+        ],
+        "title": "DiscrepancyRecord"
+      },
+      "DiscrepancyView": {
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/DiscrepancyRecord"
+          },
+          "head_hash": {
+            "type": "string",
+            "title": "Head Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "record",
+          "head_hash"
+        ],
+        "title": "DiscrepancyView"
       },
       "EmergencyAction": {
         "properties": {
@@ -14241,6 +14510,34 @@
           "simulated"
         ],
         "title": "ReproducibilityView"
+      },
+      "ResolveRequest": {
+        "properties": {
+          "expected_head": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Head"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Reason"
+          },
+          "confirmation": {
+            "type": "string",
+            "title": "Confirmation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_head",
+          "reason",
+          "confirmation"
+        ],
+        "title": "ResolveRequest"
       },
       "ResultView": {
         "properties": {

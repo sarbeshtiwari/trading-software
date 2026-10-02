@@ -18,6 +18,7 @@ from app.core.ids import new_id
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
 from app.db.models.event_outbox import RuntimeEventOutbox
+from app.db.models.system import SINGLETON_ID, Discrepancy, SystemState
 from app.modes import TradingMode
 from app.monitoring.gate import get_trading_gate
 from app.notifications.outbox import enqueue
@@ -140,6 +141,14 @@ class RiskSafety:
             raise
 
     async def require_entries_in_session(self, session, market, limits, *, strategy_id=None):
+        system = await session.get(SystemState, SINGLETON_ID)
+        unresolved = await session.scalar(sa.select(Discrepancy.id).where(
+            Discrepancy.kind == "PAPER_RECONCILIATION", Discrepancy.resolved.is_(False)
+        ).limit(1))
+        if market.mode == TradingMode.PAPER and (
+            unresolved or (system is not None and system.open_discrepancies)
+        ):
+            raise ValueError("durable reconciliation discrepancy blocks entry approval")
         await require_no_emergency(session)
         await require_no_news_halt(session, market)
         await require_instrument_entries(session, market)
