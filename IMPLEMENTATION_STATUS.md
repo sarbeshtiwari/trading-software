@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 132 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 162 | |
+| `[~]` In progress | 133 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 161 | |
 | **Total** | **533** | |
 
 ---
@@ -5347,3 +5347,23 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Exact next task: run a stable full regression including actual PostgreSQL
   acceptance, reconcile stale operational limitations documentation, then address
   the next runtime integration gap identified by that acceptance run.
+
+### Operational limitations reconciliation (2026-10-02)
+
+- Expiry-cancellation checkpoint **79edc42** was committed and pushed to
+  `origin/main`, remote hash verified, configured owner author and no co-author.
+- Corrected stale limitations statements that claimed no Docker/PostgreSQL/Redis,
+  no PAPER costs and missing Groww credentials. Existing infrastructure and
+  scoped database verification are distinguished from full deployment acceptance;
+  cost estimates and manual fundamentals are distinguished from external evidence.
+  Calendar gaps now describe fail-closed admission rather than assumed weekdays.
+- DOC-013 is partial, not complete: remaining historical vendor/regulatory detail
+  and final audit still require reconciliation. Counts are **229 verified /
+  133 partial / 10 implemented-unverified / 161 not started**. No feature or
+  external verification was inferred from a documentation change.
+- Full backend/browser/actual PostgreSQL regression is running as session
+  **58666**, log `backend/logs/full-expiry-checkpoint.txt`. No final result yet.
+  Do not restart because output is quiet. Source/tests remain fixed during this
+  run; only documentation is changing. Prior focused safety regression: 850 passed.
+- Next: observe that exact run to completion, fix any actual failures, record
+  the honest full-suite result, then continue runtime integration work.
