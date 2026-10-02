@@ -255,8 +255,8 @@ class GrowwAuthenticator:
             await self._rate_limiter.acquire(RateCategory.AUTH)
 
             started = self._clock.monotonic()
-            value, expires_at, flow = await self._exchange.exchange(self._settings)
             self._requests_today += 1
+            value, expires_at, flow = await self._exchange.exchange(self._settings)
 
             self._token = AccessToken(
                 value=value, expires_at=expires_at, flow=flow, issued_at=now

@@ -10,8 +10,8 @@ API-backed React dashboard. It is **not production-complete or LIVE-ready**.
 
 | Contract status | Requirements |
 |---|---:|
-| Implemented, tested and integrated | 228 |
-| Partial | 127 |
+| Implemented, tested and integrated | 227 |
+| Partial | 128 |
 | Implemented but not fully verified | 13 |
 | Not started | 165 |
 | Total | 533 |
@@ -41,7 +41,8 @@ On 2026-10-02:
 - Groww credentials are configured; their values are never published.
 - Installed missing official Groww SDK 1.5.0; package dependency check passes.
 - Real Groww token authentication succeeds. Read-only NIFTY LTP fails with
-  **HTTP 403**. Market-data authorization/connectivity remains unresolved; the
+  **HTTP 403**, classified as a JSON broker failure, not an HTML response.
+  Market-data authorization/connectivity remains unresolved; the
   exact broker/network cause has not been established. No order requests sent.
 - Owner confirmed the existing Docker services are running. Both containers are
   healthy (TimescaleDB/PostgreSQL 16 and Redis 7), bound to localhost. Application

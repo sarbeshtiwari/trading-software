@@ -4807,3 +4807,24 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   as satisfying the three unrelated skipped schema checks.
 - Next: bounded Groww 403 response classification and operational market-data
   readiness; instrument daily scheduling remains pending. No M1/M2 or LIVE claim.
+
+### Safe Groww diagnostics and failed-token budget (2026-10-02)
+
+- Bounded real probe at 11:10:49 UTC: token acquisition VERIFIED; GET
+  `https://api.groww.in/v1/live-data/ltp`, API version 1.0, returns HTTP 403
+  classified as JSON_BROKER_FAILURE. Configuration source is application settings;
+  subscription state UNOBSERVED. No order requests. Vendor/account cause remains
+  unknown; no security bypass or repeated indefinite retries attempted.
+- Diagnostic only exposes allowlisted classifications, never response bodies.
+  Removed non-JSON body previews from exception context to avoid retaining
+  reflected secrets. Added HTML/empty/non-JSON/JSON failure regression coverage.
+- Fixed failed/cancelled token exchanges not consuming the local attempt budget.
+  **86 tests passed / 0 failed / 0 skipped** across diagnostics/auth/Groww fixtures.
+  Real 403 is a separately recorded failed external verification, not a passing
+  live-data test. Frontend unchanged; no frontend retest claimed.
+- AUTH-003 downgraded to partial: the existing calendar-day/process-local guard
+  does not prove durable rolling-24-hour protection across restart/processes.
+  Counts now **227 verified / 128 partial / 13 unverified / 165 not started**.
+- Next: durable shared authentication-attempt budget, followed by scheduled
+  instrument maintenance and runtime market-data readiness. The external 403
+  does not prevent continuing these independent safety/runtime improvements.

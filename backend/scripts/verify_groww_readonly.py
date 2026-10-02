@@ -23,6 +23,11 @@ async def verify(settings, *, client=None):
         "order_requests": 0,
         "live_execution": "UNVERIFIED",
         "freshness_for_execution": "NOT_VERIFIED",
+        "endpoint": "https://api.groww.in/v1/live-data/ltp",
+        "method": "GET",
+        "api_version": settings.groww_api_version,
+        "configuration_source": "APPLICATION_SETTINGS",
+        "subscription_state": "UNOBSERVED",
     }
     if settings.groww_base_url.rstrip("/") != "https://api.groww.in/v1":
         return report | {"error_type": "NONSTANDARD_HOST_REFUSED"}
@@ -57,6 +62,10 @@ async def verify(settings, *, client=None):
         status = getattr(error, "http_status", None)
         if isinstance(status, int) and 100 <= status <= 599:
             report["http_status"] = status
+        context = getattr(error, "context", {})
+        classification = context.get("response_class") if isinstance(context, dict) else None
+        if classification in {"EMPTY", "HTML", "NON_JSON", "JSON_BROKER_FAILURE"}:
+            report["response_class"] = classification
     finally:
         if owned:
             await client.aclose()

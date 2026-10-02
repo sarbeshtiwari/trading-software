@@ -186,15 +186,12 @@ class GrowwClient:
         self.request_count += 1
 
         try:
-            response = await client.request(
-                method, path, params=params, json=json, headers=headers
-            )
+            response = await client.request(method, path, params=params, json=json, headers=headers)
         except httpx.TimeoutException as exc:
             self.error_count += 1
             self._log_wire(method, path, category, None, started, error=str(exc))
             raise TimeoutError_(
-                f"{method} {path} timed out after "
-                f"{self._settings.groww_timeout_seconds}s",
+                f"{method} {path} timed out after {self._settings.groww_timeout_seconds}s",
                 context={"path": path, "method": method},
             ) from exc
         except httpx.HTTPError as exc:
@@ -243,12 +240,22 @@ class GrowwClient:
                 None,
                 f"Groww returned a non-JSON body (HTTP {response.status_code})",
                 http_status=response.status_code,
-                context={"path": path, "body_preview": response.text[:200]},
+                context={
+                    "path": path,
+                    "response_class": (
+                        "EMPTY"
+                        if not response.content
+                        else "HTML"
+                        if "text/html" in response.headers.get("content-type", "").lower()
+                        else "NON_JSON"
+                    ),
+                },
             )
 
         try:
             return unwrap(body, http_status=response.status_code, path=path)
-        except GrowwAuthError:
+        except GrowwAuthError as error:
+            error.context["response_class"] = "JSON_BROKER_FAILURE"
             self.error_count += 1
             if not (authenticated and allow_reauth):
                 raise
@@ -268,7 +275,8 @@ class GrowwClient:
                 authenticated=authenticated,
                 allow_reauth=False,
             )
-        except GrowwError:
+        except GrowwError as error:
+            error.context["response_class"] = "JSON_BROKER_FAILURE"
             self.error_count += 1
             raise
 
