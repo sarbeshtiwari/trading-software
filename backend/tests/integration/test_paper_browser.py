@@ -90,7 +90,7 @@ async def test_real_browser_cancels_partial_entry(
     db_engine, credentials, fake_clock, tmp_path, monkeypatch, live_dashboard, bulk
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     worker = PaperWorker(
         engine,
@@ -226,7 +226,7 @@ async def test_real_browser_reads_cancellation_journal_and_eod(
     db_engine, credentials, fake_clock, tmp_path, monkeypatch, live_dashboard
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     await engine.submit(proposal)
     worker = PaperWorker(
         engine,

@@ -24,7 +24,7 @@ async def test_cancel_result_recovers_after_storage_interruption(
     db_engine, credentials, fake_clock, monkeypatch
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     hygiene = PaperOrderHygiene(engine)
     original = hygiene.record
@@ -100,7 +100,7 @@ async def test_sweep_does_not_cancel_without_durable_intent(
     db_engine, credentials, fake_clock, monkeypatch
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     cancel = AsyncMock(wraps=engine.cancel)
     monkeypatch.setattr(engine, "cancel", cancel)
@@ -124,7 +124,7 @@ async def test_stale_partial_entry_cancelled_by_worker_and_restart(
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
     engine.settings.paper_entry_max_age_seconds = 10
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     worker = PaperWorker(
         engine, calendar=TradingCalendar(complete_years=[2026]), lock_path=tmp_path / "hygiene.lock"
@@ -168,7 +168,7 @@ async def test_failed_cancel_records_unknown_and_retries_lookup_without_duplicat
     db_engine, credentials, fake_clock, monkeypatch
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     try:
         with monkeypatch.context() as scoped:
@@ -198,7 +198,7 @@ async def test_failed_cancellation_remains_blocked_before_age_limit_after_restar
     db_engine, credentials, fake_clock, monkeypatch
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     try:
         monkeypatch.setattr(

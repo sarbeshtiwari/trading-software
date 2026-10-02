@@ -162,9 +162,9 @@ slippage, so it cannot manufacture a fill outside a supplied band.
 Two missing bounds are explicitly recorded as `UNAVAILABLE`, never derived from
 previous close or replaced by invented percentages. This is not complete circuit
 protection: legacy tick-only and candle-only replay inputs have no circuit
-evidence, and missing-band admission policy remains unresolved. Live execution
-remains locked. EXCH-005 stays partial until source persistence, dispatch-time
-refresh and complete acceptance are verified.
+evidence, and historical missing-band coverage remains incomplete. Live execution
+remains locked. EXCH-005 stays partial pending complete cross-mode/external
+source acceptance; PAPER source recovery and dispatch checks are described below.
 
 The stored quote source now prefers complete provider observations already
 persisted by reference ingestion in the hash-chained audit. It checks the chain,
@@ -174,3 +174,19 @@ for SQLite/PostgreSQL consistency. Recording roundtrips preserve the same bands
 and replay exposes them only after publication. Invalid source bands are rejected
 at ingestion. Legacy tick-only fallback still has unavailable bands; this is
 not a claim that those ticks acquired circuit evidence retroactively.
+
+Market-fed (`LIVE` data origin) entry authorization now refuses absent bands
+with `LIVE_SOURCE_CIRCUIT_BAND_UNAVAILABLE`. This concerns data provenance, not
+LIVE trading mode: the execution remains PAPER. Historical/replay and isolated
+synthetic inputs may retain explicit unavailable-band evidence; their results
+must not be presented as exchange-band-verified execution. No instrument-specific
+exemption is inferred when a vendor omits limits.
+
+Immediately before dispatch, an entry obtains another fresh quote, verifies its
+identity/provenance and circuit bounds, and records an order-linked `DISPATCH`
+circuit receipt separately from `PREFLIGHT`. A circuit/freshness/provenance
+refusal transitions the unsubmitted order to REJECTED, records the reason, and
+reconciles its reservation without calling the broker. Restart does not revive
+that order. Protective exits do not acquire this entry-only admission gate;
+actual simulated fills still enforce supplied bounds independently. Dispatch
+also refuses order price/quantity changes relative to the approved proposal.

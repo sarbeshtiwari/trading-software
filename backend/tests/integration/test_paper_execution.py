@@ -236,7 +236,7 @@ async def test_watchdog_stale_quote_never_fabricates_emergency_fill(
 async def test_restart_partial_order_and_position_recovery(db_engine, credentials, fake_clock):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
     try:
-        market["quantities"] = [10000, 100]
+        market["quantities"] = [10000, 10000, 100]
         identifier = await engine.submit(proposal)
         restarted = PaperExecution(engine.source, settings=engine.settings, clock=fake_clock)
         await restarted.recover()

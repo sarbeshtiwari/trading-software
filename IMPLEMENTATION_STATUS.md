@@ -5270,3 +5270,30 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   refuse unavailable bands for market-fed entry authorization while retaining
   truthful historical-source limitations; verify no-broker-call refusal and
   failure/recovery behavior through the existing OMS before upgrading EXCH-005.
+
+### Dispatch-time circuit authorization (2026-10-02)
+
+- PAPER entries now refresh quote evidence immediately before dispatch and
+  independently check current bands/provenance/freshness. Circuit receipts name
+  PREFLIGHT versus DISPATCH and link dispatch evidence to the order. Refusals
+  persist local REJECTED state and reason, reconcile the reservation, and make
+  zero broker submissions; restart cannot revive that order.
+- LIVE-origin market-fed PAPER entries refuse missing bands explicitly.
+  Historical/replay/synthetic unavailability remains disclosed, not certified
+  exchange compliance. Protective exits do not acquire the new entry-only gate.
+  Dispatch also refuses price/quantity drift from the approved proposal.
+- Updated deterministic partial-fill fixtures to supply separate preflight,
+  dispatch and broker depth observations. Isolated LIVE-origin worker fixtures
+  supply explicit synthetic test bands, never production/vendor evidence.
+- Affected lifecycle selection: **55 passed**; paper-evidence/journal selection:
+  **7 passed**; circuit-specific selection: **10 passed**. Final broader
+  unit/safety/OMS/evidence regression: **795 passed / 0 failed / 0 skipped**,
+  one pre-existing warning. Actual Edge replacement/cancellation/journal:
+  **4 passed**, 10 deselected. Frontend bundle unchanged; prior 42 tests/build.
+- EXCH-005 remains partial for broader-mode/external and historical coverage.
+  Counts unchanged: **229 verified / 131 partial / 10 unverified / 163 not
+  started**. No full-suite or Groww-live verification claim.
+- Next: expiry-day entry/position monitoring. Inspection found configured
+  `fno_expiry_entry_cutoff_time` has no consumer outside Settings; implement
+  this existing setting through the shared execution/monitoring path rather
+  than adding another disconnected expiry helper.

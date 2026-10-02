@@ -80,6 +80,12 @@ async def setup_worker(
     provider = fixture_provider()
     provider.data_origin = origin
     provider.get_quote.return_value = replace(provider.get_quote.return_value, data_origin=origin)
+    if origin == DataOrigin.LIVE:
+        provider.get_quote.return_value = replace(
+            provider.get_quote.return_value,
+            lower_circuit=Decimal("90"),
+            upper_circuit=Decimal("110"),
+        )
     worker = PaperWorker(
         executor,
         provider=provider,

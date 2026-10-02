@@ -23,7 +23,7 @@ from app.brokers.paper.provider import PaperBrokerProvider
 from app.brokers.paper.state import PaperStateStore
 from app.config import get_settings
 from app.core.clock import IST, UTC, get_clock
-from app.core.data_origin import ExecutionRealism
+from app.core.data_origin import DataOrigin, ExecutionRealism
 from app.core.enums import (
     ExitReason,
     OrderStatus,
@@ -608,7 +608,7 @@ class PaperExecution:
             )
         return risk_proposal, tariff
 
-    async def _circuit_preflight(self, proposal, quote):
+    async def _circuit_preflight(self, proposal, quote, *, order_id=None):
         circuit = circuit_status(
             quote,
             [
@@ -627,8 +627,11 @@ class PaperExecution:
             {
                 "proposal_id": proposal.id,
                 "instrument_id": proposal.instrument_id,
+                "order_id": order_id,
                 "result": {
                     "status": circuit,
+                    "stage": "DISPATCH" if order_id else "PREFLIGHT",
+                    "data_origin": quote.data_origin.value,
                     "observed_at": quote.observed_at.isoformat(),
                     "lower": str(quote.lower_circuit) if quote.lower_circuit is not None else None,
                     "upper": str(quote.upper_circuit) if quote.upper_circuit is not None else None,
@@ -638,11 +641,47 @@ class PaperExecution:
         )
         if circuit not in {"AVAILABLE", "UNAVAILABLE"}:
             raise SafetyError(circuit)
+        if circuit == "UNAVAILABLE" and quote.data_origin == DataOrigin.LIVE:
+            raise SafetyError("LIVE_SOURCE_CIRCUIT_BAND_UNAVAILABLE")
+
+    async def _dispatch_circuit(self, identifier):
+        async with db_session.session_scope() as session:
+            order = await session.get(Order, identifier)
+            if order.role != "ENTRY" or order.status != OrderStatus.CREATED:
+                return
+            proposal = await session.get(Proposal, order.proposal_id)
+        try:
+            quote = await self.quote(
+                InstrumentRef(order.trading_symbol, order.exchange, order.segment)
+            )
+            if quote is None or quote.data_origin.value != order.request_payload.get("data_origin"):
+                raise SafetyError("DISPATCH_QUOTE_OR_PROVENANCE_UNAVAILABLE")
+            await self._circuit_preflight(proposal, quote, order_id=identifier)
+        except SafetyError as error:
+            async with db_session.session_scope() as session:
+                current = await session.get(Order, identifier, with_for_update=True)
+                if current.status != OrderStatus.CREATED:
+                    raise SafetyError("CONCURRENT_DISPATCH") from error
+                transition(
+                    session,
+                    current,
+                    OrderStatus.REJECTED,
+                    self.clock.utcnow(),
+                    source="local",
+                    detail=error.message,
+                )
+                current.rejection_reason = error.message
+                await self._audit(
+                    session, current, "ENTRY_DISPATCH_BLOCKED", {"reason": error.message}
+                )
+            await self._reconcile()
+            raise
 
     async def _dispatch(self, identifier, *, market=None, limits=None):
         if self.settings.trading_mode != TradingMode.PAPER:
             raise SafetyError("PAPER_MODE_REQUIRED")
         await self._dispatch_entry_policy(identifier, market)
+        await self._dispatch_circuit(identifier)
         async with db_session.session_scope() as session:
             order = await session.get(Order, identifier, with_for_update=True)
             if order.status != OrderStatus.CREATED:
@@ -653,6 +692,11 @@ class PaperExecution:
                 await require_enabled_strategy(proposal, self.settings, clock=self.clock)
                 if order.product != proposal.product:
                     raise SafetyError("ORDER_PRODUCT_CONTRACT_MISMATCH")
+                if (
+                    order.price != proposal.entry_price
+                    or order.quantity != proposal.approved_quantity
+                ):
+                    raise SafetyError("DISPATCH_ORDER_APPROVAL_MISMATCH")
                 event_control = await self.safety.require_entries_in_session(
                     session, market, limits, strategy_id=proposal.strategy_id
                 )

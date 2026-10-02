@@ -36,7 +36,7 @@ def request_body():
 
 async def prepare(credentials, fake_clock, tmp_path, monkeypatch):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     worker = PaperWorker(
         engine,

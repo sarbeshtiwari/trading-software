@@ -22,7 +22,7 @@ async def test_cancellation_journal_atomic_recovery_and_api(
     db_engine, credentials, fake_clock, monkeypatch
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
-    market["quantities"] = [10000, 100]
+    market["quantities"] = [10000, 10000, 100]
     identifier = await engine.submit(proposal)
     try:
         with monkeypatch.context() as scoped:
