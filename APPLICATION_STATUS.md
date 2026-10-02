@@ -10,8 +10,8 @@ API-backed React dashboard. It is **not production-complete or LIVE-ready**.
 
 | Contract status | Requirements |
 |---|---:|
-| Implemented, tested and integrated | 228 |
-| Partial | 130 |
+| Implemented, tested and integrated | 229 |
+| Partial | 129 |
 | Implemented but not fully verified | 10 |
 | Not started | 165 |
 | Total | 533 |
@@ -51,7 +51,7 @@ On 2026-10-02:
   healthy (TimescaleDB/PostgreSQL 16 and Redis 7), bound to localhost. Application
   configuration now passes actual PostgreSQL `SELECT 1` and Redis `PING` checks.
   Earlier connection failures are resolved; no additional installation is needed.
-- Applied migrations through `0015_serialized_fill_limits`; the real local database
+- Applied migrations through `0016_candle_time_index`; the real local database
   reports that migration head.
 - Actual PAPER backend startup succeeds with execution disabled; unauthenticated
   HTTP access returns 401. Audited real public instrument import now stores
@@ -82,9 +82,11 @@ On 2026-10-02:
   a concurrent overfill race through migration 0015. Schema-related checks:
   **26 passed**, including six real PostgreSQL checks. Broader affected regression:
   **794 passed / 4 opt-in skips**, separately covered against PostgreSQL.
-- Audit immutability, tick retention and fill constraints are now externally
-  verified against Docker PostgreSQL. Empty-database migration/drift acceptance
-  is explicitly pending; the prior revision-list test was insufficient.
+- Audit immutability, tick retention and fill constraints are now verified against
+  Docker PostgreSQL. Fresh installation and `alembic check` now pass on an isolated
+  empty database and the existing owner database; intentional drift is detected.
+  Latest affected backend regression: **801 passed / 4 PostgreSQL-only skipped**,
+  with those PostgreSQL guarantees separately verified against the real server.
 - GitHub: `https://github.com/sarbeshtiwari/trading-software`, branch `main`.
   Initial published snapshot: `b8a1572`, equivalent to verified local `07c5695`.
 - Publication uses the owner's configured identity without co-author trailers.

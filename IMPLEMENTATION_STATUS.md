@@ -47,9 +47,9 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 130 | Partial implementation/integration; limitations recorded below |
+| `[~]` In progress | 129 | Partial implementation/integration; limitations recorded below |
 | `[ ]` Not started | 165 | |
 | **Total** | **533** | |
 
@@ -5051,3 +5051,35 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   empty database using the existing Docker server; fix genuine migration drift
   without changing owner data or unrelated owner edits. Then resume guarded PAPER
   order modification/cancel-replace through fresh deterministic approval.
+
+### Fresh database installation and honest drift detection (2026-10-02)
+
+- Created a uniquely named disposable database on the existing Docker server,
+  ran the entire Alembic chain, and dropped only that test database afterward.
+  No container replacement, owner data deletion or new PostgreSQL installation.
+- Clean installation depends on the owner's existing correction in migration
+  0002: PostgreSQL ENUM with `create_type=False` reuses the baseline enum. Kept
+  that correction unchanged and included it because it is now directly related
+  and verified, rather than leaving the published fresh-install path inconsistent.
+  Unrelated README/chat/line-ending work remains excluded.
+- The first real `alembic check` failed: Timescale's `candles_ts_idx` was absent
+  from ORM metadata. Represented its descending timestamp index explicitly and
+  added idempotent migration **0016** for databases without it. Downgrade retains
+  the pre-existing Timescale index rather than deleting earlier-version state.
+  No blanket drift suppression or exclusion of application tables was added.
+- Actual fresh install, clean drift check, 0016 downgrade/re-upgrade, and a
+  deliberately introduced extra-column drift detection all pass (**1 integrated
+  scenario**, 27.63s). Existing owner DB upgraded to **0016** and its actual
+  `alembic check` reports no new upgrade operations. No credentials printed.
+- Backend affected regression: **801 passed / 0 failed / 4 PostgreSQL-only
+  skipped**. Those four were separately verified in the previous real PostgreSQL
+  checkpoint. Frontend unchanged, prior **41 passed**, build/browser evidence
+  retained. Last completed full backend/browser baseline remains **1609 passed /
+  0 failed / 5 skipped** at ccc8ce0, not relabeled as a new full run.
+- DB-003 now restored to verified with real acceptance evidence rather than the
+  old revision-list assertion. Counts: **229 verified / 129 partial /
+  10 implemented-unverified / 165 not started**. M1/M2 remain incomplete.
+- Next: continue PAPER order modification with an explicitly audited cancel/
+  replace contract tied to a fresh approved proposal, rechecking sizing/risk and
+  preflight and refusing filled/unknown/protective orders. Preserve original
+  proposal/fill lineage; interruption must never blindly submit a replacement.

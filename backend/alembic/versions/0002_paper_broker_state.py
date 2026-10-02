@@ -16,7 +16,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ENUM, JSONB
 
 revision: str = "0002_paper_state"
 down_revision: Union[str, None] = "0001_initial"
@@ -25,7 +25,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 JSON_TYPE = sa.JSON().with_variant(JSONB, "postgresql")
 
-TRADING_MODE = sa.Enum(
+# The initial migration owns this type; PostgreSQL ENUM honors create_type=False.
+TRADING_MODE = ENUM(
     "PAPER", "SUPERVISED", "LIVE", name="trading_mode", create_type=False
 )
 
