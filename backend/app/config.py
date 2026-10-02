@@ -159,6 +159,7 @@ class Settings(BaseSettings):
     # --- Market data ------------------------------------------------------
     tick_staleness_seconds: int = 15
     paper_worker_enabled: bool = False
+    instrument_refresh_enabled: bool = False
     paper_cycle_seconds: int = Field(default=5, ge=1, le=60)
     paper_entry_max_age_seconds: int = Field(default=300, ge=1, le=86400)
     paper_broker_rejection_limit: int = Field(default=3, ge=1, le=100)

@@ -57,6 +57,7 @@ from app.monitoring.healthchecks import get_health_registry
 from app.monitoring.startup import run_startup_checks
 from app.monitoring.watchdog import HealthWatchdog
 from app.news.runtime import NewsAcquisitionCheck, NewsRuntime
+from app.instruments.runtime import InstrumentRuntime, InstrumentRefreshCheck
 from app.notifications.runtime import start_notifications, stop_notifications
 from app.risk.safety import RiskSafety
 from app.security.auth import AuthError
@@ -143,6 +144,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.exception("Startup health checks could not run")
 
     get_health_registry().register(PaperRuntimeCheck(settings))
+    get_health_registry().register(InstrumentRefreshCheck(app.state.instrument_runtime))
+    await app.state.instrument_runtime.start()
+    lifecycle.on_shutdown(app.state.instrument_runtime.stop, name="instrument-refresh", timeout_seconds=15)
     get_health_registry().register(NewsAcquisitionCheck(app.state.news_runtime))
     await app.state.news_runtime.start()
     lifecycle.on_shutdown(app.state.news_runtime.stop, name="news-acquisition", timeout_seconds=15)
@@ -186,6 +190,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.historical_jobs = HistoricalJobs(resolved)
     app.state.walkforward_jobs = WalkForwardJobs(app.state.historical_jobs)
     app.state.news_runtime = NewsRuntime(resolved)
+    app.state.instrument_runtime = InstrumentRuntime(resolved)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(AuthenticationMiddleware)
     app.add_middleware(

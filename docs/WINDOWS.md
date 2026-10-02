@@ -21,6 +21,15 @@ Missing broker permissions remain restricted. Historical source snapshots are
 not retroactive evidence of availability before their recorded receipt time.
 Previously restricted entries are not automatically re-enabled by refresh.
 
+Automatic maintenance is opt-in with `INSTRUMENT_REFRESH_ENABLED=true` in PAPER
+mode. It checks once per minute, downloads only between 08:00 and 09:00 IST on
+verified trading days (earlier special-session openings shorten this window),
+and reuses today's audited public snapshot after restart. It never catches up
+during trading hours. Failure blocks entries and is audited; retry is manual
+through the maintenance CLI or on the next trading day. Missing calendar
+verification, missed refresh and maintenance shutdown remain visible in the
+authenticated readiness API. This setting does not enable the execution worker.
+
 From the repository root:
 
 ```powershell

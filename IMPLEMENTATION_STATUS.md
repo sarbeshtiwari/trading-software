@@ -4854,3 +4854,30 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   token/order calls made by this checkpoint's verification. Frontend unchanged.
 - Next: scheduled, audited instrument maintenance integrated with application
   startup/session lifecycle, then continue market-data and dashboard readiness.
+
+### Application instrument-maintenance lifecycle (2026-10-02)
+
+- Added opt-in `INSTRUMENT_REFRESH_ENABLED=false` (default unchanged) and
+  integrated existing audited loader with APScheduler, application startup,
+  graceful shutdown, readiness API and the deterministic entry gate.
+- Refresh only occurs from 08:00 to 09:00 IST on calendar-verified trading days;
+  an earlier special-session start shortens the window. No intraday catch-up.
+  Successful public snapshots are reused after restart after audit verification.
+  PostgreSQL transaction advisory locking prevents simultaneous scheduler owners.
+- Failed attempts are audited and suppress further automatic attempts that day,
+  including after restart. Missing/failed/stopped maintenance blocks new entries
+  when enabled; it does not block protective exits. No silent calendar override.
+- Actual scheduler ran against configured Docker services with process-only PAPER
+  configuration, execution disabled: one registered job, state
+  `CALENDAR_UNVERIFIED`, readiness FAIL, clean shutdown. No download or order call.
+  This is a truthful blocker, not a completed pre-open production observation.
+- Initial broader regression found missing `.env.example` documentation for the
+  new flag (754 passed, one failed); corrected before committing. Existing owner
+  configuration is untouched and automatic maintenance remains opt-in.
+- Final regression: **756 passed / 0 failed / 0 skipped** (unit, safety,
+  maintenance integration and application startup). New runtime/test lint passes.
+- Counts unchanged: **227 verified / 128 partial / 13 unverified / 165 not
+  started**. Frontend unchanged; health state is exposed through existing APIs.
+- Next: verify the production exchange calendar against authoritative exchange
+  sources and persist its provenance; continue market-data readiness without
+  bypassing the unresolved Groww 403 or enabling real orders.

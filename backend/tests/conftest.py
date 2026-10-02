@@ -59,6 +59,7 @@ _MANAGED_ENV_PREFIXES = (
     "SMTP_",
     "NOTIFICATION_",
     "PAPER_",
+    "INSTRUMENT_",
 )
 
 
