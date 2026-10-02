@@ -16,6 +16,8 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 
+from app.agents.pipeline import DecisionPipeline
+from app.brokers.paper.engine import FillConfig
 from app.core.calendar import TradingCalendar
 from app.main import create_app
 from app.trading.worker import PaperWorker, _runtime
@@ -25,14 +27,61 @@ from tests.integration.test_historical_options import recorded_option
 from tests.integration.test_historical_publication import catalog_database, select_target
 from tests.integration.test_news_polling import install_provider
 from tests.integration.test_paper_execution import setup_execution
+from tests.integration.test_proposal import validator
 from tests.integration.test_reference_worker import credentials, setup_worker
 from tests.integration.test_walkforward import experiment_files
 from tests.integration.test_walkforward_reports import two_windows
+from tests.quant_fixture import quant_decision
 from tests.unit.test_news_fetch import Chunks, rss
+from tests.unit.test_proposal import payload
 
 __all__ = ["catalog_database", "credentials", "isolated_database"]
 ROOT = Path(__file__).resolve().parents[3]
 pytestmark = [pytest.mark.integration, pytest.mark.e2e]
+
+
+@pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")
+async def test_real_browser_replaces_unfilled_entry(
+    db_engine, credentials, fake_clock, tmp_path, monkeypatch, live_dashboard
+):
+    engine, proposal, _market, client, context = await setup_execution(
+        credentials,
+        fake_clock,
+        fill_config=FillConfig(slippage_bps=Decimal(0), latency_ms=2000),
+    )
+    replacement = await quant_decision(
+        DecisionPipeline(validator()), payload(entry="100.05", target="104.15"), context
+    )
+    identifier = await engine.submit(proposal)
+    worker = PaperWorker(
+        engine,
+        calendar=TradingCalendar(complete_years=[2026]),
+        lock_path=tmp_path / "replace-browser.lock",
+    )
+    monkeypatch.setattr(_runtime, "worker", worker)
+    process = None
+    try:
+        await worker.start(schedule=False)
+        process = await asyncio.create_subprocess_exec(
+            "node",
+            str(ROOT / "frontend/tests/order-replace-browser.mjs"),
+            live_dashboard,
+            identifier,
+            replacement.proposal_id,
+            env={**os.environ, "ATS_TEST_OWNER_PASSWORD": credentials[1]},
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+        assert process.returncode == 0, stderr.decode(errors="replace")
+        assert stdout == b"OWNER_REPLACE_VERIFIED\n"
+        assert len(await engine.broker.list_orders()) == 2
+    finally:
+        if process is not None and process.returncode is None:
+            process.kill()
+            await process.communicate()
+        await worker.stop()
+        await client.aclose()
 
 
 @pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")

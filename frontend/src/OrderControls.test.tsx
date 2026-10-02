@@ -5,7 +5,7 @@ import { OrderControls } from './OrderControls';
 
 afterEach(() => vi.unstubAllGlobals());
 const order: Workspace['orders'][number] = {
-  id: 'entry-one', role: 'ENTRY', mode: 'PAPER', segment: 'CASH', trading_symbol: 'TEST',
+  id: 'entry-one', role: 'ENTRY', parent_order_id: null, mode: 'PAPER', segment: 'CASH', trading_symbol: 'TEST',
   status: 'PARTIALLY_FILLED', quantity: 200, filled_quantity: 100, average_fill_price: '100',
   rejection_reason: null, created_at: '2026-10-02T05:00:00Z', proposal_id: 'proposal', execution_realism: 'SIMULATED',
 };
@@ -37,7 +37,7 @@ test('protective exits and executed entries are not selectable', () => {
     { ...order, role: 'EXIT' }, { ...order, id: 'filled', status: 'EXECUTED' },
   ]} mode="PAPER" onChange={vi.fn()} />);
   expect(screen.getByText('No cancellable PAPER entry orders recorded.')).toBeInTheDocument();
-  expect(screen.getByRole('button')).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Cancel entry remainder' })).toBeDisabled();
 });
 
 test('non-PAPER mode exposes no cancellation action', () => {
@@ -55,9 +55,9 @@ test('bulk entries require their own confirmation and report actual unresolved o
   fireEvent.change(screen.getByLabelText('Entry order'), { target: { value: '__ALL__' } });
   fireEvent.change(screen.getByLabelText('Cancellation reason'), { target: { value: 'Cancel pending PAPER entries' } });
   fireEvent.change(screen.getByLabelText('Type CANCEL PAPER ENTRIES'), { target: { value: 'CANCEL PAPER ENTRY' } });
-  expect(screen.getByRole('button')).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Cancel entry remainder' })).toBeDisabled();
   fireEvent.change(screen.getByLabelText('Type CANCEL PAPER ENTRIES'), { target: { value: 'CANCEL PAPER ENTRIES' } });
-  fireEvent.click(screen.getByRole('button'));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel entry remainder' }));
   expect(await screen.findByRole('status')).toHaveTextContent('UNRESOLVED');
   expect(screen.getByRole('status')).toHaveTextContent('protected-exit');
   expect(fetcher.mock.calls[0][0]).toBe('/api/v1/orders/cancel-entries');

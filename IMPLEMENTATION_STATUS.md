@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 129 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 165 | |
+| `[~]` In progress | 130 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 164 | |
 | **Total** | **533** | |
 
 ---
@@ -5083,3 +5083,52 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   replace contract tied to a fresh approved proposal, rechecking sizing/risk and
   preflight and refusing filled/unknown/protective orders. Preserve original
   proposal/fill lineage; interruption must never blindly submit a replacement.
+
+### Guarded replacement work in progress (2026-10-02)
+
+- Uncommitted implementation adds authenticated PAPER cancel/replace using a
+  separate canonical approved proposal, not owner-supplied price or quantity.
+  Parent/child intents and proposal reservation are atomic; a replacement
+  authorization guard prevents ordinary worker submission after interruption.
+  Original and replacement orders retain explicit parent linkage.
+- Added candidate/read and replacement APIs, regenerated the typed contract,
+  and connected controls in the existing Orders view. UI explicitly discloses
+  that cancellation can succeed without a replacement and retains request IDs
+  after unknown network outcomes. No additional dashboard page.
+- Focused execution/cancellation/workspace regression: **30 passed / 0 failed /
+  0 skipped**. This includes replacement through actual approvals/PAPER broker,
+  cancellation failure with no replacement, and interrupted reservation recovery
+  that blocks automatic resubmission. Frontend: **42 passed / 0 failed**.
+- This is NOT a verified checkpoint yet: further adversarial coverage, actual
+  browser replacement acceptance and broader regression remain pending. No
+  requirement status or completion count is upgraded. Do not commit or push
+  this unit as complete until those checks succeed.
+- Exact next task: exercise post-cancellation risk changes, filled/unknown
+  refusals, stale approvals, storage failure and restart with an accepted
+  replacement, then real-browser acceptance and the broader safety regression.
+
+### Guarded PAPER replacement acceptance (2026-10-02)
+
+- Completed the in-progress cancel/replace path using fresh canonical approvals,
+  immutable original lineage, atomic reservation/cancellation intents and current
+  submit/preflight checks. Owner controls cannot supply arbitrary price/quantity.
+  Filled/unknown/stale cases refuse before cancelling. Storage failure rolls
+  back both intents and reservation with no broker call.
+- Verified risk disarming after cancellation prevents replacement; broker cancel
+  failure leaves the request blocked. Restart after accepted replacement but
+  before its result receipt reconciles the existing order without duplication.
+  Interrupted unused approvals are blocked rather than automatically submitted.
+- Backend unit/safety/affected execution regression: **783 passed / 0 failed /
+  0 skipped**, one existing serializer warning. Expanded replacement-specific
+  run: **9 passed / 0 failed / 0 skipped** (overlapping, not additive evidence).
+  Frontend: **42 passed**, production build successful. Actual Edge browser
+  replacement plus single/bulk cancellation: **3 passed**, 11 deselected.
+  Browser verification observes the dashboard's own authenticated workspace
+  refresh and checks replacement quantity and parent order linkage.
+- OMS-004 is now partial, not complete: this implements guarded PAPER
+  cancel/replace, not general cross-broker amendment. Counts: **229 verified /
+  130 partial / 10 implemented-unverified / 164 not started**. Last full baseline
+  remains 1609 passed at ccc8ce0; no new full-suite claim.
+- Next: stable-source full backend/browser regression, then the remaining PAPER
+  runtime readiness and market/calendar gaps. Groww price HTTP 403 and incomplete
+  exchange coverage remain external/unverified; no live orders or arming.

@@ -707,6 +707,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{identifier}/replacement-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Replacement Proposals */
+        get: operations["replacement_proposals_api_v1_orders__identifier__replacement_proposals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{identifier}/replace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace */
+        post: operations["replace_api_v1_orders__identifier__replace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/cancel-entries": {
         parameters: {
             query?: never;
@@ -3550,6 +3584,8 @@ export interface components {
             id: string;
             /** Role */
             role: string;
+            /** Parent Order Id */
+            parent_order_id: string | null;
             /** Segment */
             segment: string;
             /** Trading Symbol */
@@ -4087,6 +4123,57 @@ export interface components {
             candidate: string;
             /** Reason */
             reason: string;
+        };
+        /** ReplacementCandidate */
+        ReplacementCandidate: {
+            /** Proposal Id */
+            proposal_id: string;
+            /** Entry */
+            entry: string;
+            /** Stop */
+            stop: string;
+            /** Target */
+            target: string;
+            /** Approved Quantity */
+            approved_quantity: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** ReplacementRequest */
+        ReplacementRequest: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Reason */
+            reason: string;
+            /** Confirmation */
+            confirmation: string;
+            /** Replacement Proposal Id */
+            replacement_proposal_id: string;
+        };
+        /** ReplacementResult */
+        ReplacementResult: {
+            /** Audit Chain Id */
+            audit_chain_id: string;
+            /** Original Order Id */
+            original_order_id: string;
+            /** Original Status */
+            original_status: string;
+            /** Replacement Proposal Id */
+            replacement_proposal_id: string;
+            /** Replacement Order Id */
+            replacement_order_id: string | null;
+            /** Replacement Status */
+            replacement_status: string;
+            /** Code */
+            code: string;
+            /** Error */
+            error: string | null;
         };
         /** ReportExport */
         ReportExport: {
@@ -6610,6 +6697,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replacement_proposals_api_v1_orders__identifier__replacement_proposals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplacementCandidate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_api_v1_orders__identifier__replace_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplacementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplacementResult"];
                 };
             };
             /** @description Validation Error */

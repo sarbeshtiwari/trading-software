@@ -2505,6 +2505,104 @@
         }
       }
     },
+    "/api/v1/orders/{identifier}/replacement-proposals": {
+      "get": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Replacement Proposals",
+        "operationId": "replacement_proposals_api_v1_orders__identifier__replacement_proposals_get",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReplacementCandidate"
+                  },
+                  "title": "Response Replacement Proposals Api V1 Orders  Identifier  Replacement Proposals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{identifier}/replace": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Replace",
+        "operationId": "replace_api_v1_orders__identifier__replace_post",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplacementRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplacementResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orders/cancel-entries": {
       "post": {
         "tags": [
@@ -10828,6 +10926,17 @@
             "type": "string",
             "title": "Role"
           },
+          "parent_order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Order Id"
+          },
           "segment": {
             "type": "string",
             "title": "Segment"
@@ -10900,6 +11009,7 @@
         "required": [
           "id",
           "role",
+          "parent_order_id",
           "segment",
           "trading_symbol",
           "status",
@@ -12518,6 +12628,146 @@
           "reason"
         ],
         "title": "RegimeView"
+      },
+      "ReplacementCandidate": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "entry": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Entry"
+          },
+          "stop": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Stop"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Target"
+          },
+          "approved_quantity": {
+            "type": "integer",
+            "title": "Approved Quantity"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "entry",
+          "stop",
+          "target",
+          "approved_quantity",
+          "created_at"
+        ],
+        "title": "ReplacementCandidate"
+      },
+      "ReplacementRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Reason"
+          },
+          "confirmation": {
+            "type": "string",
+            "title": "Confirmation"
+          },
+          "replacement_proposal_id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Replacement Proposal Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "reason",
+          "confirmation",
+          "replacement_proposal_id"
+        ],
+        "title": "ReplacementRequest"
+      },
+      "ReplacementResult": {
+        "properties": {
+          "audit_chain_id": {
+            "type": "string",
+            "title": "Audit Chain Id"
+          },
+          "original_order_id": {
+            "type": "string",
+            "title": "Original Order Id"
+          },
+          "original_status": {
+            "type": "string",
+            "title": "Original Status"
+          },
+          "replacement_proposal_id": {
+            "type": "string",
+            "title": "Replacement Proposal Id"
+          },
+          "replacement_order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacement Order Id"
+          },
+          "replacement_status": {
+            "type": "string",
+            "title": "Replacement Status"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "audit_chain_id",
+          "original_order_id",
+          "original_status",
+          "replacement_proposal_id",
+          "replacement_order_id",
+          "replacement_status",
+          "code",
+          "error"
+        ],
+        "title": "ReplacementResult"
       },
       "ReportExport": {
         "properties": {

@@ -38,7 +38,7 @@ from tests.unit.test_proposal import payload
 __all__ = ["credentials"]
 
 
-async def setup_execution(credentials, fake_clock, *, risk_cost=Decimal(0)):
+async def setup_execution(credentials, fake_clock, *, risk_cost=Decimal(0), fill_config=None):
     fake_clock.set_to(OBSERVED)
     context = await setup_context()
     context = context.model_copy(
@@ -85,7 +85,7 @@ async def setup_execution(credentials, fake_clock, *, risk_cost=Decimal(0)):
         source,
         settings=settings,
         clock=fake_clock,
-        fill_config=FillConfig(slippage_bps=Decimal(0), latency_ms=0),
+        fill_config=fill_config or FillConfig(slippage_bps=Decimal(0), latency_ms=0),
     )
     await engine.recover()
     outcome = await quant_decision(DecisionPipeline(validator()), payload(), context)

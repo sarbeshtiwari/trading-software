@@ -44,6 +44,7 @@ from app.db.models.system import SINGLETON_ID, PortfolioSnapshot, SystemState
 from app.db.models.trading import Order, Position, Trade
 from app.emergency.rejections import observe_rejection
 from app.execution.freshness import require_entry_sources
+from app.execution.replacement_state import replacement_parent
 from app.execution.state import transition
 from app.marketdata.models import InstrumentRef
 from app.modes import TradingMode
@@ -424,7 +425,7 @@ class PaperExecution:
         )
 
     @storage_guard
-    async def submit(self, proposal_id):
+    async def submit(self, proposal_id, *, replacement_chain=None):
         if not self.ready:
             raise SafetyError("RECOVERY_REQUIRED")
         identifier = stable_id("ord", "entry:" + proposal_id)
@@ -432,6 +433,7 @@ class PaperExecution:
             existing = await session.get(Order, identifier)
             if existing is not None:
                 return existing.id
+            parent_order_id = await replacement_parent(session, proposal_id, replacement_chain)
             proposal = await session.get(Proposal, proposal_id)
             limits = await active_limits(session)
             risk = await session.scalar(
@@ -546,6 +548,7 @@ class PaperExecution:
                     mode=TradingMode.PAPER,
                     execution_realism=ExecutionRealism.SIMULATED,
                     role="ENTRY",
+                    parent_order_id=parent_order_id,
                     request_payload={
                         "data_origin": market.data_origin.value,
                         **(

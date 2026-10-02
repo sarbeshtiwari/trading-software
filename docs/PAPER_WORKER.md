@@ -99,3 +99,29 @@ not a continuously running worker or broker-held stop guarantee; use Monitoring
 for worker availability. `is_protected` remains conservatively false. Polling
 observations currently accumulate in the audit ledger; retention and scalable
 audit-query work remain pending.
+
+### Guarded PAPER entry replacement
+
+The existing Orders page offers cancel/replace only for an acknowledged,
+unfilled PAPER entry. Select a separate approved proposal for the same
+instrument, strategy, product and direction, enter an owner reason, and type
+`REPLACE PAPER ENTRY`. Direct owner price/quantity overrides are not accepted.
+`GET /api/v1/orders/{id}/replacement-proposals` lists candidate approvals;
+listing is not proof that their evidence is still fresh.
+
+`POST /api/v1/orders/{id}/replace` durably reserves the approval and records
+parent/child audit intents before cancellation. Only confirmed zero-fill
+cancellation permits the canonical submit path to recheck current evidence,
+strategy enablement, sizing/risk approval and preflight. The replacement order
+links to the original through `parent_order_id`; prior proposal/fill history is
+not rewritten. If risk changes after cancellation, the original may be cancelled
+without a replacement. Inspect actual result/error fields rather than treating
+HTTP 200 as a successful fill.
+
+Identical request IDs replay recorded results. An interrupted intent is recovered
+as `INTERRUPTED_REVIEW_REQUIRED`, never blindly submitted. An existing accepted
+replacement is reconciled using its persisted broker reference; an unused
+reserved proposal becomes blocked. Failed original cancellations continue through
+the existing supervisor. Filled/partial/unknown orders and protective exits are
+not eligible. General cross-broker modification remains unimplemented; OMS-004
+is partial, not a LIVE execution certification.

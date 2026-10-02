@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Api, type Workspace } from './api';
 import type { components } from './api-schema';
+import { OrderReplacement } from './OrderReplacement';
 
 export function OrderControls({ api, orders, mode, onChange }: {
   api: Api; orders: Workspace['orders']; mode: string; onChange: () => void;
@@ -27,8 +28,8 @@ export function OrderControls({ api, orders, mode, onChange }: {
     } catch (failure) { setError(String(failure)); onChange(); }
     finally { setBusy(false); }
   }
-  return <section aria-label="PAPER order cancellation"><h2>Cancel PAPER entry</h2>
-    <p>Only the unfilled entry remainder is cancelled. Existing fills remain positions and require protection. Protective exit orders cannot be cancelled here. Modification is not available.</p>
+  return <><section aria-label="PAPER order cancellation"><h2>Cancel PAPER entry</h2>
+    <p>Only the unfilled entry remainder is cancelled. Existing fills remain positions and require protection. Protective exit orders cannot be cancelled here.</p>
     {mode !== 'PAPER' ? <p>PAPER controls unavailable in this mode.</p> : <form onSubmit={event => void submit(event)}>
       <label>Entry order<select disabled={busy} value={selected} onChange={event => { setSelected(event.target.value); changed(); }}>
         <option value="">Select pending entry</option><option value="__ALL__">All pending PAPER entries (server snapshot)</option>{eligible.map(order => <option key={order.id} value={order.id}>{order.trading_symbol} — {order.id} — {order.status}</option>)}
@@ -46,5 +47,5 @@ export function OrderControls({ api, orders, mode, onChange }: {
     {result && !('outcomes' in result) && <div role="status"><p>Recorded outcome: {result.status}; filled quantity: {result.filled_quantity ?? 'UNAVAILABLE'}.</p>
       <p>{result.terminal && !result.error ? 'Terminal order state recorded. Remaining positions still require monitoring.' : 'CANCELLATION UNRESOLVED — inspect reconciliation and monitoring.'}</p>
       <p>Audit: {result.audit_chain_id}{result.error && `; error: ${result.error}`}</p></div>}
-  </section>;
+  </section><OrderReplacement api={api} orders={orders} mode={mode} onChange={onChange} /></>;
 }
