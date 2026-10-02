@@ -34,13 +34,15 @@ is reproducibility; the shared decision pipeline also writes hash-chained audit 
 
 - This component evaluates **entries**, not exits. `RiskSafety` durably latches
   loss/disarm state and enforces the decision pipeline with local critical audit/
-  log events and opt-in remote notification delivery. Authenticated manual re-arm
-  and real remote channel validation remain pending.
+  log events and opt-in remote notification delivery. Authenticated, audited PAPER
+  re-arm exists; actual remote channel delivery remains unverified.
   See `RISK_SAFETY.md` for recovery guarantees and limitations.
-- Config models are immutable, but authenticated audited config activation is
-  pending. No risk-config API or LLM mutation route is exposed.
+- Config models are immutable. Authenticated, version-checked PAPER configuration
+  activation exists; no LLM mutation route or LIVE configuration permission is
+  implied by that owner control.
 - Exceptions/malformed snapshots reject and decision-pipeline failures latch
-  entry blocking; broker-boundary fail-closed orchestration is still pending.
+  entry blocking; PAPER preflight/dispatch enforce the shared gates. Broader-mode
+  and real broker-boundary validation remain pending.
 - Trusted adapters must produce identities, notional, margin, reservations,
   option maximum loss and timestamped portfolio state. These fields are not a
   substitute for instrument/defined-risk proposal validation or broker evidence.
@@ -49,3 +51,25 @@ is reproducibility; the shared decision pipeline also writes hash-chained audit 
   account locking and latest-state preflight are still required.
 
 PAPER remains default; no live connectivity or live order verification is claimed.
+
+## Dashboard account utilisation
+
+The authenticated `GET /api/v1/risk/utilisation?origin=...` reads the same
+hash-verified risk-safety portfolio observations produced by the actual PAPER
+pipeline and monitor. It does not accept an account from the browser. It requires
+matching active configuration, current-session evidence, coherent publication
+times and fresh reconciliation without discrepancies. Missing, stale, future,
+tampered or configuration-changed evidence yields no metrics, not zero exposure.
+
+Daily loss, loss plus reserved risk, drawdown and gross exposure reuse the engine's
+monetary-budget functions, including absolute caps. Global and strategy-specific
+open/pending counts are also exposed. Ratios can exceed 100%; a zero budget has an
+unavailable percentage. A current observation is not permission to place orders.
+Latches remain visible independently of whether the observation is fresh.
+
+The existing Risk view polls this typed API every ten seconds for the selected
+data origin, clears failed requests and exposes observation/configuration/audit
+identity. Strategy counts apply only to the strategy named in that observation.
+Per-candidate risk, concentration, liquidity, margin and other market-dependent
+rule utilisation still require fuller dashboard integration; RISK-020 and FE-011
+remain partial. No LIVE account values or permission are inferred from PAPER.

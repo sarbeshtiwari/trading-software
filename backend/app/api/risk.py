@@ -34,8 +34,15 @@ from app.risk.instrument_blocks import state as instrument_block_state
 from app.risk.models import PortfolioState
 from app.risk.news_halts import NewsHaltState, release, state_at
 from app.risk.safety import RiskSafety
+from app.risk.state import RiskUtilisation, utilisation
 
 router = APIRouter(prefix="/risk", tags=["risk"])
+
+
+@router.get("/utilisation", response_model=RiskUtilisation)
+async def read_utilisation(origin: DataOrigin):
+    async with db_session.session_scope() as session:
+        return await utilisation(session, get_settings().trading_mode, origin)
 
 
 @router.get("/fno-bans", response_model=BanState)

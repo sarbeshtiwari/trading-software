@@ -810,6 +810,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/risk/utilisation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Utilisation */
+        get: operations["read_utilisation_api_v1_risk_utilisation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/risk/fno-bans": {
         parameters: {
             query?: never;
@@ -4371,6 +4388,28 @@ export interface components {
             /** Max Underlying Exposure Amount */
             max_underlying_exposure_amount?: number | string | null;
         };
+        /** RiskUtilisation */
+        RiskUtilisation: {
+            mode: components["schemas"]["TradingMode"];
+            origin: components["schemas"]["DataOrigin"];
+            /** Status */
+            status: string;
+            /** Observed At */
+            observed_at?: string | null;
+            /** Evidence Id */
+            evidence_id?: string | null;
+            /** Configuration Version */
+            configuration_version?: number | null;
+            /** Strategy Id */
+            strategy_id?: string | null;
+            /** Latch Code */
+            latch_code?: string | null;
+            /**
+             * Metrics
+             * @default []
+             */
+            metrics: components["schemas"]["UtilisationMetric"][];
+        };
         /** RunDetail */
         RunDetail: {
             window_disclosure?: components["schemas"]["WindowDisclosure"] | null;
@@ -5094,6 +5133,17 @@ export interface components {
             end_at: string;
             /** Instruments */
             instruments: components["schemas"]["UniverseInstrument"][];
+        };
+        /** UtilisationMetric */
+        UtilisationMetric: {
+            /** Name */
+            name: string;
+            /** Used */
+            used: string;
+            /** Limit */
+            limit: string;
+            /** Percent */
+            percent: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -6915,6 +6965,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmergencyResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_utilisation_api_v1_risk_utilisation_get: {
+        parameters: {
+            query: {
+                origin: components["schemas"]["DataOrigin"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RiskUtilisation"];
                 };
             };
             /** @description Validation Error */

@@ -2801,6 +2801,47 @@
         }
       }
     },
+    "/api/v1/risk/utilisation": {
+      "get": {
+        "tags": [
+          "risk"
+        ],
+        "summary": "Read Utilisation",
+        "operationId": "read_utilisation_api_v1_risk_utilisation_get",
+        "parameters": [
+          {
+            "name": "origin",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/DataOrigin"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskUtilisation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/risk/fno-bans": {
       "get": {
         "tags": [
@@ -13542,6 +13583,92 @@
         ],
         "title": "RiskLimits"
       },
+      "RiskUtilisation": {
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/TradingMode"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/DataOrigin"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "configuration_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration Version"
+          },
+          "strategy_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategy Id"
+          },
+          "latch_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latch Code"
+          },
+          "metrics": {
+            "items": {
+              "$ref": "#/components/schemas/UtilisationMetric"
+            },
+            "type": "array",
+            "title": "Metrics",
+            "default": []
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "origin",
+          "status"
+        ],
+        "title": "RiskUtilisation"
+      },
       "RunDetail": {
         "properties": {
           "window_disclosure": {
@@ -15551,6 +15678,45 @@
           "instruments"
         ],
         "title": "UniverseWindow"
+      },
+      "UtilisationMetric": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "used": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Used"
+          },
+          "limit": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Limit"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "used",
+          "limit",
+          "percent"
+        ],
+        "title": "UtilisationMetric"
       },
       "ValidationError": {
         "properties": {

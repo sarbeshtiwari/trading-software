@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 133 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 161 | |
+| `[~]` In progress | 134 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 160 | |
 | **Total** | **533** | |
 
 ---
@@ -5387,3 +5387,36 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   the existing Risk dashboard. Reuse the same monetary-budget functions and
   audited portfolio evidence consumed by risk, with explicit missing/stale/
   configuration-changed states. No invented account or client-side risk maths.
+
+### Audited risk utilisation reaches the actual dashboard (2026-10-02)
+
+- Full regression checkpoint **2d32612** was committed, pushed to `origin/main`
+  and remote-verified using the owner author with no co-author.
+- Added typed authenticated `/api/v1/risk/utilisation` using actual risk-safety
+  portfolio evidence, full audit-chain verification, active configuration and
+  current reconciliation. Shared risk budgets compute loss, reserved-risk loss,
+  drawdown, gross exposure and open/pending counts. No client-supplied account,
+  substitute capital, new permission path or duplicated execution engine.
+- Missing/stale/future/tampered/unreconciled/configuration-changed observations
+  return explicit unavailable states without numerical metrics. Absolute caps
+  match the engine; zero monetary limits never manufacture a percentage. Values
+  above 100% remain visible rather than being disguised as within-limit values.
+- Existing Risk view polls the generated API contract by selected origin. Failed
+  requests remove previous values; request timeouts are bounded. Source identity,
+  observation time, configuration, strategy scope and persistent latches are
+  visible. An actual Edge test exposed the origin selector's ambiguous accessible
+  name; added an explicit label and reran acceptance successfully.
+- Focused mathematics/actual PAPER API: **5 passed**. Expanded unit/safety/risk/
+  execution/reference regression: **806 passed / 0 failed / 0 skipped**, one
+  prior warning; log `backend/logs/risk-utilisation-regression.txt`. Actual browser
+  **1 passed**: real position metrics, polling into stale state, bars removed,
+  durable error latch visible. Frontend **44 passed**, production build succeeds.
+- RISK-020 is partial and FE-011 remains partial: per-candidate/concentration/
+  market-dependent metrics and broader-mode acceptance remain pending. Counts:
+  **229 verified / 134 partial / 10 unverified / 160 not started**. Last complete
+  suite remains 1660 passing at the preceding checkpoint, not a claim that this
+  change has had a second full-suite run. No external/live verification added.
+- Next: connect decision-specific risk utilisation and evidence drill-down to
+  the same dashboard, including rejected proposals, without reinterpreting an
+  old approval as current order authorization. Then progress market-view/chart
+  integration using stored, provenance-labelled observations rather than fake LTP.
