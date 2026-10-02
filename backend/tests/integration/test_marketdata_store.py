@@ -329,6 +329,45 @@ async def test_instrument_loader(db_engine) -> None:
     assert again.updated == 0
 
 
+async def test_instrument_source_and_audit_commit_together(db_engine, monkeypatch):
+    import hashlib
+
+    from app.audit.service import AuditService
+    from app.db.models.instrument_snapshot import InstrumentMasterSnapshot
+
+    result = await InstrumentLoader().load(CSV)
+    async with db_session.session_scope() as session:
+        snapshot = await session.get(InstrumentMasterSnapshot, result.snapshot_id)
+        assert snapshot.decoded_csv == CSV
+        assert snapshot.content_sha256 == hashlib.sha256(CSV.encode("utf-8")).hexdigest()
+        assert snapshot.source == "SUPPLIED_CSV"
+        assert snapshot.outcome["inserted"] == 6
+    assert await AuditService().verify(result.snapshot_id)
+
+    async def fail_audit(*args, **kwargs):
+        raise RuntimeError("isolated audit failure")
+
+    monkeypatch.setattr(AuditService, "append_in_session", fail_audit)
+    changed = CSV.replace("RELIANCE", "DIFFERENT")
+    with pytest.raises(RuntimeError, match="isolated audit failure"):
+        await InstrumentLoader().load(changed)
+    async with db_session.session_scope() as session:
+        assert (
+            await session.scalar(sa.select(sa.func.count()).select_from(InstrumentMasterSnapshot))
+            == 1
+        )
+        assert (
+            await session.scalar(
+                sa.select(Instrument).where(Instrument.trading_symbol == "DIFFERENT")
+            )
+            is None
+        )
+        original = await session.scalar(
+            sa.select(Instrument).where(Instrument.trading_symbol == "RELIANCE")
+        )
+        assert original.is_active
+
+
 async def test_instrument_loader_deactivates_missing_rows(db_engine) -> None:
     loader = InstrumentLoader()
     await loader.load(CSV)
@@ -363,6 +402,23 @@ async def test_duplicate_instrument_master_leaves_database_unchanged(db_engine):
         await loader.load(duplicate)
     async with db_session.session_scope() as session:
         assert await session.scalar(sa.select(sa.func.count()).select_from(Instrument)) == 6
+
+
+async def test_duplicate_quarantine_excludes_every_conflicting_row(db_engine):
+    loader = InstrumentLoader()
+    await loader.load(CSV)
+    duplicate = CSV + CSV.splitlines()[1].replace("0.05", "0.01") + "\n"
+    result = await loader.load(duplicate, quarantine_duplicates=True)
+    assert result.skip_reasons["quarantined_duplicate_identity"] == 2
+    assert result.deactivated == 1
+    async with db_session.session_scope() as session:
+        original = await session.scalar(
+            sa.select(Instrument).where(Instrument.trading_symbol == "RELIANCE")
+        )
+        assert not original.is_active
+        assert original.tick_size == Decimal("0.05")
+    with pytest.raises(InvalidResponseError, match="Duplicate"):
+        await loader.load(duplicate, quarantine_duplicates=True, deactivate_missing=False)
 
 
 async def test_instrument_refresh_preserves_manual_restriction(db_engine):

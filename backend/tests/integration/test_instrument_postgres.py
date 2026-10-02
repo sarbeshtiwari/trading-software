@@ -25,11 +25,12 @@ async def test_postgres_instrument_import_is_atomic_and_restricted(monkeypatch):
         async with engine.connect() as connection:
             transaction = await connection.begin()
             try:
-                await connection.execute(
-                    sa.text(
-                        "CREATE TEMP TABLE instruments (LIKE public.instruments INCLUDING ALL) ON COMMIT DROP"
+                for table in ("instruments", "instrument_master_snapshots", "audit_events"):
+                    await connection.execute(
+                        sa.text(
+                            f"CREATE TEMP TABLE {table} (LIKE public.{table} INCLUDING ALL) ON COMMIT DROP"
+                        )
                     )
-                )
                 monkeypatch.setattr(
                     db_session,
                     "_sessionmaker",

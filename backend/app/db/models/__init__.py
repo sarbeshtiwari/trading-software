@@ -20,6 +20,7 @@ from app.db.models.execution import PaperExecutionSlot, PaperStateRevision
 from app.db.models.fundamental_versions import CorporateCalendarVersion, FundamentalVersion
 from app.db.models.fundamentals import CorporateEvent, FundamentalSnapshot
 from app.db.models.instrument import Instrument
+from app.db.models.instrument_snapshot import InstrumentMasterSnapshot
 from app.db.models.historical_jobs import HistoricalJob
 from app.db.models.journal import JournalAnnotation, JournalEntry, JournalRevision
 from app.db.models.llm import LLMBudgetDay, LLMCall, LLMProviderState
@@ -57,6 +58,7 @@ __all__ = [
     "HealthRecord",
     "Heartbeat",
     "Instrument",
+    "InstrumentMasterSnapshot",
     "JournalAnnotation",
     "JournalEntry",
     "JournalRevision",

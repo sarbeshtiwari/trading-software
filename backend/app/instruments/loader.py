@@ -19,6 +19,7 @@ Two decisions worth stating:
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -30,13 +31,16 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.brokers.groww.endpoints import Endpoints
+from app.audit.service import AuditIdentity, AuditService
 from app.config import Settings, get_settings
 from app.core.clock import Clock, get_clock
 from app.core.enums import Exchange, InstrumentType, OptionType, Segment
 from app.core.errors import InvalidResponseError
 from app.core.logging import get_logger
+from app.core.ids import new_id
 from app.db import session as db_session
 from app.db.models.instrument import Instrument
+from app.db.models.instrument_snapshot import InstrumentMasterSnapshot
 
 logger = get_logger("instruments.loader")
 
@@ -119,6 +123,7 @@ class InstrumentRow:
 
 @dataclass
 class LoadResult:
+    snapshot_id: Optional[str] = None
     parsed: int = 0
     inserted: int = 0
     updated: int = 0
@@ -132,6 +137,7 @@ class LoadResult:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "snapshot_id": self.snapshot_id,
             "parsed": self.parsed,
             "inserted": self.inserted,
             "updated": self.updated,
@@ -362,15 +368,38 @@ class InstrumentLoader:
             return response.text
 
     async def load(
-        self, content: Optional[str] = None, *, deactivate_missing: bool = True
+        self,
+        content: Optional[str] = None,
+        *,
+        deactivate_missing: bool = True,
+        quarantine_duplicates: bool = False,
     ) -> LoadResult:
         """Parse and upsert. Idempotent: re-running changes nothing."""
         result = LoadResult()
         text = content if content is not None else await self.download()
+        received_at = self._clock.utcnow()
         rows = parse_instrument_csv(text, result)
         identities = {(row.exchange, row.segment, row.trading_symbol) for row in rows}
         if len(identities) != len(rows):
-            raise InvalidResponseError("Duplicate instrument identities; refusing ambiguous master")
+            if not quarantine_duplicates or not deactivate_missing:
+                raise InvalidResponseError(
+                    "Duplicate instrument identities; refusing ambiguous master"
+                )
+            seen = set()
+            duplicates = set()
+            for row in rows:
+                key = (row.exchange, row.segment, row.trading_symbol)
+                if key in seen:
+                    duplicates.add(key)
+                seen.add(key)
+            accepted = []
+            for row in rows:
+                if (row.exchange, row.segment, row.trading_symbol) in duplicates:
+                    result.note_skip("quarantined_duplicate_identity")
+                else:
+                    accepted.append(row)
+            rows = accepted
+            result.parsed = len(rows)
 
         if not rows:
             raise InvalidResponseError(
@@ -379,9 +408,38 @@ class InstrumentLoader:
             )
 
         async with db_session.session_scope() as session:
+            if session.bind.dialect.name == "postgresql":
+                await session.execute(sa.text("SELECT pg_advisory_xact_lock(78134016)"))
             await self._upsert(session, rows, result)
             if deactivate_missing:
                 await self._deactivate_missing(session, rows, result)
+            result.snapshot_id = new_id("ims")
+            checksum = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            source = Endpoints.INSTRUMENTS_CSV.resolve() if content is None else "SUPPLIED_CSV"
+            session.add(
+                InstrumentMasterSnapshot(
+                    id=result.snapshot_id,
+                    received_at=received_at,
+                    source=source,
+                    content_sha256=checksum,
+                    decoded_csv=text,
+                    parser_version="strict-contract-v1",
+                    outcome=result.to_dict(),
+                )
+            )
+            await AuditService(self._clock).append_in_session(
+                session,
+                AuditIdentity(
+                    chain_id=result.snapshot_id,
+                    event_type="INSTRUMENT_MASTER_IMPORTED",
+                    actor="instrument-loader",
+                    mode=self._settings.trading_mode,
+                ),
+                {
+                    "data_used": {"source": source, "content_sha256": checksum},
+                    "result": result.to_dict(),
+                },
+            )
 
         logger.info("Instrument master loaded", extra=result.to_dict())
         return result

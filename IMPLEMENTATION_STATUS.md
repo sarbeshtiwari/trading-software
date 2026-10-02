@@ -4773,3 +4773,37 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   started**. GRW-016 remains partial; production snapshot provenance, controlled
   import and scheduled refresh are next. Frontend unchanged; prior 35-test/build
   evidence is not claimed as rerun. External LTP 403 remains unresolved.
+
+### Audited real instrument import (2026-10-02)
+
+- Added immutable instrument snapshot schema/migration 0013, retaining decoded
+  source CSV, UTF-8 SHA-256, receipt time, source, parser version and outcome.
+  Snapshot, hash-chained audit and catalog changes commit atomically; audit
+  failure rolls everything back. PostgreSQL imports serialize with transaction
+  advisory locking. Supplied CSV is explicitly distinguished from public download.
+- Verified actual PostgreSQL empty-table downgrade to 0012 and upgrade to 0013.
+  Actual PostgreSQL isolated import test passes; snapshot/audit tables are also
+  temporary, so tests never write synthetic evidence to production tables.
+- Real download contained conflicting identities. Default import rejected it
+  without writes. Explicit quarantine mode excludes all duplicate-key rows and
+  deactivates matching old entries; it cannot be combined with retaining missing
+  entries. Original source evidence is retained, never silently deduplicated.
+- Real controlled import completed: **98,750 inserted**, **36,535 skipped**:
+  30 invalid lots, one missing identity, 36,501 unsupported COMMODITY rows and
+  three quarantined duplicate rows. Source contents can change between downloads.
+  59,678 catalog rows are conservatively restricted by broker permissions.
+- Independently verified persisted count, source checksum and audit integrity.
+  Existing diagnostic backend refreshed 98,750 instruments and cleared the
+  empty-master failure; market-data gate remains blocked. Private worker stays
+  disabled, no market prices/fills were invented and no order requests were sent.
+- Reproducible maintenance CLI: `python -m scripts.import_instruments`, with
+  explicit `--quarantine-duplicates` when necessary. Scheduling, audited
+  restriction clearance and historical point-in-time catalog linkage remain
+  partial; this source receipt must never be used before its recorded timestamp.
+- Tests before final regression: 49 focused passed, one actual PostgreSQL passed;
+  quarantine-specific store regression 22 passed. Frontend unchanged.
+- Final affected regression: **776 passed / 0 failed / 3 PostgreSQL-only skips**;
+  actual PostgreSQL instrument test was separately run and passed, not counted
+  as satisfying the three unrelated skipped schema checks.
+- Next: bounded Groww 403 response classification and operational market-data
+  readiness; instrument daily scheduling remains pending. No M1/M2 or LIVE claim.

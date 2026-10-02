@@ -50,8 +50,10 @@ On 2026-10-02:
 - Applied existing migrations from `0007_paper_execution_slot` through
   `0012_news_provenance`; the real local database now reports migration head.
 - Actual PAPER backend startup succeeds with execution disabled; unauthenticated
-  HTTP access returns 401. Trading remains blocked by the empty instrument master.
-  Public Groww instrument CSV download works, but safe production import is pending.
+  HTTP access returns 401. Audited real public instrument import now stores
+  98,750 contracts; retained CSV checksum and audit chain verify. The backend
+  observes the catalog and clears its empty-master blocker. Market-data readiness
+  still blocks trading; no worker or live orders were enabled.
 - Private local configuration currently selects SUPERVISED/Groww, with the
   worker disabled. It has not been silently changed or armed. Repository defaults
   remain PAPER. Credentials do not authorize autonomous real-money orders.

@@ -7,6 +7,20 @@ These commands do not install services, invent account capital or enable trading
 
 ## Backend
 
+### Instrument readiness
+
+After applying migrations, stop execution workers before instrument maintenance.
+From `backend`, run `.\.venv\Scripts\python.exe -m scripts.import_instruments`.
+This downloads the real public
+Groww master and commits its decoded CSV, SHA-256, import outcome and audit chain
+alongside the catalog update. It does not authenticate orders or enable trading.
+Duplicate identities reject the import by default. If the source contains
+conflicts, `--quarantine-duplicates` excludes every row for those identities and
+deactivates their existing catalog entries; it never chooses a winner.
+Missing broker permissions remain restricted. Historical source snapshots are
+not retroactive evidence of availability before their recorded receipt time.
+Previously restricted entries are not automatically re-enabled by refresh.
+
 From the repository root:
 
 ```powershell
