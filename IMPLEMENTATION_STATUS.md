@@ -4734,3 +4734,21 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: validate real CSV lot/tick/type/expiry semantics and ingestion safety
   before populating the instrument master; then verify runtime readiness again.
   Diagnostic Uvicorn process is tracked by execution session 77242.
+
+### Instrument master acceptance correction (2026-10-02)
+
+- Real public CSV inspection exposed missing CE/PE side extraction from the
+  `instrument_type` column. Fixed the existing parser rather than introducing
+  another loader. Missing/malformed/nonfinite lot and tick values now reject
+  rows instead of inventing defaults; fractional/oversized lots are rejected.
+  Derivatives require expiry; options require side and positive finite strike.
+- Targeted parser/store regression: **39 passed / 0 failed / 0 skipped**.
+  Existing loader has 25 pre-existing Ruff modernization warnings; no unrelated
+  annotation rewrite undertaken. These tests do not certify production import.
+- Downgraded GRW-016 from verified to partial: scheduled production refresh and
+  real import acceptance were not demonstrated. Counts are now **228 verified /
+  127 partial / 13 implemented-unverified / 165 not started** (533 total).
+- Next: complete auditable production instrument import, including broker
+  tradability restrictions, duplicate handling and raw snapshot provenance,
+  verify on PostgreSQL, then rerun actual runtime readiness. No instruments
+  imported into owner database yet; no orders, worker activation or LIVE claims.

@@ -10,8 +10,8 @@ API-backed React dashboard. It is **not production-complete or LIVE-ready**.
 
 | Contract status | Requirements |
 |---|---:|
-| Implemented, tested and integrated | 229 |
-| Partial | 126 |
+| Implemented, tested and integrated | 228 |
+| Partial | 127 |
 | Implemented but not fully verified | 13 |
 | Not started | 165 |
 | Total | 533 |
@@ -49,6 +49,9 @@ On 2026-10-02:
   Earlier connection failures are resolved; no additional installation is needed.
 - Applied existing migrations from `0007_paper_execution_slot` through
   `0012_news_provenance`; the real local database now reports migration head.
+- Actual PAPER backend startup succeeds with execution disabled; unauthenticated
+  HTTP access returns 401. Trading remains blocked by the empty instrument master.
+  Public Groww instrument CSV download works, but safe production import is pending.
 - Private local configuration currently selects SUPERVISED/Groww, with the
   worker disabled. It has not been silently changed or armed. Repository defaults
   remain PAPER. Credentials do not authorize autonomous real-money orders.

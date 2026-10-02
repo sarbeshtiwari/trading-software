@@ -172,7 +172,8 @@ def _decimal(row, headers, key) -> Optional[Decimal]:  # type: ignore[no-untyped
     if text is None:
         return None
     try:
-        return Decimal(text)
+        value = Decimal(text)
+        return value if value.is_finite() else None
     except InvalidOperation:
         return None
 
@@ -182,8 +183,11 @@ def _int(row, headers, key) -> Optional[int]:  # type: ignore[no-untyped-def]
     if text is None:
         return None
     try:
-        return int(Decimal(text))
-    except (InvalidOperation, ValueError):
+        value = Decimal(text)
+        if not value.is_finite() or value != value.to_integral_value():
+            return None
+        return int(value)
+    except (InvalidOperation, ValueError, OverflowError):
         return None
 
 
@@ -248,28 +252,34 @@ def parse_instrument_csv(content: str, result: Optional[LoadResult] = None) -> l
             outcome.note_skip(f"unknown_segment:{segment_text.upper()}")
             continue
 
+        raw_type = _text(raw, headers, "instrument_type")
         option_text = _text(raw, headers, "option_type")
+        if not option_text and raw_type and raw_type.upper() in {"CE", "PE"}:
+            option_text = raw_type
         option_type: Optional[OptionType] = None
         if option_text and option_text.upper() in {"CE", "PE"}:
             option_type = OptionType(option_text.upper())
 
         expiry = _date(raw, headers, "expiry_date")
-        instrument_type = _classify(
-            segment, _text(raw, headers, "instrument_type"), option_type, expiry
-        )
+        instrument_type = _classify(segment, raw_type, option_type, expiry)
 
-        # `or 1` would be wrong here: an explicit lot size of 0 is a broken row,
-        # and silently turning it into 1 would size an F&O order as a single unit
-        # instead of a lot. Absent and zero must be distinguished.
-        raw_lot = _int(raw, headers, "lot_size")
-        lot_size = 1 if raw_lot is None else raw_lot
-        if lot_size <= 0:
+        strike_price = _decimal(raw, headers, "strike_price")
+        if instrument_type in {InstrumentType.OPTION, InstrumentType.FUTURE} and expiry is None:
+            outcome.note_skip("missing_derivative_expiry")
+            continue
+        if instrument_type is InstrumentType.OPTION and (
+            option_type is None or strike_price is None or strike_price <= 0
+        ):
+            outcome.note_skip("invalid_option_contract")
+            continue
+
+        lot_size = _int(raw, headers, "lot_size")
+        if lot_size is None or lot_size <= 0 or lot_size > 2147483647:
             outcome.note_skip("invalid_lot_size")
             continue
 
-        raw_tick = _decimal(raw, headers, "tick_size")
-        tick_size = Decimal("0.05") if raw_tick is None else raw_tick
-        if tick_size <= 0:
+        tick_size = _decimal(raw, headers, "tick_size")
+        if tick_size is None or tick_size <= 0:
             outcome.note_skip("invalid_tick_size")
             continue
 
@@ -289,7 +299,7 @@ def parse_instrument_csv(content: str, result: Optional[LoadResult] = None) -> l
                 freeze_quantity=_int(raw, headers, "freeze_quantity"),
                 underlying=_text(raw, headers, "underlying"),
                 expiry_date=expiry,
-                strike_price=_decimal(raw, headers, "strike_price"),
+                strike_price=strike_price if instrument_type is InstrumentType.OPTION else None,
                 option_type=option_type,
                 is_weekly_expiry=(
                     weekly_text.lower() in {"true", "1", "yes", "y"} if weekly_text else None
@@ -331,7 +341,9 @@ class InstrumentLoader:
             )
             return response.text
 
-    async def load(self, content: Optional[str] = None, *, deactivate_missing: bool = True) -> LoadResult:
+    async def load(
+        self, content: Optional[str] = None, *, deactivate_missing: bool = True
+    ) -> LoadResult:
         """Parse and upsert. Idempotent: re-running changes nothing."""
         result = LoadResult()
         text = content if content is not None else await self.download()
@@ -355,9 +367,7 @@ class InstrumentLoader:
         self, session: AsyncSession, rows: Iterable[InstrumentRow], result: LoadResult
     ) -> None:
         existing_rows = (await session.execute(sa.select(Instrument))).scalars().all()
-        existing = {
-            (row.exchange, row.segment, row.trading_symbol): row for row in existing_rows
-        }
+        existing = {(row.exchange, row.segment, row.trading_symbol): row for row in existing_rows}
 
         for row in rows:
             key = (row.exchange, row.segment, row.trading_symbol)
