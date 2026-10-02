@@ -1,0 +1,79 @@
+# Base stack — DEPLOY-001.
+#
+# The API binds to 127.0.0.1 on the host by default. Exposing it on 0.0.0.0
+# requires TLS to be configured (SEC-009), which the application enforces at
+# startup rather than trusting the compose file.
+name: ats
+
+services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ats}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ats}
+      POSTGRES_DB: ${POSTGRES_DB:-ats}
+      TZ: Asia/Kolkata
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ats} -d ${POSTGRES_DB:-ats}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    env_file:
+      - ../.env
+    environment:
+      # Inside the network the service names are the hosts; anything set in
+      # .env for local (non-container) runs is overridden here.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-ats}:${POSTGRES_PASSWORD:-ats}@db:5432/${POSTGRES_DB:-ats}
+      REDIS_URL: redis://redis:6379/0
+      API_HOST: 0.0.0.0
+      TZ: Asia/Kolkata
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - backend_logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    # DEPLOY-007: restarts are automatic, but the system always comes back
+    # unarmed — arming never survives a restart (LIVE-004).
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  redis_data:
+  backend_logs:

@@ -1,0 +1,7 @@
+{
+  "status": "FAILURE",
+  "error": {
+    "code": "GA000",
+    "message": "Internal error occurred"
+  }
+}

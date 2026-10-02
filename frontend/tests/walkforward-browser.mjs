@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright-core';
+
+const browser = await chromium.launch({ channel: process.env.ATS_BROWSER_CHANNEL || 'msedge', headless: true });
+try {
+  const page = await browser.newPage();
+  page.setDefaultTimeout(180000);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(process.argv[2]);
+  await page.getByLabel('Username', { exact: true }).fill('owner');
+  await page.getByLabel('Password', { exact: true }).fill(process.env.ATS_TEST_OWNER_PASSWORD);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: 'Backtests', exact: true }).click();
+  const controls = page.getByRole('region', { name: 'Walk-forward controls', exact: true });
+  await controls.getByLabel('Walk-forward experiment', { exact: true }).selectOption('walktest01');
+  await controls.getByLabel('Research reason', { exact: true }).fill('Isolated chronological browser fixture');
+  await controls.getByLabel('Type RUN WALK FORWARD', { exact: true }).fill('RUN WALK FORWARD');
+  const launched = page.waitForResponse(response => response.url().endsWith('/historical-jobs/experiments') && response.request().method() === 'POST');
+  await controls.getByRole('button', { name: 'Launch walk-forward research', exact: true }).click();
+  assert.equal((await launched).status(), 202);
+  await controls.getByText(/walktest01: COMPLETED.*REPORT PUBLISHED/).waitFor();
+  await page.getByLabel('Historical run', { exact: true }).selectOption('walktest01');
+  await page.getByRole('cell', { name: '-444.00', exact: true }).waitFor();
+  await page.getByRole('cell', { name: '424.38', exact: true }).waitFor();
+  assert.match(await page.locator('main').innerText(), /AUDIT_BOUND/);
+  assert.match(await page.locator('main').innerText(), /FLAGGED/);
+  assert.match(await page.locator('main').innerText(), /MIXED/);
+  assert.match(await page.locator('main').innerText(), /-49.10/);
+  const review = page.getByRole('region', { name: 'OOS evidence review', exact: true });
+  await review.getByText('Research thresholds: FAILED.', { exact: false }).waitFor();
+  await review.getByLabel('Evidence review reason', { exact: true }).fill('Review actual persisted browser fixture evidence');
+  await review.getByRole('button', { name: 'Record audited evidence review', exact: true }).click();
+  await review.getByText(/Review recorded:.*FAILED; LIVE remains disabled/).waitFor();
+  assert.match(await page.locator('main').innerText(), /SIMULATED OOS_AGGREGATE/);
+  assert.match(await page.locator('main').innerText(), /Training trades excluded/);
+  assert.equal(await page.getByRole('cell', { name: '856.56', exact: true }).count(), 0);
+  await page.reload();
+  await page.getByRole('button', { name: 'Backtests', exact: true }).click();
+  await page.getByLabel('Historical run', { exact: true }).selectOption('walktest01');
+  await page.getByRole('cell', { name: '-444.00', exact: true }).waitFor();
+  await page.getByRole('cell', { name: '424.38', exact: true }).waitFor();
+  assert.deepEqual(errors, []);
+  process.stdout.write('WALKFORWARD_VERIFIED\n');
+} finally { await browser.close(); }

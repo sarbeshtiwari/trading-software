@@ -1,0 +1,57 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "trading_symbol": "NIFTY",
+    "expiry": "2026-09-24",
+    "spot_price": 24512.35,
+    "option_chains": [
+      {
+        "strike_price": 24400,
+        "call_option": {
+          "trading_symbol": "NIFTY26SEP24400CE",
+          "last_price": 168.4,
+          "open_interest": 1245600,
+          "change_in_oi": -42300,
+          "volume": 883400,
+          "greeks": {
+            "delta": 0.62,
+            "gamma": 0.0004,
+            "theta": -12.8,
+            "vega": 8.4,
+            "iv": 12.6
+          }
+        },
+        "put_option": {
+          "trading_symbol": "NIFTY26SEP24400PE",
+          "last_price": 54.2,
+          "open_interest": 2984100,
+          "change_in_oi": 118400,
+          "volume": 1244000,
+          "greeks": {
+            "delta": -0.38,
+            "gamma": 0.0004,
+            "theta": -10.1,
+            "vega": 8.1,
+            "iv": 13.1
+          }
+        }
+      },
+      {
+        "strike_price": 24500,
+        "call_option": {
+          "trading_symbol": "NIFTY26SEP24500CE",
+          "last_price": 112.75,
+          "open_interest": 3410200,
+          "volume": 2148000,
+          "greeks": {}
+        },
+        "put_option": {
+          "trading_symbol": "NIFTY26SEP24500PE",
+          "last_price": 98.5,
+          "open_interest": 2210500,
+          "volume": 1760400
+        }
+      }
+    ]
+  }
+}

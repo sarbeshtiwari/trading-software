@@ -1,0 +1,29 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "trade_list": [
+      {
+        "groww_order_id": "GMK39038RDT490CCVRO",
+        "exchange_trade_id": "2026091712345",
+        "trading_symbol": "WIPRO",
+        "isin": "INE075A01022",
+        "quantity": 40,
+        "price": 250.3,
+        "trade_status": "EXECUTED",
+        "trade_date_time": "2026-09-17T09:20:12+05:30",
+        "settlement_number": "2026180"
+      },
+      {
+        "groww_order_id": "GMK39038RDT490CCVRO",
+        "exchange_trade_id": "2026091712346",
+        "trading_symbol": "WIPRO",
+        "isin": "INE075A01022",
+        "quantity": 60,
+        "price": 250.38,
+        "trade_status": "EXECUTED",
+        "trade_date_time": "2026-09-17T09:20:14+05:30",
+        "settlement_number": "2026180"
+      }
+    ]
+  }
+}

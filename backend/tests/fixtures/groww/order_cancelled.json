@@ -1,0 +1,16 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "groww_order_id": "GMK39038RDT490CCVRO",
+    "trading_symbol": "WIPRO",
+    "exchange": "NSE",
+    "segment": "CASH",
+    "product": "CNC",
+    "order_type": "LIMIT",
+    "transaction_type": "BUY",
+    "order_status": "CANCELLED",
+    "quantity": 100,
+    "filled_quantity": 0,
+    "order_reference_id": "ABC12345678"
+  }
+}

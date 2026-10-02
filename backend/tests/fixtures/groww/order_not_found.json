@@ -1,0 +1,7 @@
+{
+  "status": "FAILURE",
+  "error": {
+    "code": "GA004",
+    "message": "Requested entity does not exist"
+  }
+}

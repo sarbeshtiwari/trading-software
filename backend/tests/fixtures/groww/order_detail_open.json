@@ -1,0 +1,18 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "groww_order_id": "GMK39038RDT490CCVRP",
+    "trading_symbol": "NIFTY26SEP24500CE",
+    "exchange": "NSE",
+    "segment": "FNO",
+    "product": "NRML",
+    "order_type": "LIMIT",
+    "transaction_type": "BUY",
+    "order_status": "OPEN",
+    "quantity": 150,
+    "filled_quantity": 75,
+    "price": 120.5,
+    "average_fill_price": 120.45,
+    "order_reference_id": "DEF12345678"
+  }
+}

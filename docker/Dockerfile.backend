@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+# Containers pin Python 3.11 (the version named in the requirements); the code
+# also runs on 3.10 so the test suite can execute on a 3.10 host.
+FROM python:3.11-slim AS base
+
+# DEPLOY-006: the whole system reasons in IST.
+ENV TZ=Asia/Kolkata \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tzdata curl postgresql-client \
+ && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY backend/pyproject.toml /app/pyproject.toml
+COPY backend/app /app/app
+COPY backend/alembic /app/alembic
+COPY backend/alembic.ini /app/alembic.ini
+
+RUN pip install --upgrade pip && pip install -e .
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Run as a non-root user: nothing here needs root.
+RUN useradd --create-home --uid 10001 ats && chown -R ats:ats /app
+USER ats
+
+# DEPLOY-010: stamped at build time and surfaced by /api/v1/system/status.
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
+
+EXPOSE 8000
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["serve"]

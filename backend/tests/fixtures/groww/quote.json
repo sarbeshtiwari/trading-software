@@ -1,0 +1,49 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "trading_symbol": "RELIANCE",
+    "last_price": 1402.5,
+    "average_price": 1399.8,
+    "volume": 4820115,
+    "previous_close": 1395.0,
+    "day_change": 7.5,
+    "day_change_perc": 0.5376,
+    "upper_circuit_limit": 1534.5,
+    "lower_circuit_limit": 1255.5,
+    "week_52_high": 1608.8,
+    "week_52_low": 1114.85,
+    "open_interest": null,
+    "ohlc": {
+      "open": 1396.0,
+      "high": 1408.9,
+      "low": 1391.2,
+      "close": 1395.0
+    },
+    "depth": {
+      "buy": [
+        {
+          "price": 1402.4,
+          "quantity": 250,
+          "orders": 3
+        },
+        {
+          "price": 1402.3,
+          "quantity": 500,
+          "orders": 5
+        }
+      ],
+      "sell": [
+        {
+          "price": 1402.6,
+          "quantity": 180,
+          "orders": 2
+        },
+        {
+          "price": 1402.75,
+          "quantity": 640,
+          "orders": 7
+        }
+      ]
+    }
+  }
+}

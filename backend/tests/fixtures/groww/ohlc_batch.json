@@ -1,0 +1,19 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "NSE_RELIANCE": {
+      "open": 1396.0,
+      "high": 1408.9,
+      "low": 1391.2,
+      "close": 1402.5,
+      "previous_close": 1395.0
+    },
+    "NSE_TCS": {
+      "open": 3885.0,
+      "high": 3910.0,
+      "low": 3880.1,
+      "close": 3901.0,
+      "previous_close": 3888.0
+    }
+  }
+}

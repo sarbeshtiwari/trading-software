@@ -1,0 +1,10 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "user_id": "GROWWUSER123",
+    "clear_cash": 250000.0,
+    "net_margin_available": 248500.5,
+    "margin_used": 51499.5,
+    "collateral_available": 0.0
+  }
+}

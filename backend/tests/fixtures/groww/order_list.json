@@ -1,0 +1,35 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "order_list": [
+      {
+        "groww_order_id": "GMK39038RDT490CCVRO",
+        "trading_symbol": "WIPRO",
+        "exchange": "NSE",
+        "segment": "CASH",
+        "product": "CNC",
+        "order_type": "LIMIT",
+        "transaction_type": "BUY",
+        "order_status": "EXECUTED",
+        "quantity": 100,
+        "filled_quantity": 100,
+        "price": 250.5,
+        "order_reference_id": "ABC12345678"
+      },
+      {
+        "groww_order_id": "GMK39038RDT490CCVRP",
+        "trading_symbol": "NIFTY26SEP24500CE",
+        "exchange": "NSE",
+        "segment": "FNO",
+        "product": "NRML",
+        "order_type": "LIMIT",
+        "transaction_type": "BUY",
+        "order_status": "OPEN",
+        "quantity": 150,
+        "filled_quantity": 0,
+        "price": 120.5,
+        "order_reference_id": "DEF12345678"
+      }
+    ]
+  }
+}

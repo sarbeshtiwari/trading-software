@@ -1,0 +1,96 @@
+[project]
+name = "ats-backend"
+version = "0.1.0"
+description = "AI-assisted Indian equity & F&O trading system (Groww) — backend"
+# Containers run 3.11; 3.10 is supported so the suite can run on a 3.10 host.
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3,<3",
+    "sqlalchemy[asyncio]>=2.0.30,<3",
+    "alembic>=1.13,<2",
+    "asyncpg>=0.29,<1",
+    "redis>=5.0,<6",
+    "httpx>=0.27,<1",
+    "defusedxml>=0.7.1,<1",
+    "apscheduler>=3.10,<4",
+    "pyotp>=2.9,<3",
+    "pyjwt>=2.8,<3",
+    "argon2-cffi>=23.1,<24",
+    # Windows has no system tz database; zoneinfo needs this for Asia/Kolkata.
+    "tzdata>=2024.1",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=0.40,<1"]
+dev = [
+    "pytest>=8.2,<9",
+    "pytest-asyncio>=0.23,<1",
+    "pytest-cov>=5.0,<6",
+    "aiosqlite>=0.20,<1",
+    "hypothesis>=6.100,<7",
+    "ruff>=0.5,<1",
+    "mypy>=1.10,<2",
+    "pip-audit>=2.7,<3",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q --strict-markers"
+markers = [
+    "unit: pure unit tests, no external services",
+    "integration: needs PostgreSQL and/or Redis",
+    "e2e: full pipeline through the paper broker",
+    "safety: asserts a safety invariant holds",
+    "property: property-based tests",
+    "slow: takes more than a few seconds",
+]
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/__main__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "PL", "RUF"]
+ignore = [
+    "S101",    # assert is fine in tests and internal invariants
+    "PLR0913", # trading functions legitimately take many parameters
+    "PLR2004", # magic values are readable in numeric finance code
+    "B008",    # FastAPI Depends() in defaults is the documented idiom
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "PLR", "E501"]
+"alembic/*" = ["E501", "I001"]
+"app/backtest/launcher.py" = ["S603"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+plugins = []

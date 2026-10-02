@@ -1,0 +1,7 @@
+{
+  "status": "FAILURE",
+  "error": {
+    "code": "GA007",
+    "message": "Duplicate order reference id"
+  }
+}

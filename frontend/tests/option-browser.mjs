@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';
+import { createInterface } from 'node:readline';
+import { chromium } from 'playwright-core';
+
+const input = createInterface({ input: process.stdin });
+const proceed = new Promise(resolve => input.once('line', resolve));
+const browser = await chromium.launch({ channel: process.env.ATS_BROWSER_CHANNEL || 'msedge', headless: true });
+try {
+  const page = await browser.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(process.argv[2]);
+  await page.getByLabel('Username', { exact: true }).fill('owner');
+  await page.getByLabel('Password', { exact: true }).fill(process.env.ATS_TEST_OWNER_PASSWORD);
+  const entering = page.waitForResponse(response => response.url().endsWith('/api/v1/workspace'));
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  const entry = await (await entering).json();
+  assert.equal(entry.trading_mode, 'PAPER');
+  assert.equal(entry.positions.length, 1);
+  assert.equal(entry.positions[0].segment, 'FNO');
+  assert.equal(entry.positions[0].net_quantity, 4);
+  assert.equal(Number(entry.positions[0].stop_loss_price), 96);
+  assert.equal(Number(entry.positions[0].target_price), 400);
+  assert.equal(entry.orders[0].status, 'EXECUTED');
+  await page.getByRole('button', { name: 'Positions', exact: true }).click();
+  await page.getByRole('cell', { name: entry.positions[0].id, exact: true }).waitFor();
+  assert.match(await page.locator('main').innerText(), /FNO/);
+  assert.match(await page.locator('main').innerText(), /RECENT_SOFTWARE_CHECK/);
+  process.stdout.write('ENTRY_VERIFIED\n');
+  assert.equal(await proceed, 'EXIT_READY');
+  const exiting = page.waitForResponse(response => response.url().endsWith('/api/v1/workspace'));
+  await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+  const exited = await (await exiting).json();
+  assert.equal(exited.orders.length, 2);
+  assert.equal(exited.fills.length, 2);
+  assert.equal(exited.journal.length, 1);
+  assert.equal(Number(exited.journal[0].gross_pnl), -16);
+  assert.equal(Number(exited.journal[0].charges), 11.93);
+  assert.equal(Number(exited.journal[0].net_pnl), -27.93);
+  assert.ok(exited.notifications.length > 0);
+  assert.ok(exited.notifications.every(item => item.external_delivery_verified === false));
+  await page.getByRole('button', { name: 'Journal', exact: true }).click();
+  await page.getByRole('cell', { name: exited.journal[0].id, exact: true }).waitFor();
+  assert.match(await page.locator('main').innerText(), /-27\.93/);
+  await page.getByRole('button', { name: 'Orders', exact: true }).click();
+  assert.match(await page.locator('main').innerText(), /FNO/);
+  assert.equal(errors.length, 0, errors.join('\n'));
+  process.stdout.write('EXIT_VERIFIED\n');
+} finally {
+  input.close();
+  await browser.close();
+}

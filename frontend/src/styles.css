@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root { font-family: Inter, system-ui, sans-serif; color: #dbe6f3; background: #09111c; color-scheme: dark; }
+body { margin: 0; } h1 { font-size: 2rem; font-weight: 650; margin: 0 0 20px; } h2 { font-size: 1.1rem; margin: 24px 0 14px; }
+.shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; } aside { padding: 28px 18px; background: #101c2b; border-right: 1px solid #26364b; }
+main { padding: 32px; min-width: 0; } .login { width: min(480px, 100%); margin: 9vh auto; } .eyebrow { color: #71d5c7; font-size: 12px; letter-spacing: .13em; margin-bottom: 16px; }
+header { display: flex; justify-content: space-between; align-items: center; } nav { display: grid; gap: 6px; margin: 28px 0; }
+button { background: #18354a; padding: 10px 14px; border: 1px solid #35516c; border-radius: 6px; cursor: pointer; text-align: left; } button:hover, button.active { background: #24506a; } button:disabled { opacity: .45; cursor: not-allowed; }
+label { display: block; margin: 16px 0; font-size: 14px; } input, select, textarea { display: block; width: 100%; padding: 12px; margin-top: 7px; border: 1px solid #476078; border-radius: 5px; background: #101b29; }
+.status { border: 1px solid #317563; background: #0f3029; padding: 14px; border-radius: 6px; overflow-wrap: anywhere; } .blocked, .error { color: #ffd8a8; background: #372717; border-color: #8b633b; } .error { padding: 16px; }
+.muted { color: #94a8bd; font-size: 13px; margin: 14px 0; } .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 24px 0; } article { padding: 20px; background: #122033; border: 1px solid #263950; border-radius: 8px; } article span { color: #9aaec4; font-size: 13px; } article strong { display: block; font-size: 20px; margin-top: 12px; overflow-wrap: anywhere; }
+.table-wrap { overflow-x: auto; max-width: 100%; border: 1px solid #293a50; border-radius: 8px; } table { border-collapse: collapse; width: 100%; font-size: 13px; } td, th { padding: 12px; text-align: left; border-bottom: 1px solid #26364b; } th { color: #91a6bd; white-space: nowrap; } td { max-width: 360px; overflow-wrap: anywhere; } .empty { padding: 32px; border: 1px dashed #3a4f66; color: #9dafc1; } details { margin-top: 24px; } summary { cursor: pointer; }
+@media(max-width: 900px) { .shell { grid-template-columns: 1fr; } nav { grid-template-columns: repeat(3, 1fr); } .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } main { padding: 18px; } }

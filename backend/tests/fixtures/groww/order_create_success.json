@@ -1,0 +1,9 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "groww_order_id": "GMK39038RDT490CCVRO",
+    "order_status": "OPEN",
+    "order_reference_id": "ABC12345678",
+    "remark": "Order placed successfully"
+  }
+}

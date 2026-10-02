@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "NSE/BSE trading holidays (EXCH-001).",
+    "",
+    "INCOMPLETE BY DESIGN. Only fixed-date national holidays are listed here,",
+    "because those are the only ones that can be stated without consulting the",
+    "exchange circular. Most Indian market holidays follow lunar calendars",
+    "(Holi, Diwali/Laxmi Pujan, Eid, Gurunanak Jayanti, ...) and their dates",
+    "change every year. Inventing them would be worse than leaving them out:",
+    "the system would believe the market is open when it is closed.",
+    "",
+    "ACTION REQUIRED: replace `complete: false` with the full list from the",
+    "official NSE holiday circular for each year, then set `complete: true`.",
+    "The calendar raises a health warning while a year is marked incomplete."
+  ],
+  "source": "https://www.nseindia.com/resources/exchange-communication-holidays",
+  "updated": "2026-09-18",
+  "years": {
+    "2026": {
+      "complete": false,
+      "holidays": [
+        { "date": "2026-01-26", "name": "Republic Day" },
+        { "date": "2026-05-01", "name": "Maharashtra Day" },
+        { "date": "2026-08-15", "name": "Independence Day" },
+        { "date": "2026-10-02", "name": "Gandhi Jayanti" },
+        { "date": "2026-12-25", "name": "Christmas" }
+      ],
+      "special_sessions": []
+    },
+    "2027": {
+      "complete": false,
+      "holidays": [
+        { "date": "2027-01-26", "name": "Republic Day" },
+        { "date": "2027-05-01", "name": "Maharashtra Day" },
+        { "date": "2027-08-15", "name": "Independence Day" },
+        { "date": "2027-10-02", "name": "Gandhi Jayanti" },
+        { "date": "2027-12-25", "name": "Christmas" }
+      ],
+      "special_sessions": []
+    }
+  }
+}

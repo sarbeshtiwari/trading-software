@@ -1,0 +1,6 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "token": "eyJhbGciOiJIUzI1NiJ9.simulated.token-value"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "positions": [
+      {
+        "trading_symbol": "WIPRO",
+        "exchange": "NSE",
+        "segment": "CASH",
+        "product": "CNC",
+        "quantity": 100,
+        "quantity_bought": 100,
+        "quantity_sold": 0,
+        "average_price": 250.35,
+        "last_price": 252.1,
+        "unrealised_pnl": 175.0
+      },
+      {
+        "trading_symbol": "NIFTY26SEPFUT",
+        "exchange": "NSE",
+        "segment": "FNO",
+        "product": "NRML",
+        "quantity_bought": 0,
+        "quantity_sold": 75,
+        "average_price": 24510.0,
+        "last_price": 24480.0
+      }
+    ]
+  }
+}

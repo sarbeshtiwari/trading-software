@@ -1,0 +1,21 @@
+{
+  "status": "SUCCESS",
+  "payload": {
+    "holdings": [
+      {
+        "trading_symbol": "TCS",
+        "isin": "INE467B01029",
+        "quantity": 12,
+        "average_price": 3890.5,
+        "pledge_quantity": 0,
+        "demat_free_quantity": 12,
+        "last_price": 3901.0
+      },
+      {
+        "trading_symbol": "UNMAPPED",
+        "quantity": 5,
+        "average_price": 100.0
+      }
+    ]
+  }
+}
