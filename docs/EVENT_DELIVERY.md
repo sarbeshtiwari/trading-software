@@ -121,7 +121,7 @@ and [Redis XACK](https://redis.io/docs/latest/commands/xack/).
 `/api/v1/workspace/stream` shares the quote socket's Origin allowlist, connection
 cap and bounded first-message authentication. No token is accepted in a URL.
 Session validity is checked before every send, including heartbeat messages.
-The connection tails the fixed order streams, then requests a fresh workspace
+The connection tails fixed order/fill/position streams, then requests a fresh workspace
 HTTP read on initial connection and new events. Every browser reads all events;
 these ephemeral observers do not compete in a consumer group or acknowledge OMS
 work. Reconnect reads current API state rather than attempting to replay account
@@ -134,4 +134,23 @@ ten-second polling remains active for other state and transport fallback. The UI
 labels disconnection/staleness, makes bounded reconnect attempts and refreshes an
 expired access token before retrying. Redis failures close the stream, not claim
 connectivity. This is not a sub-second all-event delivery guarantee or external
-market-feed verification. Fill/position-specific publication remains pending.
+market-feed verification. Protection, price marks and other health/risk changes
+still rely on HTTP polling unless accompanied by one of these committed events.
+
+## Fill and position transition publication
+
+New immutable `PAPER_FILL_RECORDED` audit facts receive an outbox intent in the
+same transaction as the fill, FIFO and position accounting. Each newly observed
+filled-quantity change also records a linked `PAPER_POSITION_UPDATED` or
+`PAPER_POSITION_CLOSED` fact and intent. Position closure, its journal and event
+intent therefore commit together. Re-reading the same broker fills produces no
+additional fill/position event; order synchronization observations remain distinct.
+The publisher uses the same audit checks, stable identities and retry semantics
+as orders. Consumers receive lineage identifiers, not instructions or trusted
+account deltas. Older historical fills are not silently backfilled.
+
+Tests exercise partial entry, process recreation, emergency exit, duplicate
+synchronization, and fill-intent insertion failure after broker acceptance.
+The latter rolls back local accounting; recovery imports the accepted fill once
+without resubmitting a broker order. Actual Edge acceptance subscribes only to
+fill/position streams with polling disabled and observes entry and closure.

@@ -10,10 +10,11 @@ from redis.asyncio import Redis
 
 from app.api.market_stream import guarded_stream
 from app.config import get_settings
+from app.execution.event_types import PAPER_EVENT_TYPES
 from app.security.auth import OwnerAuth
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
-STREAMS = ("ats:events:execution.order_update", "ats:events:execution.order_submitted")
+STREAMS = tuple(f"ats:events:{kind.value}" for kind in dict.fromkeys(PAPER_EVENT_TYPES.values()))
 
 
 class Subscription(BaseModel):

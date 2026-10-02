@@ -21,7 +21,7 @@ test('order messages request authoritative reads rather than apply event payload
   socket.onmessage!({ data: 'invalid' });
   expect(socket.close).toHaveBeenCalled();
   socket.onclose!({ code: 1011 });
-  expect(await screen.findByText(/Order stream disconnected/)).toBeInTheDocument();
+  expect(await screen.findByText(/Execution stream disconnected/)).toBeInTheDocument();
   expect(refresh).toHaveBeenCalledTimes(2);
 });
 

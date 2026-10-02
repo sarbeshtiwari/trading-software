@@ -5763,3 +5763,33 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: publish fill and position transitions through the same transactional
   outbox, extend the read-only consumer, verify partial fills/exit/restart, and
   retain independent risk/execution authority. No broker commands from streams.
+
+### Transactional fill/position events reach the dashboard (2026-10-03)
+
+- Prior checkpoint **3889c60** is pushed to origin/main and remote-verified under
+  the configured owner identity, without co-author. Existing PAPER fill evidence
+  now inserts a publication intent in its accounting transaction. Newly observed
+  filled quantities produce position-update/closed facts and intents; closure,
+  journal and publication intent commit together. Same-fill synchronization does
+  not duplicate fill/position events. Historical rows are not backfilled.
+- Existing audit-verifying Redis publisher and authenticated dashboard consumer
+  handle these event types. No event directly mutates UI account values or creates
+  broker orders. Protection and mark-to-market updates still use HTTP polling;
+  this is not all-event or sub-second acceptance.
+- Actual Redis/OMS/network/Edge selection **8 passed / 0 failed / 0 skipped**,
+  session 99658 finished. Browser disables normal polling and subscribes only to
+  fill/position streams: actual entry and exit become visible. Tests also verify
+  partial entry, restart, repeated sync, and rollback of fill accounting when its
+  publication intent fails after broker acceptance; recovery imports once without
+  duplicate submission. Earlier execution selection **19 passed** (overlapping).
+- Broad unit/safety/FIFO/cost/journal/worker regression **788 passed / 0 failed /
+  0 skipped**, one existing warning; `backend/logs/fill-event-regression.txt`,
+  session 79928 finished. Frontend **56 passed**, production build successful,
+  session 42565 finished. New/changed event modules pass Ruff.
+- Counts unchanged: **228 verified / 139 partial / 10 unverified / 156 not
+  started**. ARCH-016 and BE-009 remain partial. Last full suite remains 1683 at
+  249a032; no new whole-suite, M1/M2, external delivery or Groww LIVE claim.
+- Next: freeze source and run the entire backend suite with actual PostgreSQL,
+  Redis and Edge acceptance enabled for the accumulated event integrations.
+  Observe that exact process to completion before additional feature work, then
+  address failures or continue operational risk/health/alert visibility.

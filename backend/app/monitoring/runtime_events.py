@@ -8,10 +8,11 @@ from redis.asyncio import Redis
 
 from app.audit.integrity import verify_records
 from app.core.clock import UTC, get_clock
-from app.core.events import Event, EventType, RedisStreamEventBus
+from app.core.events import Event, RedisStreamEventBus
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
 from app.db.models.event_outbox import RuntimeEventOutbox
+from app.execution.event_types import PAPER_EVENT_TYPES
 from app.modes import TradingMode
 
 logger = logging.getLogger(__name__)
@@ -62,22 +63,14 @@ class RuntimeEventPublisher:
                     or source.mode != TradingMode.PAPER
                     or source.actor != "paper_execution"
                     or timestamp > self.clock.utcnow()
-                    or source.event_type
-                    not in {
-                        "ORDER_CREATED",
-                        "ORDER_SUBMITTED",
-                        "ORDER_SYNCHRONIZED",
-                        "ORDER_UNKNOWN",
-                    }
+                    or source.event_type not in PAPER_EVENT_TYPES
                 ):
                     raise ValueError("invalid runtime event evidence")
                 event = Event(
                     id=source.id,
                     occurred_at=timestamp,
                     source="paper_execution",
-                    type=EventType.ORDER_SUBMITTED
-                    if source.event_type == "ORDER_SUBMITTED"
-                    else EventType.ORDER_UPDATE,
+                    type=PAPER_EVENT_TYPES[source.event_type],
                     payload={
                         "audit_id": source.id,
                         "audit_chain_id": source.chain_id,
@@ -87,6 +80,8 @@ class RuntimeEventPublisher:
                         "position_id": source.position_id,
                         "proposal_id": source.proposal_id,
                         "phase": source.event_type,
+                        "fill_id": source.result.get("fill_id")
+                        if source.event_type == "PAPER_FILL_RECORDED" else None,
                         "trading_mode": "PAPER",
                         "execution_realism": "SIMULATED",
                     },

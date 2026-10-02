@@ -2,6 +2,7 @@
 
 from app.agents.validation import _utc
 from app.audit.service import AuditIdentity, AuditService
+from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.trading import Trade
 from app.modes import TradingMode
 
@@ -10,7 +11,7 @@ async def record_fill(session, identifier, trading_symbol, clock):
     trade = await session.get(Trade, identifier)
     if trade is None:
         raise ValueError("fill evidence requires a persisted fill")
-    await AuditService(clock).append_in_session(
+    source = await AuditService(clock).append_in_session(
         session,
         AuditIdentity(
             chain_id=identifier,
@@ -39,3 +40,4 @@ async def record_fill(session, identifier, trading_symbol, clock):
         },
         expected_count=0,
     )
+    session.add(RuntimeEventOutbox(audit_id=source.id))

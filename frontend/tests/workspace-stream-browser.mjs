@@ -16,13 +16,17 @@ try {
   await page.getByLabel('Password', { exact: true }).fill(process.env.ATS_TEST_OWNER_PASSWORD);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.getByRole('button', { name: 'Orders', exact: true }).click();
-  await page.getByText(/Order updates connected/).waitFor();
+  await page.getByText(/Execution updates connected/).waitFor();
   assert.equal(await page.getByRole('cell', { name: 'EXECUTED', exact: true }).count(), 0);
   console.log('STREAM_READY');
   const identifier = await order;
   await page.getByRole('cell', { name: identifier, exact: true }).first().waitFor({ timeout: 8000 });
   await page.getByRole('cell', { name: 'EXECUTED', exact: true }).waitFor({ timeout: 8000 });
-  console.log('ORDER_STREAM_BROWSER_VERIFIED');
+  await page.getByRole('button', { name: 'Positions', exact: true }).click();
+  await page.getByRole('cell', { name: 'OPEN', exact: true }).waitFor();
+  console.log('ENTRY_STREAM_VERIFIED');
+  await page.getByRole('cell', { name: 'CLOSED', exact: true }).waitFor({ timeout: 15000 });
+  console.log('EXECUTION_STREAM_BROWSER_VERIFIED');
 } finally {
   input.close();
   await browser.close();

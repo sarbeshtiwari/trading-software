@@ -9,6 +9,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
 from app.api import workspace_stream
+from app.core.enums import ExitReason
 from app.core.events import RedisStreamEventBus
 from app.monitoring.runtime_events import RuntimeEventPublisher
 from app.security.auth import OwnerAuth
@@ -98,7 +99,7 @@ async def test_browser_refreshes_committed_order_without_polling(
     client, prefix = redis_events
     credentials[0].redis_url = URL
     monkeypatch.setattr(workspace_stream, "STREAMS", tuple(
-        f"{prefix}:{suffix}" for suffix in ("execution.order_update", "execution.order_submitted")
+        f"{prefix}:{suffix}" for suffix in ("execution.fill", "execution.position_update", "execution.position_closed")
     ))
     engine, proposal, _market, api, _context = await setup_execution(credentials, fake_clock)
     process = None
@@ -116,10 +117,14 @@ async def test_browser_refreshes_committed_order_without_polling(
         assert await publisher.publish_once() >= 3
         process.stdin.write((order + "\n").encode())
         await process.stdin.drain()
+        assert await asyncio.wait_for(process.stdout.readline(), 15) == b"ENTRY_STREAM_VERIFIED\n"
+        current = (await api.get("/api/v1/workspace")).json()
+        await engine.exit(current["positions"][0]["id"], ExitReason.EMERGENCY)
+        assert await publisher.publish_once() > 0
         stdout, stderr = await asyncio.wait_for(process.communicate(), 30)
         assert process.returncode == 0, stderr.decode(errors="replace")
-        assert stdout == b"ORDER_STREAM_BROWSER_VERIFIED\n"
-        assert len(await engine.broker.list_orders()) == 1
+        assert stdout == b"EXECUTION_STREAM_BROWSER_VERIFIED\n"
+        assert len(await engine.broker.list_orders()) == 2
     finally:
         if process is not None and process.returncode is None:
             process.kill()

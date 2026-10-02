@@ -45,6 +45,7 @@ from app.db.models.journal import JournalEntry
 from app.db.models.system import SINGLETON_ID, PortfolioSnapshot, SystemState
 from app.db.models.trading import Order, Position, Trade
 from app.emergency.rejections import observe_rejection
+from app.execution.event_types import PAPER_EVENT_TYPES
 from app.execution.expiry import warn_expiring_positions
 from app.execution.freshness import require_entry_sources
 from app.execution.hygiene import PaperOrderHygiene
@@ -248,7 +249,7 @@ class PaperExecution:
                 "result": {"execution_realism": "SIMULATED", **result},
             },
         )
-        if event in {"ORDER_CREATED", "ORDER_SUBMITTED", "ORDER_SYNCHRONIZED", "ORDER_UNKNOWN"}:
+        if event in PAPER_EVENT_TYPES:
             session.add(RuntimeEventOutbox(audit_id=source.id))
         if event == "ORDER_SYNCHRONIZED" and (
             order.filled_quantity or order.status == OrderStatus.REJECTED
@@ -826,6 +827,7 @@ class PaperExecution:
             order = await session.get(Order, identifier, with_for_update=True)
             proposal = await session.get(Proposal, order.proposal_id)
             position = await self._apply_fills(session, order, proposal, remote, fills)
+            position_changed = remote.filled_quantity != order.filled_quantity
             if remote.filled_quantity < order.filled_quantity:
                 raise SafetyError("FILL_REGRESSION")
             transition(session, order, remote.status, self.clock.utcnow(), source="poll")
@@ -905,6 +907,20 @@ class PaperExecution:
                         )
                     )
                     await bind_journal(session, journal_id, self.clock)
+            if position_changed and position:
+                await self._audit(
+                    session,
+                    order,
+                    "PAPER_POSITION_CLOSED"
+                    if position.state == PositionState.CLOSED else "PAPER_POSITION_UPDATED",
+                    {
+                        "state": position.state.value,
+                        "net_quantity": position.net_quantity,
+                        "gross_realised_pnl": position.realised_pnl,
+                        "charges": position.total_charges,
+                        "cost_basis": "SEE_FILL_COST_EVIDENCE",
+                    },
+                )
             await self._audit(
                 session,
                 order,
