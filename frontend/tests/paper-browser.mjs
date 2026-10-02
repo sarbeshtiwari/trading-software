@@ -125,6 +125,22 @@ try {
   await page.getByLabel('Decision, proposal, trade or audit ID').fill(exited.audit[0].id);
   await page.getByRole('button', { name: 'Inspect ID', exact: true }).click();
   await page.getByRole('heading', { name: `Trail ${exited.audit[0].id}`, exact: true }).waitFor();
+  const readinessResponse = page.waitForResponse(response => response.url().endsWith('/api/v1/system/readiness'));
+  await page.getByRole('button', { name: 'Monitoring', exact: true }).click();
+  const readiness = await (await readinessResponse).json();
+  const readinessPanel = page.getByRole('region', { name: 'Runtime readiness', exact: true });
+  await readinessPanel.getByText('Groww LIVE execution: UNVERIFIED', { exact: true }).waitFor();
+  assert.equal(readiness.trading_mode, 'PAPER');
+  assert.ok(readiness.instrument_count > 0);
+  assert.equal(readiness.instrument_snapshot_audit_verified, null);
+  assert.match(await readinessPanel.innerText(), /Snapshot audit: UNAVAILABLE/);
+  assert.match(await readinessPanel.innerText(), new RegExp(`Stored instruments: ${readiness.instrument_count};`));
+  for (const blocker of readiness.blockers) {
+    assert.ok((await readinessPanel.innerText()).includes(blocker));
+  }
+  if (!readiness.entry_gate_open) {
+    await readinessPanel.getByText('TRADING DISARMED — ENTRY GATE BLOCKED', { exact: true }).waitFor();
+  }
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
   assert.match(await page.locator('main').innerText(), /UNVERIFIED/);
   assert.deepEqual(errors, []);

@@ -4927,3 +4927,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   165 not started**). FE-015 remains partial. Next: complete runtime acceptance
   and inspect full-suite failures, then continue safe market-data/PAPER operation;
   BSE/calendar gaps and Groww JSON 403 remain explicitly unresolved.
+
+### Browser readiness acceptance and official-SDK comparison (2026-10-02)
+
+- Extended the existing real Edge PAPER lifecycle test, not a separate mocked UI:
+  after target/emergency/stale-data paths, Monitoring calls the authenticated
+  readiness API and renders actual instrument counts, gate blockers and missing
+  snapshot provenance. No fabricated healthy state for fixture catalog rows.
+- Browser execution: **3 passed / 0 failed / 0 skipped**, 8 unrelated scenarios
+  deselected. Production frontend bundle is the previously successful build;
+  no UI source change in this acceptance checkpoint.
+- One bounded official Groww SDK 1.5.0 comparison used the new durable token
+  budget: authentication succeeds; NIFTY LTP GET still fails with HTTP 403.
+  This supports an external authorization problem rather than an adapter-only
+  response issue, but does not identify the account/subscription cause.
+  No order calls, no prices reported as verified, no raw response/secrets shown.
+- Requested nonsecret dashboard subscription/authorization status from owner;
+  independent implementation continues. No repeated vendor probes until new
+  evidence or authorization state changes. LIVE remains unverified/disabled.
+- Full backend suite remains active as session 78042 (latest observed 18%).
+  Counts unchanged: 226 verified / 129 partial / 13 unverified / 165 not started.
+- Next: continue outstanding PAPER OMS controls/reconciliation through the real
+  API/UI path while external market-data authorization and calendar evidence
+  remain blocked; inspect full-suite outcome when it finishes.

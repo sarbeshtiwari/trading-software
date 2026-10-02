@@ -44,6 +44,9 @@ On 2026-10-02:
   **HTTP 403**, classified as a JSON broker failure, not an HTML response.
   Market-data authorization/connectivity remains unresolved; the
   exact broker/network cause has not been established. No order requests sent.
+- A bounded check through official Groww SDK 1.5.0 also returns HTTP 403 for LTP;
+  requested nonsecret account/authorization status from owner. No further retries
+  are needed without new evidence. This is not an adapter-only failure claim.
 - Owner confirmed the existing Docker services are running. Both containers are
   healthy (TimescaleDB/PostgreSQL 16 and Redis 7), bound to localhost. Application
   configuration now passes actual PostgreSQL `SELECT 1` and Redis `PING` checks.
@@ -68,6 +71,7 @@ On 2026-10-02:
   cover PAPER, historical/OOS and research cancellation.
 - Monitoring now includes API-backed runtime readiness: worker enablement, entry
   blockers, calendar coverage, stale health, catalog counts and snapshot audit.
+  Real Edge verification passed across target, emergency and stale-exit paths.
 - GitHub: `https://github.com/sarbeshtiwari/trading-software`, branch `main`.
   Initial published snapshot: `b8a1572`, equivalent to verified local `07c5695`.
 - Publication uses the owner's configured identity without co-author trailers.
