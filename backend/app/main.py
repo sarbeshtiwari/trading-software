@@ -59,6 +59,7 @@ from app.emergency.controls import EmergencyControls
 from app.modes import TradingMode, resolve_mode
 from app.monitoring.gate import get_trading_gate
 from app.monitoring.event_delivery import EventFailureMonitor
+from app.monitoring.runtime_events import RuntimeEventPublisher
 from app.monitoring.healthchecks import get_health_registry
 from app.monitoring.startup import run_startup_checks
 from app.monitoring.watchdog import HealthWatchdog
@@ -166,6 +167,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await start_worker(settings)
     lifecycle.on_shutdown(stop_worker, name="paper-worker", timeout_seconds=15)
     await app.state.event_failure_monitor.start()
+    await app.state.runtime_event_publisher.start()
+    lifecycle.on_shutdown(app.state.runtime_event_publisher.stop, name="runtime-event-publisher", timeout_seconds=15)
     lifecycle.on_shutdown(app.state.event_failure_monitor.stop, name="event-failure-monitor", timeout_seconds=15)
     lifecycle.on_shutdown(
         app.state.historical_jobs.stop, name="historical-jobs", timeout_seconds=30
@@ -200,6 +203,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.news_runtime = NewsRuntime(resolved)
     app.state.instrument_runtime = InstrumentRuntime(resolved)
     app.state.event_failure_monitor = EventFailureMonitor(resolved)
+    app.state.runtime_event_publisher = RuntimeEventPublisher(resolved)
     app.include_router(readiness_api.router, prefix=API_PREFIX)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(AuthenticationMiddleware)

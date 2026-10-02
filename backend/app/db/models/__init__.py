@@ -22,6 +22,7 @@ from app.db.models.fundamentals import CorporateEvent, FundamentalSnapshot
 from app.db.models.instrument import Instrument
 from app.db.models.instrument_snapshot import InstrumentMasterSnapshot
 from app.db.models.broker_auth_budget import BrokerAuthBudget
+from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.historical_jobs import HistoricalJob
 from app.db.models.journal import JournalAnnotation, JournalEntry, JournalRevision
 from app.db.models.llm import LLMBudgetDay, LLMCall, LLMProviderState
@@ -82,6 +83,7 @@ __all__ = [
     "RegimeHistory",
     "RiskConfigVersion",
     "RiskDecision",
+    "RuntimeEventOutbox",
     "SizingRecord",
     "StrategyRegistration",
     "SystemState",

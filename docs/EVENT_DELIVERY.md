@@ -82,7 +82,36 @@ PUBLISHING is audit/outbox operation, not proof of remote delivery or fully wire
 runtime events. Remote notification configuration and routing remain authoritative.
 Integration tests verify actual Redis plus PostgreSQL temporary-table rollback,
 restart idempotency, tamper rejection and bounded background lifecycle. Runtime
-OMS/strategy event production is still the next integration dependency.
+Strategy and broader operational event production remain integration dependencies.
+
+## Transactional PAPER OMS publication
+
+Migration `0017_runtime_event_outbox` adds a publication-intent table referencing
+the immutable source audit row. PAPER order creation, submission, synchronization
+and unknown-state audits insert an intent in the same transaction. Failure to
+insert an intent rolls back that state transition; an initial creation failure
+prevents broker submission. Earlier audit rows are not silently backfilled.
+
+A separate PAPER-only lifecycle publisher reads committed pending rows, locks
+each publication intent, verifies its source audit chain and emits through the
+existing Redis bus. It records publication only after Redis accepts the event.
+Redis failure leaves the intent pending. If Redis accepts but its reply/database
+receipt is lost, replay uses the same event ID; downstream consumers must dedupe.
+Audit chain/sequence/hash and order/proposal/position identities accompany events.
+Concurrent delivery ordering is not guaranteed; consumers must reconcile current
+state rather than treating an event as an instruction to execute an order.
+
+Publication is bounded to fifty intents per cycle, with network/cycle timeouts.
+Redis unavailability does not invent delivery or broker success. Monitoring shows
+the publisher state separately. Runtime dashboard consumers, fill/position-specific
+events and the remaining event families are not complete merely because order
+events now reach Redis. No event is permission to bypass deterministic execution.
+
+Fresh PostgreSQL upgrade/downgrade/schema checks pass on a disposable database;
+the additive migration is applied to the existing database. Do not downgrade a
+production database with pending intents without an explicit preservation plan:
+the downgrade removes this table. Tests exercise actual OMS/provider fixtures,
+Redis lost-reply/restart behavior and rollback before broker submission.
 
 Reference semantics: [Redis XAUTOCLAIM](https://redis.io/docs/latest/commands/xautoclaim/)
 and [Redis XACK](https://redis.io/docs/latest/commands/xack/).

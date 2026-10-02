@@ -8574,6 +8574,11 @@
             "title": "Publication Status",
             "default": "NOT_RUNNING"
           },
+          "runtime_publication_status": {
+            "type": "string",
+            "title": "Runtime Publication Status",
+            "default": "NOT_RUNNING"
+          },
           "retained_count": {
             "anyOf": [
               {

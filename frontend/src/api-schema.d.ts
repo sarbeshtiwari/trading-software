@@ -2843,6 +2843,11 @@ export interface components {
              * @default NOT_RUNNING
              */
             publication_status: string;
+            /**
+             * Runtime Publication Status
+             * @default NOT_RUNNING
+             */
+            runtime_publication_status: string;
             /** Retained Count */
             retained_count?: number | null;
             /**

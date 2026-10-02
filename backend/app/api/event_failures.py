@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 class EventFailureView(EvidenceModel):
     status: str
     publication_status: str = "NOT_RUNNING"
+    runtime_publication_status: str = "NOT_RUNNING"
     retained_count: int | None = None
     failures: tuple[RetainedFailure, ...] = ()
     has_more: bool = False
@@ -46,7 +47,10 @@ async def failures(request: Request):
     try:
         result = await asyncio.wait_for(_inspect(client), timeout=6)
         return result.model_copy(
-            update={"publication_status": request.app.state.event_failure_monitor.status}
+            update={
+                "publication_status": request.app.state.event_failure_monitor.status,
+                "runtime_publication_status": request.app.state.runtime_event_publisher.status,
+            }
         )
     except Exception as error:
         logger.warning(
@@ -55,6 +59,7 @@ async def failures(request: Request):
         return EventFailureView(
             status="EVENT_MONITOR_UNAVAILABLE",
             publication_status=request.app.state.event_failure_monitor.status,
+            runtime_publication_status=request.app.state.runtime_event_publisher.status,
         )
     finally:
         await client.aclose()

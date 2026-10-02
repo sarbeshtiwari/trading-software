@@ -38,6 +38,7 @@ from app.core.ids import new_id
 from app.core.money import quantize_money
 from app.db import session as db_session
 from app.db.models.decision import Proposal, RiskDecision
+from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.execution import PaperExecutionSlot
 from app.db.models.instrument import Instrument
 from app.db.models.journal import JournalEntry
@@ -247,6 +248,8 @@ class PaperExecution:
                 "result": {"execution_realism": "SIMULATED", **result},
             },
         )
+        if event in {"ORDER_CREATED", "ORDER_SUBMITTED", "ORDER_SYNCHRONIZED", "ORDER_UNKNOWN"}:
+            session.add(RuntimeEventOutbox(audit_id=source.id))
         if event == "ORDER_SYNCHRONIZED" and (
             order.filled_quantity or order.status == OrderStatus.REJECTED
         ):

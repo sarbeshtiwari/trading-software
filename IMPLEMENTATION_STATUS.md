@@ -5703,3 +5703,32 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   existing durable OMS/audit commits and Redis publication, then connect operational
   dashboard consumers. Publication must not precede database commit or authorize
   broker orders, and Redis outages must preserve retryable outbox evidence.
+
+### Transactional PAPER OMS event relay (2026-10-03)
+
+- Prior checkpoint **ec7b5df** is pushed and remote-verified. New migration
+  **0017_runtime_event_outbox** records order-event publication intent alongside
+  existing PAPER order audit commits. Creation/submission/synchronization/unknown
+  transitions are covered; initial intent insertion failure rolls back before a
+  broker call. No disconnected alternate OMS and no historical backfill claim.
+- PAPER-only lifecycle publisher verifies committed source audit evidence, locks
+  pending intent rows and sends through the existing Redis bus. Redis failures
+  preserve pending rows; ambiguous replies replay the same event ID. Audit chain,
+  sequence/hash and OMS IDs support consumer reconciliation, not order authorization.
+  Monitoring exposes publisher state; bounded cycles/timeouts preserve shutdown.
+- Actual OMS/Redis rollback/lost-reply tests and fresh PostgreSQL migration tests
+  **3 passed**. Fresh upgrade/downgrade/schema comparison ran in a disposable test
+  database; tested additive migration then applied to the existing PostgreSQL
+  database and `alembic check` passed. No containers or owner trades recreated.
+- Broader unit/safety/PAPER/worker regression **780 passed / 0 failed / 1 skipped**,
+  one existing warning; `backend/logs/runtime-event-regression.txt`, session 22181
+  finished. Its opt-in Redis case is verified separately, not counted as a failure.
+  Frontend **54 passed**, production build successful. New modules pass Ruff.
+- Counts remain **228 verified / 139 partial / 10 unverified / 156 not started**.
+  ARCH-016/BE-009 remain partial: dashboard consumers, fill/position-specific and
+  other event families still need integration. Last full suite remains 1683 at
+  249a032. Redis publication is not broker/live-feed or external-delivery proof.
+- Next: connect committed order events to authenticated operational dashboard
+  updates with idempotent handling and reconnect/current-state recovery, then
+  extend the same transactional path to fill/position transitions. Do not issue
+  broker commands from an event consumer or treat arrival order as account truth.
