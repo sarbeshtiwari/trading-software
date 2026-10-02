@@ -3736,6 +3736,97 @@
         }
       }
     },
+    "/api/v1/health/history": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "History",
+        "operationId": "history_api_v1_health_history_get",
+        "parameters": [
+          {
+            "name": "from_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From At"
+            }
+          },
+          {
+            "name": "to_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To At"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthHistory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "tags": [
@@ -9787,6 +9878,130 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HealthComponent": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "critical": {
+            "type": "boolean",
+            "title": "Critical"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "critical"
+        ],
+        "title": "HealthComponent"
+      },
+      "HealthHistory": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "from_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "From At"
+          },
+          "to_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "To At"
+          },
+          "preceding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthObservation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/HealthObservation"
+            },
+            "type": "array",
+            "title": "Observations"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "Recorded transitions only; intervals between observations are not verified health."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "from_at",
+          "to_at",
+          "preceding",
+          "observations",
+          "has_more",
+          "next_offset"
+        ],
+        "title": "HealthHistory"
+      },
+      "HealthObservation": {
+        "properties": {
+          "audit_id": {
+            "type": "string",
+            "title": "Audit Id"
+          },
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RecordedHealth"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "audit_id",
+          "sequence",
+          "observed_at",
+          "state"
+        ],
+        "title": "HealthObservation"
+      },
+      "HealthStatus": {
+        "type": "string",
+        "enum": [
+          "PASS",
+          "DEGRADED",
+          "FAIL",
+          "SKIPPED"
+        ],
+        "title": "HealthStatus"
+      },
       "ImportArticle": {
         "properties": {
           "article": {
@@ -13406,6 +13621,39 @@
           "confirmation"
         ],
         "title": "Rearm"
+      },
+      "RecordedHealth": {
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/HealthComponent"
+            },
+            "type": "object",
+            "title": "Checks"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "blocked": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blocked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "checks",
+          "missing",
+          "blocked"
+        ],
+        "title": "RecordedHealth"
       },
       "ReferenceInputs": {
         "properties": {

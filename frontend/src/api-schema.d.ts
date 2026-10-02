@@ -1137,6 +1137,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_api_v1_health_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -3225,6 +3242,57 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HealthComponent */
+        HealthComponent: {
+            status: components["schemas"]["HealthStatus"];
+            /** Critical */
+            critical: boolean;
+        };
+        /** HealthHistory */
+        HealthHistory: {
+            /** Mode */
+            mode: string;
+            /**
+             * From At
+             * Format: date-time
+             */
+            from_at: string;
+            /**
+             * To At
+             * Format: date-time
+             */
+            to_at: string;
+            preceding: components["schemas"]["HealthObservation"] | null;
+            /** Observations */
+            observations: components["schemas"]["HealthObservation"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Offset */
+            next_offset: number | null;
+            /**
+             * Scope
+             * @default Recorded transitions only; intervals between observations are not verified health.
+             */
+            scope: string;
+        };
+        /** HealthObservation */
+        HealthObservation: {
+            /** Audit Id */
+            audit_id: string;
+            /** Sequence */
+            sequence: number;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            state: components["schemas"]["RecordedHealth"];
+        };
+        /**
+         * HealthStatus
+         * @enum {string}
+         */
+        HealthStatus: "PASS" | "DEGRADED" | "FAIL" | "SKIPPED";
         /** ImportArticle */
         ImportArticle: {
             article: components["schemas"]["ArticleInput"];
@@ -4449,6 +4517,17 @@ export interface components {
             reason: string;
             /** Confirmation */
             confirmation: string;
+        };
+        /** RecordedHealth */
+        RecordedHealth: {
+            /** Checks */
+            checks: {
+                [key: string]: components["schemas"]["HealthComponent"];
+            };
+            /** Missing */
+            missing: string[];
+            /** Blocked */
+            blocked: string[];
         };
         /** ReferenceInputs */
         ReferenceInputs: {
@@ -8133,6 +8212,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceView"];
+                };
+            };
+        };
+    };
+    history_api_v1_health_history_get: {
+        parameters: {
+            query?: {
+                from_at?: string | null;
+                to_at?: string | null;
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthHistory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

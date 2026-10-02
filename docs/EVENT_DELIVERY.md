@@ -177,3 +177,23 @@ failed reads clear displayed latch state rather than presenting it as current.
 HTTP polling continues to cover transport outages and other control families.
 Existing deterministic entry gates act independently of notification/stream
 delivery. A committed notification request is not proof of external delivery.
+
+## Historical health inspection
+
+Owner-authenticated `GET /api/v1/health/history` exposes the current mode's audited
+health transitions in an inclusive UTC interval. Defaults are the latest 24 hours;
+explicit timestamps must include an offset, cannot be future-dated, and may span
+at most 31 days. Pages contain at most 100 observations, plus the last observation
+before the interval where available. Pagination pins both interval endpoints.
+
+The API verifies audit hashes, chain continuity, actor/mode, schema and timestamp
+ordering before returning observations. It never runs health checks, writes state,
+or changes trading permission. Empty intervals are not reported as healthy; the
+preceding observation is context, not proof of uninterrupted service. Existing
+Monitoring provides interval selection, pagination and unavailable/error states.
+
+Reads have an eight-second bound and a 10,000-record chain-verification ceiling.
+Exceeding that ceiling returns explicit 413 rather than truncated evidence; an
+archive/checkpoint verification path for larger histories remains pending.
+Malformed/tampered evidence returns 409; storage failure returns sanitized 503.
+There is no claim that unobserved outages or process downtime are reconstructed.

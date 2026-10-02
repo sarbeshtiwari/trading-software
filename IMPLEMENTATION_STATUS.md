@@ -5853,3 +5853,35 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   Monitoring for incident reconstruction (MON-009), without presenting gaps between
   observations as continuously verified health. Preserve authentication and audit
   integrity, then continue remaining runtime/recovery acceptance.
+
+### Audited health history in Monitoring (2026-10-03)
+
+- Previous checkpoint **ef3adc9** is pushed and remote-verified. Added typed,
+  authenticated health-history reads and interval inspection in existing Monitoring.
+  Inclusive timezone-aware intervals reject future/reversed/overlong input. Paged
+  results pin endpoints and include the last preceding observation without calling
+  gaps healthy. Reads verify chain hashes, mode/actor, schema and timestamp ordering;
+  unavailable/tampered/capacity failures are explicit and do not mutate safety state.
+- Actual PostgreSQL temporary-table persistence, API boundaries, audit tampering,
+  storage failure, watchdog regression and real Edge inspection **10 passed / 0
+  failed / 0 skipped**, session 96016 finished. Existing owner tables untouched.
+  Broader unit/safety/auth/health regression **773 passed / 0 failed / 1 skipped**,
+  one existing warning; `backend/logs/health-history-regression.txt`, session 45212
+  finished. Its opt-in PostgreSQL case passed in the separate actual-server run.
+- Frontend **59 passed**, production build successful, session 80946 finished.
+  A previous run observed an intermittent pre-existing workspace concurrency count
+  assertion (three requests versus two); unchanged full rerun and isolated three-test
+  rerun passed. Cause is not established and no fix is claimed. New pagination test
+  mock argument typing initially blocked TypeScript; corrected before final build.
+  OpenAPI/TypeScript contracts regenerated; new Python modules pass Ruff.
+- MON-009 remains partial: reads intentionally reject chains above 10,000 records
+  rather than truncate integrity evidence; scalable archive/checkpoint verification
+  remains pending. Counts unchanged **228 verified / 139 partial / 10 unverified /
+  156 not started**. Last full-suite baseline remains 1699 at 89799b1.
+- Next highest-value runtime gap: durable PAPER reconciliation discrepancies and
+  authenticated review/resolution in the existing operational views. Inspection
+  found current reconciliation compares broker/local quantities and accounting,
+  but primarily records a generic incident and can clear its in-memory gate after
+  a subsequent match. REC-003/004 still lack persisted exact discrepancy evidence
+  and explicit owner resolution. Integrate these without inventing broker state,
+  silently correcting economics or weakening entry/exit safety. Groww LIVE stays locked.
