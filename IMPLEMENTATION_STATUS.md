@@ -5822,3 +5822,34 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: integrate committed risk/health state changes with authenticated dashboard
   updates through existing transactional audit/outbox services. Preserve independent
   enforcement, current-state API reads and degraded transport fallback.
+
+### Committed risk/health dashboard updates (2026-10-03)
+
+- Full-suite evidence checkpoint **89799b1** is pushed and remote-verified. PAPER
+  latch changes, authenticated re-arm and health transitions now commit runtime
+  publication intents with existing audit/notification transactions. Unchanged
+  latches/checks do not add transition events. Publisher validates phase-specific
+  actors and immutable evidence; no event authorizes trading or clears a gate.
+- Existing workspace transport consumes these events as API refresh hints. Fixed
+  an integration gap: an already-open Risk view previously did not reload its
+  latch state with workspace updates. It now does, with bounded/superseded reads,
+  unavailable-state handling and preservation of unsaved owner configuration.
+- Actual Redis/risk/health/OMS/re-arm and Edge selection **9 passed / 0 failed /
+  0 skipped**, session 39681 finished. Browser disables periodic workspace polling
+  and proves a durable error latch reaches the open Risk view without replacing
+  its draft. Persistence failures roll back audit/outbox evidence and block entries;
+  unchanged state and publisher restart do not duplicate transition publication.
+- Broader unit/safety/risk/health/auth/PAPER/worker regression **815 passed / 0
+  failed / 0 skipped**, one existing warning; `backend/logs/control-event-regression.txt`,
+  session 3053 finished. Frontend **57 passed**, production build successful,
+  session 81808 finished. Changed event/control modules pass Ruff; legacy core-event
+  lint limitations are not reclassified as clean. Full-suite baseline remains 1699
+  at 89799b1; no new full-suite claim for this subsequent change.
+- Counts remain **228 verified / 139 partial / 10 unverified / 156 not started**.
+  BE-009/ARCH-016 remain partial for remaining families and sub-second acceptance.
+  Groww read-only 403, LIVE verification and external delivery remain unverified;
+  neither M1 nor M2 is complete.
+- Next: expose audited health transition history by bounded time range in existing
+  Monitoring for incident reconstruction (MON-009), without presenting gaps between
+  observations as continuously verified health. Preserve authentication and audit
+  integrity, then continue remaining runtime/recovery acceptance.

@@ -134,8 +134,8 @@ ten-second polling remains active for other state and transport fallback. The UI
 labels disconnection/staleness, makes bounded reconnect attempts and refreshes an
 expired access token before retrying. Redis failures close the stream, not claim
 connectivity. This is not a sub-second all-event delivery guarantee or external
-market-feed verification. Protection, price marks and other health/risk changes
-still rely on HTTP polling unless accompanied by one of these committed events.
+market-feed verification. Protection, price marks and operational changes not
+listed below still rely on HTTP polling unless accompanied by committed events.
 
 ## Fill and position transition publication
 
@@ -154,3 +154,26 @@ synchronization, and fill-intent insertion failure after broker acceptance.
 The latter rolls back local accounting; recovery imports the accepted fill once
 without resubmitting a broker order. Actual Edge acceptance subscribes only to
 fill/position streams with polling disabled and observes entry and closure.
+
+## Risk and health changes
+
+PAPER risk-latch changes and successful authenticated re-arm requests now insert
+intents with their existing immutable audit transactions. Repeated observations
+without a latch change do not publish another risk-state event. Health transitions
+insert an intent atomically with their audit and notification requests; repeated
+unchanged health checks remain deduplicated. Failure to persist either intent
+rolls the transaction back and the existing safety path blocks new entries.
+
+The runtime publisher allowlists both the event phase and its expected source
+actor. Re-arm receipts must match the configured owner identity; changing that
+identity with pending receipts requires explicit operator review if publication
+fails validation. Streams never grant re-arm authority. These non-execution
+events do not claim simulated fills or broker connectivity.
+
+The dashboard invalidates current workspace state on these streams. An open Risk
+view also refreshes its own API-backed latch state, while preserving unsaved
+configuration drafts. Requests are bounded, superseded reads are discarded and
+failed reads clear displayed latch state rather than presenting it as current.
+HTTP polling continues to cover transport outages and other control families.
+Existing deterministic entry gates act independently of notification/stream
+delivery. A committed notification request is not proof of external delivery.

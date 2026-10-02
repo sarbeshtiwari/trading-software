@@ -1,4 +1,4 @@
-"""At-least-once relay of committed OMS audit facts; never an execution command path."""
+"""At-least-once relay of committed operational facts; never an execution command path."""
 
 import asyncio
 import logging
@@ -12,8 +12,8 @@ from app.core.events import Event, RedisStreamEventBus
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
 from app.db.models.event_outbox import RuntimeEventOutbox
-from app.execution.event_types import PAPER_EVENT_TYPES
 from app.modes import TradingMode
+from app.monitoring.event_types import RUNTIME_EVENT_TYPES, expected_actor
 
 logger = logging.getLogger(__name__)
 
@@ -61,16 +61,16 @@ class RuntimeEventPublisher:
                 if (
                     not verify_records(history)
                     or source.mode != TradingMode.PAPER
-                    or source.actor != "paper_execution"
+                    or source.actor != expected_actor(source.event_type, self.settings)
                     or timestamp > self.clock.utcnow()
-                    or source.event_type not in PAPER_EVENT_TYPES
+                    or source.event_type not in RUNTIME_EVENT_TYPES
                 ):
                     raise ValueError("invalid runtime event evidence")
                 event = Event(
                     id=source.id,
                     occurred_at=timestamp,
-                    source="paper_execution",
-                    type=PAPER_EVENT_TYPES[source.event_type],
+                    source=source.actor,
+                    type=RUNTIME_EVENT_TYPES[source.event_type],
                     payload={
                         "audit_id": source.id,
                         "audit_chain_id": source.chain_id,
@@ -83,7 +83,8 @@ class RuntimeEventPublisher:
                         "fill_id": source.result.get("fill_id")
                         if source.event_type == "PAPER_FILL_RECORDED" else None,
                         "trading_mode": "PAPER",
-                        "execution_realism": "SIMULATED",
+                        "execution_realism": "SIMULATED"
+                        if source.actor == "paper_execution" else None,
                     },
                 )
                 await asyncio.wait_for(self.bus.publish(event), timeout=6)

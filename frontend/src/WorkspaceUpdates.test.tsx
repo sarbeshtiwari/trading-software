@@ -46,3 +46,28 @@ test('concurrent refreshes are coalesced and cannot overwrite newer account stat
   expect(await screen.findByText(/LATEST_RISK_BLOCKER/)).toBeInTheDocument();
   expect(pending).toHaveLength(2);
 });
+
+test('workspace refresh updates risk latches without replacing an owner configuration draft', async () => {
+  let latched = false;
+  const workspace = { trading_mode: 'PAPER', generated_at: '2026-10-03T00:00:00Z',
+    new_entries_allowed: false, blockers: [], account_status: 'UNAVAILABLE', regime_status: 'UNAVAILABLE',
+    positions: [], orders: [], fills: [], decisions: [], audit: [], strategies: [], chains: [], preflights: [], journal: [], components: [] };
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    const body = url.endsWith('/auth/refresh') ? { access_token: 'test-token' }
+      : url.endsWith('/workspace') ? workspace
+      : url.endsWith('/risk') ? { status: latched ? 'RISK_LATCHED_FIXTURE' : 'RISK_CLEAR_FIXTURE', limits: { version: 1 }, latches: {} }
+      : {};
+    return new Response(JSON.stringify(body));
+  }));
+  const api = new Api();
+  vi.spyOn(api, 'workspaceStream').mockReturnValue({ close: vi.fn() } as unknown as WebSocket);
+  render(<App api={api} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Risk' }));
+  expect(await screen.findByText('RISK_CLEAR_FIXTURE')).toBeInTheDocument();
+  const editor = screen.getByLabelText('Risk configuration JSON');
+  fireEvent.change(editor, { target: { value: 'unsaved owner draft' } });
+  latched = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+  expect(await screen.findByText('RISK_LATCHED_FIXTURE')).toBeInTheDocument();
+  expect(editor).toHaveValue('unsaved owner draft');
+});

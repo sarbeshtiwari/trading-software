@@ -31,7 +31,7 @@ function Records({ rows }: { rows: object[] }) {
     <tbody>{rows.map((row, index) => <tr key={index}>{keys.map(key => <td key={key}>{shown((row as Record<string, unknown>)[key])}</td>)}</tr>)}</tbody></table></div>;
 }
 
-function RiskPanel({ api, onChange }: { api: Api; onChange: () => void }) {
+function RiskPanel({ api, onChange, revision }: { api: Api; onChange: () => void; revision: Workspace }) {
   const [state, setState] = useState<RiskState>();
   const [error, setError] = useState('');
   const [config, setConfig] = useState('');
@@ -39,16 +39,30 @@ function RiskPanel({ api, onChange }: { api: Api; onChange: () => void }) {
   const [origin, setOrigin] = useState('LIVE');
   const [confirmation, setConfirmation] = useState('');
   const [busy, setBusy] = useState(false);
+  const dirty = useRef(false);
+  const request = useRef<AbortController | undefined>(undefined);
   const load = useCallback(async () => {
-    try { const next = await api.request<RiskState>('/risk'); setState(next); setConfig(next.limits ? JSON.stringify(next.limits, null, 2) : ''); }
-    catch (failure) { setError(String(failure)); }
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      const next = await api.request<RiskState>('/risk', { signal: controller.signal });
+      if (request.current !== controller || controller.signal.aborted) return;
+      setState(next); setError('');
+      if (!dirty.current) setConfig(next.limits ? JSON.stringify(next.limits, null, 2) : '');
+    } catch (failure) {
+      if (request.current === controller) { setState(undefined); setError(String(failure)); }
+    } finally { window.clearTimeout(timeout); }
   }, [api]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load, revision]);
+  useEffect(() => () => { request.current?.abort(); request.current = undefined; }, []);
   async function mutate(kind: 'rearm' | 'configuration') {
     setBusy(true); setError('');
     try {
       const body = kind === 'rearm' ? { origin, reason, confirmation } : { limits: JSON.parse(config), expected_version: state?.limits?.version ?? 0, reason };
       await api.request(`/risk/${kind}`, { method: 'POST', body: JSON.stringify(body) });
+      if (kind === 'configuration') dirty.current = false;
       await load(); onChange();
     } catch (failure) { setError(String(failure)); } finally { setBusy(false); }
   }
@@ -66,7 +80,7 @@ function RiskPanel({ api, onChange }: { api: Api; onChange: () => void }) {
     <label>Type REARM PAPER RISK<input value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>
     <button disabled={busy || confirmation !== 'REARM PAPER RISK' || reason.length < 10} onClick={() => void mutate('rearm')}>Request authenticated re-arm</button>
     <details><summary>Versioned risk configuration</summary><p>No capital is assumed. Supply an explicitly approved configuration; increment its version when changing it.</p>
-      <textarea aria-label="Risk configuration JSON" rows={20} value={config} onChange={event => setConfig(event.target.value)} />
+      <textarea aria-label="Risk configuration JSON" rows={20} value={config} onChange={event => { dirty.current = true; setConfig(event.target.value); }} />
       <button disabled={busy || !config || reason.length < 10} onClick={() => void mutate('configuration')}>Save audited configuration</button></details></>;
 }
 
@@ -209,6 +223,6 @@ export function App({ api: supplied }: { api?: Api }) {
         {page === 'Audit' && <AuditPanel api={api} />}
         {page === 'Monitoring' && <><RuntimeReadinessPanel api={api} /><EventFailurePanel api={api} /><Records rows={data.components} /><h2>Durable notification outcomes</h2><p>A channel acknowledgement is not independently verified message delivery. Pending/failed notices do not imply a trading failure.</p><Records rows={data.notifications ?? []} /><PaperSummaryPanel api={api} /></>}
         {page === 'Market / F&O' && <><MarketPanel api={api} /><p>Recorded option-chain summaries; live indices, Greeks and futures views remain unavailable until connected.</p><Records rows={data.chains} /><NewsSourcesPanel api={api} /></>}
-        {page === 'Risk' && <RiskPanel api={api} onChange={() => void load()} />}</>}
+        {page === 'Risk' && <RiskPanel api={api} revision={data} onChange={() => void load()} />}</>}
     </main></div>;
 }

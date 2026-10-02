@@ -11,7 +11,8 @@ from app.core.clock import get_clock
 from app.core.enums import HealthStatus, Severity
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
-from app.modes import current_mode
+from app.db.models.event_outbox import RuntimeEventOutbox
+from app.modes import TradingMode, current_mode
 from app.monitoring.gate import get_trading_gate
 from app.monitoring.healthchecks import HealthCheck, get_health_registry
 from app.notifications.outbox import enqueue
@@ -146,6 +147,8 @@ class HealthWatchdog:
                 source_event=record,
             )
             await self._provider_notices(session, records, state, record)
+            if current_mode() == TradingMode.PAPER:
+                session.add(RuntimeEventOutbox(audit_id=record.id))
 
     async def _provider_notices(self, session, records, state, record):
         for name, kind in (("groww_auth", "AUTH_FAILURE"), ("market_data", "FEED_OUTAGE")):

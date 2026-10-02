@@ -17,6 +17,7 @@ from app.core.enums import Severity
 from app.core.ids import new_id
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
+from app.db.models.event_outbox import RuntimeEventOutbox
 from app.modes import TradingMode
 from app.monitoring.gate import get_trading_gate
 from app.notifications.outbox import enqueue
@@ -183,6 +184,11 @@ class RiskSafety:
             expected_count=expected_count,
         )
         await self._notify_changes(session, before, after, record, mode=mode, origin=origin)
+        if TradingMode(mode) == TradingMode.PAPER and any(
+            getattr(before, field) != getattr(after, field)
+            for field in ("daily_loss", "drawdown", "engine_error")
+        ):
+            session.add(RuntimeEventOutbox(audit_id=record.id))
         return critical, record.id
 
     async def observe(self, portfolio, market, limits):

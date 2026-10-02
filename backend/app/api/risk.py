@@ -15,6 +15,7 @@ from app.db import session as db_session
 from app.db.models.audit import AuditEvent, ConfigChange
 from app.db.models.config import RiskConfigVersion
 from app.db.models.decision import RiskDecision
+from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.system import SINGLETON_ID, SystemState
 from app.fno.restrictions import BanAdmission, BanState
 from app.fno.restrictions import admit as admit_ban
@@ -392,7 +393,7 @@ async def rearm(body: Rearm, request: Request):
         if account.peak_equity - account.equity >= drawdown_limit:
             raise HTTPException(423, "Drawdown remains beyond limit")
         after = before.model_copy(update={"drawdown": False, "engine_error": False})
-        await AuditService(clock).append_in_session(
+        record = await AuditService(clock).append_in_session(
             session,
             AuditIdentity(
                 chain_id=chain,
@@ -410,6 +411,7 @@ async def rearm(body: Rearm, request: Request):
             },
             expected_count=count,
         )
+        session.add(RuntimeEventOutbox(audit_id=record.id))
         session.add(
             ConfigChange(
                 target="risk_latch",

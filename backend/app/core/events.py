@@ -71,6 +71,7 @@ class EventType(str, Enum):
 
     # System
     HEALTH_CHANGED = "system.health_changed"
+    RISK_STATE_CHANGED = "system.risk_state_changed"
     TRADING_DISABLED = "system.trading_disabled"
     TRADING_ENABLED = "system.trading_enabled"
     EMERGENCY = "system.emergency"

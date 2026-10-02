@@ -7,7 +7,8 @@ import sqlalchemy as sa
 from app.agents.pipeline import DecisionPipeline
 from app.core.clock import UTC
 from app.db import session as db_session
-from app.db.models.audit import ConfigChange
+from app.db.models.audit import AuditEvent, ConfigChange
+from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.system import SINGLETON_ID, SystemState
 from app.main import create_app
 from app.monitoring.gate import get_trading_gate
@@ -77,6 +78,12 @@ async def test_authenticated_rearm_preserves_daily_and_unrelated_blocks(
         assert (await client.post("/api/v1/risk/configuration", json=change)).status_code == 409
     async with db_session.session_scope() as session:
         changes = list((await session.scalars(sa.select(ConfigChange))).all())
+        intents = await session.scalar(
+            sa.select(sa.func.count()).select_from(RuntimeEventOutbox)
+            .join(AuditEvent, AuditEvent.id == RuntimeEventOutbox.audit_id)
+            .where(AuditEvent.event_type == "RISK_REARM")
+        )
+        assert intents == 1
     assert {item.action for item in changes} == {"ACTIVATE", "REARM"}
     assert all(item.actor == "owner" and item.reason for item in changes)
 
