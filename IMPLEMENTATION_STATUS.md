@@ -5806,3 +5806,19 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   or an observation times out. Next: inspect failures if any, record the genuine
   full-suite result, then continue remaining operational integration. Last full
   passing baseline remains 1683 at 249a032. PAPER default and LIVE lock unchanged.
+
+### Full execution-event acceptance completed (2026-10-03)
+
+- Session **97886 is finished**: **1699 passed / 0 failed / 0 skipped**, three
+  existing warnings, 1h07m01s. Actual PostgreSQL, Redis and Edge acceptance were
+  enabled; log `backend/logs/full-execution-events-checkpoint.txt`. Source/tests
+  remained frozen. Do not poll or restart this completed session.
+- This supersedes the 1683 whole-suite baseline. Frontend remains **56 passed**,
+  production build successful. Runtime OMS events, fill/position accounting,
+  failure recovery and browser delivery have scoped acceptance; this does not
+  establish external Groww execution, live-feed delivery or M1/M2 completion.
+- Counts remain **228 verified / 139 partial / 10 unverified / 156 not started**.
+  Last pushed checkpoint a2660ab records the start, not the final result above.
+- Next: integrate committed risk/health state changes with authenticated dashboard
+  updates through existing transactional audit/outbox services. Preserve independent
+  enforcement, current-state API reads and degraded transport fallback.
