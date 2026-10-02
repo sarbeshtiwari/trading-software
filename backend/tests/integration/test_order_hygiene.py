@@ -105,7 +105,9 @@ async def test_sweep_does_not_cancel_without_durable_intent(
     cancel = AsyncMock(wraps=engine.cancel)
     monkeypatch.setattr(engine, "cancel", cancel)
     monkeypatch.setattr(
-        AuditService, "append_in_session", AsyncMock(side_effect=RuntimeError("isolated audit outage"))
+        AuditService,
+        "append_in_session",
+        AsyncMock(side_effect=RuntimeError("isolated audit outage")),
     )
     try:
         with pytest.raises(RuntimeError, match="isolated audit outage"):
@@ -177,7 +179,7 @@ async def test_failed_cancel_records_unknown_and_retries_lookup_without_duplicat
             )
             assert not await PaperOrderHygiene(engine).run(all_pending=True)
         assert "PAPER_ORDER_CANCELLATION_UNRESOLVED" in engine.gate.reason()
-        assert await PaperOrderHygiene(engine).run(all_pending=True)
+        assert await PaperOrderHygiene(engine).run()
         async with db_session.session_scope() as session:
             assert (await session.get(Order, identifier)).status == OrderStatus.CANCELLED
             outcomes = list(
@@ -188,5 +190,37 @@ async def test_failed_cancel_records_unknown_and_retries_lookup_without_duplicat
         assert len(outcomes) == 2
         assert any(not row.result["terminal"] for row in outcomes)
         assert len(await engine.broker.list_orders()) == 1
+    finally:
+        await client.aclose()
+
+
+async def test_failed_cancellation_remains_blocked_before_age_limit_after_restart(
+    db_engine, credentials, fake_clock, monkeypatch
+):
+    engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
+    market["quantities"] = [10000, 100]
+    identifier = await engine.submit(proposal)
+    try:
+        monkeypatch.setattr(
+            engine.broker, "cancel_order", AsyncMock(side_effect=RuntimeError("test outage"))
+        )
+        assert not await PaperOrderHygiene(engine).run(all_pending=True)
+        restored = PaperExecution(engine.source, settings=engine.settings, clock=fake_clock)
+        await restored.recover()
+        monkeypatch.setattr(
+            restored.broker, "cancel_order", AsyncMock(side_effect=RuntimeError("test outage"))
+        )
+        assert not await PaperOrderHygiene(restored).run()
+        assert "PAPER_ORDER_CANCELLATION_UNRESOLVED" in restored.gate.reason()
+        async with db_session.session_scope() as session:
+            order = await session.get(Order, identifier)
+            assert not order.status.is_terminal
+            outcomes = list(
+                await session.scalars(
+                    sa.select(AuditEvent).where(AuditEvent.event_type == "ENTRY_CANCEL_RESULT")
+                )
+            )
+        assert len(outcomes) == 2
+        assert len(await restored.broker.list_orders()) == 1
     finally:
         await client.aclose()

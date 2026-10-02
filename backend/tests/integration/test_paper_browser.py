@@ -36,6 +36,44 @@ pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 
 @pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")
+async def test_real_browser_cancels_partial_entry(
+    db_engine, credentials, fake_clock, tmp_path, monkeypatch, live_dashboard
+):
+    engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
+    market["quantities"] = [10000, 100]
+    identifier = await engine.submit(proposal)
+    worker = PaperWorker(
+        engine,
+        calendar=TradingCalendar(complete_years=[2026]),
+        lock_path=tmp_path / "owner-cancel-browser.lock",
+    )
+    monkeypatch.setattr(_runtime, "worker", worker)
+    process = None
+    try:
+        await worker.start(schedule=False)
+        process = await asyncio.create_subprocess_exec(
+            "node",
+            str(ROOT / "frontend/tests/order-cancel-browser.mjs"),
+            live_dashboard,
+            identifier,
+            env={**os.environ, "ATS_TEST_OWNER_PASSWORD": credentials[1]},
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60)
+        assert process.returncode == 0, stderr.decode(errors="replace")
+        assert stdout == b"OWNER_CANCEL_VERIFIED\n"
+        assert len(await engine.broker.list_orders()) == 1
+        await engine.verify_protection()
+    finally:
+        if process is not None and process.returncode is None:
+            process.kill()
+            await process.communicate()
+        await worker.stop()
+        await client.aclose()
+
+
+@pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")
 async def test_real_browser_configures_news_without_claiming_ingestion(
     db_engine,
     credentials,

@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 226 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 13 | Code exists and runs; its specific guarantee needs a live account, PostgreSQL or Docker to verify |
-| `[~]` In progress | 127 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 167 | |
+| `[~]` In progress | 129 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 165 | |
 | **Total** | **533** | |
 
 ---
@@ -4950,3 +4950,35 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: continue outstanding PAPER OMS controls/reconciliation through the real
   API/UI path while external market-data authorization and calendar evidence
   remain blocked; inspect full-suite outcome when it finishes.
+
+### Authenticated PAPER entry cancellation (2026-10-02)
+
+- Added typed authenticated `POST /api/v1/orders/{id}/cancel` and controls in the
+  existing Orders view. Requires explicit owner reason/confirmation, a running
+  PAPER worker, and a PAPER ENTRY order. Protective exits and other modes are
+  refused and audited. This does not implement order modification or bulk cancel.
+- Owner intent is committed before broker cancellation; stable request IDs bind
+  actor/order/reason and replay recorded outcomes without another broker call.
+  The worker lifecycle lock serializes cancellation against trading and shutdown.
+  Results include actual terminal state/fills, journal linkage and audit chain.
+  Partial fills remain protected positions; cancelling an entry is not a flatten.
+- Existing supervisor recovers unfinished owner intents after interruption.
+  Fixed a discovered defect: a failed cancellation of a young entry could be
+  skipped on the next ordinary cycle, clearing its blocker. Persisted failed
+  results now force retry/reconciliation before the entry's normal age deadline,
+  including after restart. No unknown order is blindly resubmitted.
+- Backend unit/safety/affected integration regression: **777 passed / 0 failed /
+  0 skipped**. Frontend: **40 passed**, production build successful. Actual Edge
+  UI cancellation of a partially filled PAPER entry: **1 passed**, 11 unrelated
+  scenarios deselected. Tests also cover auth/refusals, duplicate concurrent
+  requests, storage failure, broker failure, recovery and API-visible state.
+- Earlier complete suite finished **1568 passed / 1 failed / 24 skipped**. The
+  failure was OpenAPI snapshot equality while newer schema artifacts were changed
+  during that run. Regenerated contract equality now passes in the regression;
+  this is not reported as a passing full-suite run. Opt-in browser/PostgreSQL
+  skips are not external verification. Full regression needs a stable snapshot.
+- OMS-005 and FE-008 remain partial. Counts: **226 verified / 129 partial /
+  13 implemented-unverified / 165 not started**. No market/broker external calls.
+- Next: run stable-snapshot full regression; complete safe PAPER bulk-entry
+  cancellation and per-order outcomes without cancelling protection, then address
+  remaining OMS modification/revalidation and runtime readiness dependencies.

@@ -65,6 +65,7 @@ class PositionView(Row):
 
 class OrderView(Row):
     id: str
+    role: str
     segment: str
     trading_symbol: str
     status: str

@@ -2505,6 +2505,58 @@
         }
       }
     },
+    "/api/v1/orders/{identifier}/cancel": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Cancel",
+        "operationId": "cancel_api_v1_orders__identifier__cancel_post",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelEntryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelEntryResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reports/paper/daily": {
       "get": {
         "tags": [
@@ -5319,6 +5371,91 @@
           "strategy_versions"
         ],
         "title": "BindingSummary"
+      },
+      "CancelEntryRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Reason"
+          },
+          "confirmation": {
+            "type": "string",
+            "title": "Confirmation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "reason",
+          "confirmation"
+        ],
+        "title": "CancelEntryRequest"
+      },
+      "CancelEntryResult": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "audit_chain_id": {
+            "type": "string",
+            "title": "Audit Chain Id"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "filled_quantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filled Quantity"
+          },
+          "terminal": {
+            "type": "boolean",
+            "title": "Terminal"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "order_id",
+          "audit_chain_id",
+          "reason",
+          "status",
+          "filled_quantity",
+          "terminal",
+          "error"
+        ],
+        "title": "CancelEntryResult"
       },
       "CancelRequest": {
         "properties": {
@@ -10611,6 +10748,10 @@
             "type": "string",
             "title": "Id"
           },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
           "segment": {
             "type": "string",
             "title": "Segment"
@@ -10682,6 +10823,7 @@
         "type": "object",
         "required": [
           "id",
+          "role",
           "segment",
           "trading_symbol",
           "status",

@@ -21,6 +21,7 @@ class PaperOrderHygiene:
 
     async def run(self, *, all_pending=False):
         unfinished = await self.unfinished()
+        retries = await self.retry_orders()
         async with db_session.session_scope() as session:
             orders = list(
                 await session.scalars(
@@ -48,6 +49,7 @@ class PaperOrderHygiene:
             if (
                 age >= 0
                 and order.id not in unfinished
+                and order.id not in retries
                 and not all_pending
                 and age < self.executor.settings.paper_entry_max_age_seconds
             ):
@@ -57,6 +59,8 @@ class PaperOrderHygiene:
             reason = (
                 previous.result["reason"]
                 if previous
+                else retries[order.id]
+                if order.id in retries
                 else "SESSION_CUTOFF"
                 if all_pending
                 else "STALE_ENTRY"
@@ -104,6 +108,29 @@ class PaperOrderHygiene:
             self.executor.gate.clear("paper_order_hygiene")
         return resolved
 
+    async def retry_orders(self):
+        async with db_session.session_scope() as session:
+            outcomes = list(
+                await session.scalars(
+                    sa.select(AuditEvent)
+                    .join(Order, Order.id == AuditEvent.order_id)
+                    .where(
+                        AuditEvent.mode == TradingMode.PAPER,
+                        AuditEvent.event_type == "ENTRY_CANCEL_RESULT",
+                        Order.mode == TradingMode.PAPER,
+                        Order.role == "ENTRY",
+                        ~Order.status.in_([status for status in OrderStatus if status.is_terminal]),
+                    )
+                )
+            )
+        pending = {}
+        for outcome in outcomes:
+            if not await AuditService(self.clock).verify(outcome.chain_id, expected_count=2):
+                raise SafetyError("CANCEL_RESULT_INTEGRITY_FAILURE")
+            if not outcome.result.get("terminal") or outcome.result.get("error"):
+                pending[outcome.order_id] = outcome.result["reason"]
+        return pending
+
     async def unfinished(self):
         result = sa.orm.aliased(AuditEvent)
         async with db_session.session_scope() as session:
@@ -128,19 +155,20 @@ class PaperOrderHygiene:
             if intent.order_id in pending or intent.result.get("reason") not in {
                 "STALE_ENTRY",
                 "SESSION_CUTOFF",
+                "OWNER_CANCEL",
             }:
                 raise SafetyError("CANCEL_INTENT_AMBIGUOUS")
             pending[intent.order_id] = intent
         return pending
 
-    async def record(self, order, chain, event, result):
+    async def record(self, order, chain, event, result, *, actor="paper_order_hygiene"):
         async with db_session.session_scope() as session:
             recorded = await AuditService(self.clock).append_in_session(
                 session,
                 AuditIdentity(
                     chain_id=chain,
                     event_type=event,
-                    actor="paper_order_hygiene",
+                    actor=actor,
                     mode=TradingMode.PAPER,
                 ),
                 {

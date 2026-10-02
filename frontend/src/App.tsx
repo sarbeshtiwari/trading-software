@@ -12,6 +12,7 @@ import { InstrumentBlocksPanel } from './InstrumentBlocksPanel';
 import { EventControlsPanel } from './EventControlsPanel';
 import { FnoBanPanel } from './FnoBanPanel';
 import { RuntimeReadinessPanel } from './RuntimeReadinessPanel';
+import { OrderControls } from './OrderControls';
 
 const pages = ['Dashboard', 'Positions', 'Orders', 'Strategies', 'Risk', 'Market / F&O', 'Decisions', 'Journal', 'Audit', 'Monitoring', 'Backtests'] as const;
 type Page = typeof pages[number];
@@ -172,7 +173,7 @@ export function App({ api: supplied }: { api?: Api }) {
       {data && <><p className="muted">Response time: {data.generated_at}</p>
         {page === 'Dashboard' && <><div className="cards">{[['Account', data.account_status], ['Equity', data.account?.equity], ['Realised P&L (snapshot)', data.account?.realised_pnl], ['Unrealised P&L (snapshot)', data.account?.unrealised_pnl], ['Exposure (snapshot)', data.account?.gross_exposure], ['Regime', data.regime ? `${data.regime.label} / ${data.regime_status}` : data.regime_status]].map(([name, value]) => <article key={String(name)}><span>{name}</span><strong>{shown(value)}</strong></article>)}</div><Records rows={data.regime ? [data.regime] : []} />
           <h2>Recent decisions</h2><Records rows={data.decisions.slice(0, 8)} /><h2>System components</h2><Records rows={data.components} /></>}
-        {page === 'Positions' && <><p>Watchdog observations are expiring software checks, not broker-held stop guarantees. Check Monitoring for current worker availability.</p><Records rows={data.positions} /></>}{page === 'Orders' && <><Records rows={data.orders} /><h2>Persisted fills and FIFO attribution</h2><Records rows={data.fills ?? []} /></>}
+        {page === 'Positions' && <><p>Watchdog observations are expiring software checks, not broker-held stop guarantees. Check Monitoring for current worker availability.</p><Records rows={data.positions} /></>}{page === 'Orders' && <><OrderControls api={api} orders={data.orders} mode={data.trading_mode} onChange={() => void load()} /><Records rows={data.orders} /><h2>Persisted fills and FIFO attribution</h2><Records rows={data.fills ?? []} /></>}
         {page === 'Strategies' && <StrategyPanel api={api} rows={data.strategies} onChange={() => void load()} />}
         {page === 'Decisions' && <><h2>Advisory decisions</h2><Records rows={data.decisions} /><h2>Proposal provider receipts</h2><p>Fallback is rule-derived, not a Claude response or order authorization. Missing token counts are unavailable, not zero. Remote costs are owner-tariff estimates, not provider invoices. Unknown costs retain their budget reservation.</p><Records rows={data.advisory_calls ?? []} /><h2>Advisory budget (UTC day)</h2><Records rows={data.advisory_budget ? [data.advisory_budget] : []} /><h2>Execution preflight</h2><Records rows={data.preflights} /></>}
         {page === 'Journal' && <JournalPanel api={api} />}

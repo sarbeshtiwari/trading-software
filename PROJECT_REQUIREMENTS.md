@@ -1121,6 +1121,15 @@ Each phase ends with a checkpoint written to `IMPLEMENTATION_STATUS.md`. The rep
 
 ## 6. Amendment log
 
+Implementation evidence update (2026-10-02; no acceptance criteria changed):
+OMS-005 and FE-008 remain partial. Authenticated PAPER entry cancellation now
+uses `backend/app/api/orders.py`, `backend/app/execution/owner_cancel.py` and the
+existing supervisor recovery. `frontend/src/OrderControls.tsx` exposes it in the
+Orders view. Evidence: `test_owner_cancel.py`, `test_order_hygiene.py`,
+`OrderControls.test.tsx`, and real-browser `test_real_browser_cancels_partial_entry`.
+Bulk cancellation and risk-revalidated modification remain pending; protective
+exit cancellation and real-broker acceptance are not claimed.
+
 | Date | Change | Approved by |
 |---|---|---|
 | 2026-09-17 | Initial derivation from the execution contract (v0.1, pre-approval) | pending |

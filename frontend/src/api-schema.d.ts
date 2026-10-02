@@ -707,6 +707,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{identifier}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_v1_orders__identifier__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/paper/daily": {
         parameters: {
             query?: never;
@@ -1790,6 +1807,35 @@ export interface components {
             strategy_ids: string[];
             /** Strategy Versions */
             strategy_versions: string[];
+        };
+        /** CancelEntryRequest */
+        CancelEntryRequest: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Reason */
+            reason: string;
+            /** Confirmation */
+            confirmation: string;
+        };
+        /** CancelEntryResult */
+        CancelEntryResult: {
+            /** Order Id */
+            order_id: string;
+            /** Audit Chain Id */
+            audit_chain_id: string;
+            /** Reason */
+            reason: string;
+            /** Status */
+            status: string;
+            /** Filled Quantity */
+            filled_quantity: number | null;
+            /** Terminal */
+            terminal: boolean;
+            /** Error */
+            error: string | null;
         };
         /** CancelRequest */
         CancelRequest: {
@@ -3474,6 +3520,8 @@ export interface components {
         OrderView: {
             /** Id */
             id: string;
+            /** Role */
+            role: string;
             /** Segment */
             segment: string;
             /** Trading Symbol */
@@ -6534,6 +6582,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_v1_orders__identifier__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancelEntryResult"];
                 };
             };
             /** @description Validation Error */
