@@ -43,6 +43,14 @@ continuous external source delivery or the full PAPER lifecycle.
 
 ### 0.1 Requirement ID scheme
 
+PAPER reconciliation detail evidence: `test_reconciliation_review.py` now checks
+exact FIFO lot/source records even when aggregate quantity and price agree, and
+identifies local UNKNOWN orders by local/broker/reference IDs. Durable entry
+approval still refuses an unresolved record when its aggregate counter is damaged.
+Evidence reads fail closed above the configured audit-chain capacity rather than
+silently verifying a truncated chain. REC-003/004 remain partial; general order
+reconciliation and scalable archival verification are not implied.
+
 Each requirement has a stable ID of the form `AREA-NNN`. IDs are **never reused or renumbered** once approved. New requirements are appended with the next free number in their area.
 
 | Prefix | Area | Prefix | Area |

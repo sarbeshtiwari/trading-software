@@ -14,6 +14,7 @@ from app.db.models.system import SINGLETON_ID, Discrepancy, SystemState
 from app.modes import TradingMode
 
 KIND = "PAPER_RECONCILIATION"
+MAX_AUDIT_RECORDS = 1000
 
 
 def snapshot(row):
@@ -29,7 +30,10 @@ def snapshot(row):
 
 async def verify(session, row):
     records = list(await session.scalars(sa.select(AuditEvent)
-        .where(AuditEvent.chain_id == row.id).order_by(AuditEvent.sequence)))
+        .where(AuditEvent.chain_id == row.id).order_by(AuditEvent.sequence)
+        .limit(MAX_AUDIT_RECORDS + 1)))
+    if len(records) > MAX_AUDIT_RECORDS:
+        raise SafetyError("DISCREPANCY_EVIDENCE_CAPACITY_EXCEEDED")
     if (not records or not verify_records(records)
             or any(record.mode != TradingMode.PAPER for record in records)
             or records[-1].result.get("record") != snapshot(row)):

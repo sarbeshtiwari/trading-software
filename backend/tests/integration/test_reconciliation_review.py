@@ -8,14 +8,15 @@ import pytest
 import sqlalchemy as sa
 
 from app.core.calendar import TradingCalendar
-from app.core.enums import ExitReason
+from app.core.enums import ExitReason, OrderStatus
 from app.core.errors import SafetyError
 from app.db import session as db_session
 from app.db.models.system import SINGLETON_ID, Discrepancy, SystemState
-from app.db.models.trading import Position
+from app.db.models.trading import Order, Position
 from app.execution import discrepancies
 from app.execution.paper import PaperExecution
 from app.monitoring.gate import get_trading_gate
+from app.portfolio.fifo import Lot
 from app.trading.worker import PaperWorker, _runtime
 from tests.integration.test_paper_browser import ROOT, live_dashboard
 from tests.integration.test_paper_execution import credentials, setup_execution
@@ -149,6 +150,12 @@ async def test_changed_discrepancy_projection_fails_closed(
         assert current.status_code == 200
         item = current.json()["items"][0]
         assert {Decimal(value) for value in item["record"]["delta"]["average_prices"].values()} == {Decimal("1")}
+        local_lots = item["record"]["local_state"]["fifo_positions"][0]["lots"]
+        broker_lots = item["record"]["broker_state"]["fifo_positions"][0]["lots"]
+        assert [(lot["quantity"], Decimal(lot["price"])) for lot in local_lots] == [
+            (lot["quantity"], Decimal(lot["price"])) for lot in broker_lots
+        ]
+        assert local_lots[0]["source_id"] and broker_lots[0]["source_id"]
         async with db_session.session_scope() as session:
             row = await session.get(Discrepancy, item["record"]["id"])
             row.delta = {"quantities": {}}
@@ -157,5 +164,52 @@ async def test_changed_discrepancy_projection_fails_closed(
             await engine._reconcile()
         assert not get_trading_gate().new_entries_allowed
         assert len(await engine.broker.list_orders()) == 1
+    finally:
+        await api.aclose()
+
+
+@pytest.mark.parametrize("fault", ["fifo", "unknown_order"])
+async def test_discrepancy_identifies_exact_lots_and_unknown_order(
+    db_engine, credentials, fake_clock, fault, monkeypatch
+):
+    engine, proposal, _market, api, context = await setup_execution(credentials, fake_clock)
+    try:
+        order_id = await engine.submit(proposal)
+        if fault == "fifo":
+            position = engine.broker.account.open_positions()[0]
+            original = position.fifo_lots[0]
+            position.fifo_lots = (
+                Lot(1, original.price, original.source_id),
+                Lot(original.quantity - 1, original.price, "fixture_split"),
+            )
+        else:
+            async with db_session.session_scope() as session:
+                (await session.get(Order, order_id)).status = OrderStatus.UNKNOWN
+        with pytest.raises(SafetyError, match="RECONCILE"):
+            await engine._reconcile()
+        result = (await api.get("/api/v1/reconciliation")).json()["items"][0]["record"]
+        if fault == "fifo":
+            assert set(result["delta"]["quantities"].values()) == {0}
+            assert not result["delta"]["accounting_matches"]
+            assert len(result["local_state"]["fifo_positions"][0]["lots"]) == 1
+            assert len(result["broker_state"]["fifo_positions"][0]["lots"]) == 2
+        else:
+            evidence = result["local_state"]["unknown_order_evidence"]
+            assert len(evidence) == 1 and evidence[0]["id"] == order_id
+            assert evidence[0]["reference_id"] and evidence[0]["broker_order_id"]
+            assert evidence[0]["status"] == "UNKNOWN"
+        assert len(await engine.broker.list_orders()) == 1
+        assert not get_trading_gate().new_entries_allowed
+        async with db_session.session_scope() as session:
+            (await session.get(SystemState, SINGLETON_ID)).open_discrepancies = 0
+        async with db_session.session_scope() as session:
+            with pytest.raises(ValueError, match="durable reconciliation"):
+                await engine.safety.require_entries_in_session(session, context.market, context.limits)
+        assert (await api.get("/api/v1/reconciliation?offset=10001")).status_code == 422
+        with monkeypatch.context() as limited:
+            limited.setattr(discrepancies, "MAX_AUDIT_RECORDS", 0)
+            assert (await api.get("/api/v1/reconciliation")).status_code == 409
+            with pytest.raises(SafetyError, match="CAPACITY_EXCEEDED"):
+                await engine._reconcile()
     finally:
         await api.aclose()

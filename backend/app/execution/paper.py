@@ -1573,6 +1573,21 @@ class PaperExecution:
                     Trade.brokerage + Trade.taxes + Trade.other_charges
                 )).where(Trade.mode == TradingMode.PAPER)) or Decimal(0)
                 account = self.broker.account
+                local_lots = []
+                for position in positions:
+                    history = list(await session.scalars(
+                        sa.select(Trade).where(Trade.position_id == position.id)
+                    ))
+                    lots, _realised = replay_fills(history)
+                    local_lots.append({
+                        "position_id": position.id, "symbol": position.trading_symbol,
+                        "segment": position.segment, "product": position.product,
+                        "lots": [{"quantity": lot.quantity, "price": lot.price,
+                                  "source_id": lot.source_id} for lot in lots],
+                    })
+                unknown_rows = list(await session.scalars(sa.select(Order).where(
+                    Order.mode == TradingMode.PAPER, Order.status == OrderStatus.UNKNOWN
+                )))
                 await discrepancies.observe(
                     session,
                     local={"mode": "PAPER", "quantities": local_quantities,
@@ -1582,11 +1597,23 @@ class PaperExecution:
                            "positions": [{"id": position.id, "symbol": position.trading_symbol,
                                           "average_price": position.average_price,
                                           "quantity": position.net_quantity} for position in positions],
-                           "unknown_orders": unknown},
+                           "fifo_positions": local_lots,
+                           "unknown_orders": unknown,
+                           "unknown_order_evidence": [{
+                               "id": order.id, "reference_id": order.broker_reference_id,
+                               "broker_order_id": order.broker_order_id,
+                               "status": order.status,
+                           } for order in unknown_rows]},
                     broker={"mode": "PAPER", "quantities": remote_quantities,
                             "average_prices": broker_prices,
                             "realised_pnl": account.realised_pnl, "charges": account.charges_paid,
                             "cash": account.cash,
+                            "fifo_positions": [{
+                                "symbol": item.trading_symbol, "segment": item.segment,
+                                "product": item.product,
+                                "lots": [{"quantity": lot.quantity, "price": lot.price,
+                                          "source_id": lot.source_id} for lot in item.fifo_lots],
+                            } for item in account.open_positions()],
                             "positions": [{"symbol": item.trading_symbol,
                                            "average_price": item.average_price,
                                            "quantity": item.net_quantity} for item in remote_positions]},

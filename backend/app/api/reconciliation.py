@@ -58,7 +58,7 @@ def require_paper():
 
 
 @router.get("", response_model=DiscrepancyPage)
-async def listing(offset: int = Query(default=0, ge=0), resolved: bool = False):
+async def listing(offset: int = Query(default=0, ge=0, le=10000), resolved: bool = False):
     require_paper()
     try:
         async with db_session.session_scope() as session:

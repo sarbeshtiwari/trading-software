@@ -5935,3 +5935,27 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   which currently have aggregate accounting/order-count context rather than exact
   per-lot/per-order differences. Add bounded inspection/verification behavior and
   risk-pipeline rejection acceptance, preserving the existing owner review path.
+
+### Exact PAPER discrepancy detail and bounded inspection (2026-10-03)
+
+- Prior checkpoint **eaa2e3e50ce6fe032de314b9dde37a1f93194a0a** is pushed and
+  remote-verified on origin/main, configured owner only, no co-author.
+- Quantity/price evidence now includes exact local replayed FIFO lots and broker
+  FIFO lots with source IDs, plus local UNKNOWN order IDs and broker references.
+  An adversarial same-quantity/same-average split demonstrates that aggregate
+  equality cannot hide lot disagreement. No local or broker economics are repaired.
+- Audit verification loads at most 1,001 records and refuses chains above 1,000;
+  inspection offsets are bounded. This is explicit unavailable behavior, not
+  archive scalability. Durable risk approval rejects an open discrepancy even
+  if the aggregate counter is incorrectly zero.
+- Targeted detail/safety tests **5 passed**. Broad unit/safety/PAPER regression
+  **782 passed / 0 failed / 0 skipped**, one existing warning, session 48076
+  finished; `backend/logs/reconciliation-detail-regression.txt`. Frontend **62
+  passed**, generated contract and production build successful. Prior PostgreSQL/
+  browser acceptance remains scoped to eaa2e3e; no new external verification claim.
+- Counts unchanged: **228 verified / 141 partial / 10 unverified / 154 not
+  started**. Full-suite baseline remains 1699; no M1/M2 or Groww LIVE claim.
+- Next: order-level reconciliation evidence for broker-only/local-only/mismatched
+  orders during recovery. Existing startup currently raises on an untracked broker
+  reference before persisting the exact discrepancy. Preserve no-retry submission,
+  block entries, and distinguish an unknown broker outcome from definite absence.
