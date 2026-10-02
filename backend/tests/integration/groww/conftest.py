@@ -16,6 +16,7 @@ from typing import Any, Callable, Optional
 
 import httpx
 import pytest
+import pytest_asyncio
 
 from app.brokers.groww.auth import GrowwAuthenticator
 from app.brokers.groww.client import GrowwClient
@@ -24,6 +25,11 @@ from app.config import Settings
 from app.core.clock import FakeClock, SystemClock
 
 FIXTURE_ROOT = Path(__file__).resolve().parents[2] / "fixtures" / "groww"
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def durable_token_store(db_engine):
+    yield
 
 __all__ = [
     "FIXTURE_ROOT",

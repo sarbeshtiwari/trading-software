@@ -4828,3 +4828,29 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: durable shared authentication-attempt budget, followed by scheduled
   instrument maintenance and runtime market-data readiness. The external 403
   does not prevent continuing these independent safety/runtime improvements.
+
+### Durable shared token-attempt reservations (2026-10-02)
+
+- Added migration 0014 and a database-backed rolling 24-hour attempt budget.
+  Every authenticator reserves and commits before external token exchange;
+  failures/cancellation cannot refund attempts. Database failure stops the
+  external call. Cached access-token use does not consume another reservation.
+- All updated processes sharing the database use one conservative Groww budget,
+  independent of token/credential rotation. PostgreSQL row locking and a version
+  check prevent concurrent oversubscription. Restart/midnight cannot erase the
+  rolling history; backwards time/corrupt history fail closed. No credentials
+  or tokens are stored in the budget table.
+- Existing local daily diagnostic counter remains an additional conservative
+  limit, not the authoritative shared rolling count. Pre-migration requests and
+  requests made outside this database are not observable and are not invented.
+  This cannot certify remaining vendor quota or erase the existing HTTP 403.
+- Groww/auth suite: **78 passed / 0 failed / 0 skipped**. Added restart/midnight,
+  competing reservation and database-failure tests: **3 passed**. Actual Docker
+  PostgreSQL independent-connection test: **1 passed**, isolated schema cleaned
+  afterward. Migration applied successfully to actual local database.
+- Broader unit/safety/reservation regression: **743 passed / 0 failed / 0 skipped**.
+- AUTH-003 remains partial pending operational quota acceptance; counts unchanged
+  (**227 verified / 128 partial / 13 unverified / 165 not started**). No external
+  token/order calls made by this checkpoint's verification. Frontend unchanged.
+- Next: scheduled, audited instrument maintenance integrated with application
+  startup/session lifecycle, then continue market-data and dashboard readiness.

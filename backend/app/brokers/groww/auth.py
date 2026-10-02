@@ -254,6 +254,10 @@ class GrowwAuthenticator:
             self._check_budget()
             await self._rate_limiter.acquire(RateCategory.AUTH)
 
+            from app.brokers.groww.budget import TokenAttemptBudget
+
+            await TokenAttemptBudget(self._clock).reserve(self._settings.groww_daily_token_budget)
+
             started = self._clock.monotonic()
             self._requests_today += 1
             value, expires_at, flow = await self._exchange.exchange(self._settings)

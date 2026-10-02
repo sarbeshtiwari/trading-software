@@ -12,7 +12,7 @@ from app.core.errors import RateLimitError
     "failure", [RuntimeError("isolated exchange failure"), asyncio.CancelledError()]
 )
 async def test_failed_or_cancelled_exchange_consumes_attempt_budget(
-    settings_env, fake_clock, failure
+    settings_env, fake_clock, failure, db_engine
 ):
     settings = settings_env(GROWW_DAILY_TOKEN_BUDGET="1")
     exchange = AsyncMock()
