@@ -2505,6 +2505,47 @@
         }
       }
     },
+    "/api/v1/orders/cancel-entries": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Cancel All Entries",
+        "operationId": "cancel_all_entries_api_v1_orders_cancel_entries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelEntryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkCancelResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/orders/{identifier}/cancel": {
       "post": {
         "tags": [
@@ -5371,6 +5412,41 @@
           "strategy_versions"
         ],
         "title": "BindingSummary"
+      },
+      "BulkCancelResult": {
+        "properties": {
+          "audit_chain_id": {
+            "type": "string",
+            "title": "Audit Chain Id"
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/CancelEntryResult"
+            },
+            "type": "array",
+            "title": "Outcomes"
+          },
+          "excluded_exit_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Excluded Exit Ids"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "audit_chain_id",
+          "outcomes",
+          "excluded_exit_ids",
+          "resolved"
+        ],
+        "title": "BulkCancelResult"
       },
       "CancelEntryRequest": {
         "properties": {

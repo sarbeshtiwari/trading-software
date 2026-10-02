@@ -707,6 +707,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/cancel-entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel All Entries */
+        post: operations["cancel_all_entries_api_v1_orders_cancel_entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{identifier}/cancel": {
         parameters: {
             query?: never;
@@ -1807,6 +1824,17 @@ export interface components {
             strategy_ids: string[];
             /** Strategy Versions */
             strategy_versions: string[];
+        };
+        /** BulkCancelResult */
+        BulkCancelResult: {
+            /** Audit Chain Id */
+            audit_chain_id: string;
+            /** Outcomes */
+            outcomes: components["schemas"]["CancelEntryResult"][];
+            /** Excluded Exit Ids */
+            excluded_exit_ids: string[];
+            /** Resolved */
+            resolved: boolean;
         };
         /** CancelEntryRequest */
         CancelEntryRequest: {
@@ -6582,6 +6610,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_all_entries_api_v1_orders_cancel_entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkCancelResult"];
                 };
             };
             /** @description Validation Error */

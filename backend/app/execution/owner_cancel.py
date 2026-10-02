@@ -34,50 +34,58 @@ async def cancel_entry(worker, identifier, *, actor, request_id, reason):
     if worker is None:
         raise SafetyError("PAPER_WORKER_UNAVAILABLE")
     async with worker.cycle_lock:
-        if not worker.running or worker.settings.trading_mode != TradingMode.PAPER:
-            raise SafetyError("RUNNING_PAPER_WORKER_REQUIRED")
-        executor = worker.executor
-        audit = AuditService(worker.clock)
-        chain = "can" + sha256(str(request_id).encode()).hexdigest()[:32]
-        binding = {"reason": "OWNER_CANCEL", "owner_reason": reason, "request_id": str(request_id)}
-        records = await previous_request(audit, chain, identifier, actor, binding)
-        if len(records) == 2:
-            return {"order_id": identifier, "audit_chain_id": chain, **records[1].result}
-        async with db_session.session_scope() as session:
-            order = await session.get(Order, identifier)
-        if order is None or order.mode != TradingMode.PAPER or order.role != "ENTRY":
-            raise SafetyError("PAPER_ENTRY_ORDER_REQUIRED")
-        if order.status.is_terminal and not records:
-            raise SafetyError("ORDER_ALREADY_TERMINAL")
-        hygiene = PaperOrderHygiene(executor)
-        pending = (await hygiene.unfinished()).get(identifier)
-        if pending is not None and pending.chain_id != chain:
-            raise SafetyError("ORDER_CANCELLATION_ALREADY_PENDING")
-        executor.gate.block("paper_order_hygiene", "PAPER_ORDER_CANCELLATION_PENDING")
-        if not records:
-            await hygiene.record(
-                order,
-                chain,
-                "ENTRY_CANCEL_INTENT",
-                {**binding, "status_before": order.status.value},
-                actor=actor,
-            )
-        error_code = None
-        try:
-            if _utc(order.submitted_at or order.created_at) > worker.clock.utcnow():
-                raise SafetyError("FUTURE_ORDER_TIMESTAMP")
-            await executor.cancel(identifier)
-            await executor.verify_protection()
-        except Exception as error:
-            error_code = error.message if isinstance(error, SafetyError) else type(error).__name__
-        async with db_session.session_scope() as session:
-            current = await session.get(Order, identifier)
-        result = {
-            "reason": "OWNER_CANCEL",
-            "status": current.status.value if current else "MISSING",
-            "filled_quantity": current.filled_quantity if current else None,
-            "terminal": current is not None and current.status.is_terminal,
-            "error": error_code,
-        }
-        await hygiene.record(order, chain, "ENTRY_CANCEL_RESULT", result, actor=actor)
-        return {"order_id": identifier, "audit_chain_id": chain, **result}
+        return await cancel_entry_locked(
+            worker, identifier, actor=actor, request_id=request_id, reason=reason
+        )
+
+
+async def cancel_entry_locked(worker, identifier, *, actor, request_id, reason):
+    if not worker.cycle_lock.locked():
+        raise SafetyError("PAPER_LIFECYCLE_LOCK_REQUIRED")
+    if not worker.running or worker.settings.trading_mode != TradingMode.PAPER:
+        raise SafetyError("RUNNING_PAPER_WORKER_REQUIRED")
+    executor = worker.executor
+    audit = AuditService(worker.clock)
+    chain = "can" + sha256(str(request_id).encode()).hexdigest()[:32]
+    binding = {"reason": "OWNER_CANCEL", "owner_reason": reason, "request_id": str(request_id)}
+    records = await previous_request(audit, chain, identifier, actor, binding)
+    if len(records) == 2:
+        return {"order_id": identifier, "audit_chain_id": chain, **records[1].result}
+    async with db_session.session_scope() as session:
+        order = await session.get(Order, identifier)
+    if order is None or order.mode != TradingMode.PAPER or order.role != "ENTRY":
+        raise SafetyError("PAPER_ENTRY_ORDER_REQUIRED")
+    if order.status.is_terminal and not records:
+        raise SafetyError("ORDER_ALREADY_TERMINAL")
+    hygiene = PaperOrderHygiene(executor)
+    pending = (await hygiene.unfinished()).get(identifier)
+    if pending is not None and pending.chain_id != chain:
+        raise SafetyError("ORDER_CANCELLATION_ALREADY_PENDING")
+    executor.gate.block("paper_order_hygiene", "PAPER_ORDER_CANCELLATION_PENDING")
+    if not records:
+        await hygiene.record(
+            order,
+            chain,
+            "ENTRY_CANCEL_INTENT",
+            {**binding, "status_before": order.status.value},
+            actor=actor,
+        )
+    error_code = None
+    try:
+        if _utc(order.submitted_at or order.created_at) > worker.clock.utcnow():
+            raise SafetyError("FUTURE_ORDER_TIMESTAMP")
+        await executor.cancel(identifier)
+        await executor.verify_protection()
+    except Exception as error:
+        error_code = error.message if isinstance(error, SafetyError) else type(error).__name__
+    async with db_session.session_scope() as session:
+        current = await session.get(Order, identifier)
+    result = {
+        "reason": "OWNER_CANCEL",
+        "status": current.status.value if current else "MISSING",
+        "filled_quantity": current.filled_quantity if current else None,
+        "terminal": current is not None and current.status.is_terminal,
+        "error": error_code,
+    }
+    await hygiene.record(order, chain, "ENTRY_CANCEL_RESULT", result, actor=actor)
+    return {"order_id": identifier, "audit_chain_id": chain, **result}

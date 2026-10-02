@@ -67,17 +67,23 @@ On 2026-10-02:
 - Latest full baseline: **1526 passed, 0 failed, 3 PostgreSQL-only skipped**.
 - Latest affected research regression: **800 passed, 0 failed, 0 skipped**.
 - Readiness regression: **792 passed, 0 failed, 0 skipped**.
-- Frontend: **40 passed**; production build succeeds; actual Edge lifecycle tests
+- Frontend: **41 passed**; production build succeeds; actual Edge lifecycle tests
   cover PAPER, historical/OOS and research cancellation.
 - Monitoring now includes API-backed runtime readiness: worker enablement, entry
   blockers, calendar coverage, stale health, catalog counts and snapshot audit.
   Real Edge verification passed across target, emergency and stale-exit paths.
 - Orders now supports authenticated, audited PAPER entry cancellation, including
   partial fills, idempotent replay and recovery. Actual Edge cancellation passed;
-  affected backend regression: **777 passed**. Bulk/modify acceptance remains.
+  affected backend regression: **777 passed**. Bulk-entry cancellation now also
+  persists all targets atomically and recovers interrupted batches; its affected
+  regression is **767 passed**, with two actual single/bulk browser cases passing.
+  General cancellation and risk-revalidated modification acceptance remain.
 - New complete-suite run: **1568 passed, 1 failed, 24 skipped**. The failure was
   schema snapshot equality during concurrent schema changes; the regenerated
   contract passes its focused check. A stable-snapshot full rerun remains needed.
+- Replacement full backend/browser run is active with required Windows subprocess
+  permissions; no final result yet. An intervening sandbox-restricted run was
+  stopped after reproduced subprocess permission errors, not counted as green.
 - GitHub: `https://github.com/sarbeshtiwari/trading-software`, branch `main`.
   Initial published snapshot: `b8a1572`, equivalent to verified local `07c5695`.
 - Publication uses the owner's configured identity without co-author trailers.

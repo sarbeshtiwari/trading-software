@@ -4982,3 +4982,38 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: run stable-snapshot full regression; complete safe PAPER bulk-entry
   cancellation and per-order outcomes without cancelling protection, then address
   remaining OMS modification/revalidation and runtime readiness dependencies.
+
+### Atomic bulk PAPER entry cancellation (2026-10-02)
+
+- Added authenticated `POST /api/v1/orders/cancel-entries` and a server-snapshot
+  selection in existing Orders controls. Requires the distinct confirmation
+  `CANCEL PAPER ENTRIES`. Reports per-order actual status/fill/error/audit linkage
+  and explicitly lists excluded protective exits. This is not a kill switch:
+  later entries require the existing disable-entry control to remain disabled.
+- Parent plan and every child cancellation intent commit in one transaction
+  before the first broker action. Child IDs are deterministic; an unfinished
+  batch recovers through the existing supervisor. Retrying the original owner
+  request reconstructs its outcome without expanding the original target set.
+  Existing unfinished cancellations require recovery before creating a new batch.
+- Verified atomic storage failure (zero broker calls), interruption before any
+  processing, restart recovery, duplicate request replay, and an intentionally
+  untracked test order remaining UNKNOWN/blocked rather than reporting success.
+  Protective exits are excluded. No production data or broker response fabricated.
+- Backend affected unit/safety/integration regression: **767 passed / 0 failed /
+  0 skipped**. Frontend: **41 passed**, production build succeeds. Real Edge
+  single/bulk partial-entry cancellation: **2 passed**, 11 unrelated deselected.
+- Full run 92864 was stopped after confirmed Windows sandbox subprocess failures
+  (not an observation timeout). Emergency CLI failures were reproduced as
+  `WinError 5` and the same three tests pass with subprocess permissions. That
+  interrupted run is not a passing full baseline. Replacement complete suite,
+  including opt-in real-browser tests, runs with required permissions as session
+  **94518**, log `backend/logs/full-bulk-cancel-checkpoint.txt`. Poll this handle;
+  keep source/schema artifacts stable until completion.
+- OMS-005/FE-008 remain partial: general/live cancellation and safe repricing or
+  resizing are not claimed. Counts remain **226 verified / 129 partial /
+  13 implemented-unverified / 165 not started**. Groww 403/calendar blockers remain.
+- Next: inspect full-suite outcome and correct actual defects, then implement
+  risk-revalidated PAPER modification or explicitly invalidating cancel/replace
+  through the existing proposal pipeline; never directly mutate broker quantity
+  or price outside deterministic approval/preflight. Finish remaining runtime
+  readiness and exchange-calendar evidence in parallel with independent work.

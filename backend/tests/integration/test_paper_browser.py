@@ -36,8 +36,9 @@ pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
 
 @pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")
+@pytest.mark.parametrize("bulk", [False, True])
 async def test_real_browser_cancels_partial_entry(
-    db_engine, credentials, fake_clock, tmp_path, monkeypatch, live_dashboard
+    db_engine, credentials, fake_clock, tmp_path, monkeypatch, live_dashboard, bulk
 ):
     engine, proposal, market, client, _ = await setup_execution(credentials, fake_clock)
     market["quantities"] = [10000, 100]
@@ -56,6 +57,7 @@ async def test_real_browser_cancels_partial_entry(
             str(ROOT / "frontend/tests/order-cancel-browser.mjs"),
             live_dashboard,
             identifier,
+            "bulk" if bulk else "single",
             env={**os.environ, "ATS_TEST_OWNER_PASSWORD": credentials[1]},
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

@@ -1127,8 +1127,11 @@ uses `backend/app/api/orders.py`, `backend/app/execution/owner_cancel.py` and th
 existing supervisor recovery. `frontend/src/OrderControls.tsx` exposes it in the
 Orders view. Evidence: `test_owner_cancel.py`, `test_order_hygiene.py`,
 `OrderControls.test.tsx`, and real-browser `test_real_browser_cancels_partial_entry`.
-Bulk cancellation and risk-revalidated modification remain pending; protective
-exit cancellation and real-broker acceptance are not claimed.
+Bulk PAPER-entry cancellation now uses `execution/bulk_cancel.py` with atomic
+parent/child intents, restart recovery and per-order outcomes, verified by
+`test_bulk_cancel.py` and the single/bulk real-browser cases. General cancellation
+and risk-revalidated modification remain pending; protective exit cancellation
+and real-broker acceptance are not claimed.
 
 | Date | Change | Approved by |
 |---|---|---|
