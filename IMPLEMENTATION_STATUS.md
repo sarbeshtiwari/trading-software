@@ -5367,3 +5367,23 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   run; only documentation is changing. Prior focused safety regression: 850 passed.
 - Next: observe that exact run to completion, fix any actual failures, record
   the honest full-suite result, then continue runtime integration work.
+
+### Full expiry checkpoint acceptance (2026-10-02)
+
+- Session **58666 is finished**: **1660 passed / 0 failed / 0 skipped**, three
+  existing warnings, 1h16m16s. Log `backend/logs/full-expiry-checkpoint.txt`.
+  Actual browser and PostgreSQL checks were enabled using the existing Docker
+  server; no live broker orders were submitted. Do not poll this session again.
+- This full regression replaces the previously non-green 1618/1/7 result. It
+  includes the migration correction and expiry-cancellation changes. Source and
+  tests remained unchanged throughout the run; earlier quiet periods were not
+  treated as failures or grounds to restart the process.
+- Fresh frontend verification: **42 passed**, production build successful.
+  Session 3954 is also finished. No external market-data, notification delivery,
+  profitability or time-based PAPER validation is implied by this acceptance.
+- Counts unchanged: **229 verified / 133 partial / 10 unverified / 161 not
+  started**. Documentation checkpoint **48f4096** is pushed and remote-verified.
+- Next integrated task: expose server-derived risk utilisation and freshness in
+  the existing Risk dashboard. Reuse the same monetary-budget functions and
+  audited portfolio evidence consumed by risk, with explicit missing/stale/
+  configuration-changed states. No invented account or client-side risk maths.
