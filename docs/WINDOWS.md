@@ -16,6 +16,14 @@ py -3 -m venv .venv
 if (-not (Test-Path .env)) { Copy-Item ..\.env.example .env }
 ```
 
+For the existing Groww adapter's SDK authentication, also install
+`.\.venv\Scripts\python.exe -m pip install -e ".[groww]"`.
+The explicit read-only check is
+`.\.venv\Scripts\python.exe -m scripts.verify_groww_readonly`.
+It reports authentication and index-LTP access separately, prints no credentials
+or account data, and sends no order requests. A token alone is not market-data
+authorization, a fresh executable quote, or LIVE verification.
+
 If the virtual environment already exists, reuse it. Set private values in
 `backend/.env`, not in committed files:
 

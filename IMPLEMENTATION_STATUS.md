@@ -4665,3 +4665,53 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   partial exits, open-at-end positions, incomplete windows and legacy reports
   honestly; do not approximate duration by counting samples or invent annualized
   metrics from inadequate history. Unknown-owner recovery remains fail-closed.
+
+### Owner priority/publication change and real environment audit (2026-10-02)
+
+- Owner now authorizes pushes to `sarbeshtiwari/trading-software`, `main`, using
+  the configured author identity only and no co-author trailers. This supersedes
+  prior local-only instructions. Empty remote inspected; old local history had
+  four co-author trailers, so it remains on local `master`. A clean snapshot of
+  verified `07c5695` was published as `b8a1572` on `main`; no force push or original
+  history rewrite. Effective identity: the owner's existing repository config.
+- Scanned all 673 tracked snapshot files for configured secret matches and
+  forbidden private-file names: zero matches. Uncommitted README/migration and
+  `prev_chat.txt` remain untouched and unpublished. No credential value was shown.
+- Actual configuration has Groww TOTP credentials and capital, SUPERVISED/Groww,
+  worker disabled. Defaults remain PAPER; private mode was not changed or armed.
+- Installed missing official SDK 1.5.0; `pip check` passes. Added reproducible
+  `groww` optional dependency and an explicit read-only diagnostic CLI.
+- Actual token authentication succeeds. NIFTY LTP fails with HTTP 403 through
+  the real adapter, including its bounded re-authentication. No order requests.
+  This is not data freshness or LIVE execution verification. Current official
+  documentation: https://groww.in/trade-api/docs/curl and `/curl/live-data`.
+- Actual PostgreSQL connection is refused; Redis connection fails. Previous
+  PostgreSQL-only tests remain unverified, not retroactively passing. A first
+  one-off DB diagnostic used a Python-3.11 timeout API on Python 3.10; corrected
+  to `wait_for` before reporting the actual connection refusal.
+- Read-only diagnostic plus existing broker regression: **80 passed / 0 failed /
+  0 skipped**. External check is reported separately, not counted as a passing
+  test. See `APPLICATION_STATUS.md` for the concise owner-facing progress board.
+- Priority changes: operational PostgreSQL/Redis and authorized Groww data
+  readiness come before further report metrics. Do not auto-start SUPERVISED
+  execution, submit real orders, invent missing observations or claim M1/M2.
+
+### Existing Docker services confirmed (2026-10-02)
+
+- Owner clarified PostgreSQL and Redis already run in Docker. Confirmed healthy
+  `ats-db-1` (TimescaleDB 2.17.2/PostgreSQL 16) and `ats-redis-1` (Redis 7),
+  published only on localhost ports 5432 and 6379 respectively.
+- Real connections using application settings now pass PostgreSQL `SELECT 1`
+  and Redis `PING`. Earlier connection failures are resolved. No PostgreSQL or
+  Redis packages were installed in WSL; only package metadata was refreshed.
+- Completed readiness regression: **792 passed / 0 failed / 0 skipped**
+  (unit, safety, Groww integration fixtures and application boot).
+- Next: verify migration head and application readiness using the existing
+  services; Groww market-data HTTP 403 remains unresolved and LIVE unverified.
+- Migration verification found the database at `0007_paper_execution_slot`.
+  Applied the five existing pending migrations successfully; `alembic current`
+  now reports `0012_news_provenance (head)`. No trading worker was enabled and
+  no private mode/configuration or owner migration source was changed.
+- Exact next task: application readiness/startup verification against these
+  services in explicitly non-executing PAPER mode, then diagnose authorized
+  Groww read-only data access without sending orders.

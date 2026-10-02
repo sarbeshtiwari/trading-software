@@ -48,9 +48,13 @@ that an earlier table or a running HTTP server means trading is enabled:
 
 ## 2. Built but unverified against the live broker
 
-The Groww adapter is complete and tested against 23 contract fixtures through the
-real client code. **No call has ever been made to the live API**, because no
-credentials exist yet. The following are therefore unproven:
+The Groww adapter is tested against isolated contract fixtures. On 2026-10-02,
+owner-configured credentials successfully minted a real token through SDK 1.5.0.
+A read-only NIFTY LTP request failed with HTTP 403; its exact broker/network cause
+is unresolved. No order was created, modified, cancelled or executed. Token
+authentication is now externally observed, but live data, execution and account
+reconciliation remain unverified. The following historical adapter limitations
+must still be reviewed against current documentation and actual responses:
 
 ### 2.1 Endpoint paths that are inferred, not documented
 

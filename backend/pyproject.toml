@@ -25,6 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+groww = ["growwapi==1.5.0"]
 llm = ["anthropic>=0.40,<1"]
 dev = [
     "pytest>=8.2,<9",
