@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Api } from './api';
 import { CandleChart } from './CandleChart';
+import { FundamentalPanel } from './FundamentalPanel';
 import type { components } from './api-schema';
 
 type Instruments = components['schemas']['InstrumentPage'];
@@ -65,5 +66,6 @@ export function MarketPanel({ api }: { api: Api }) {
       {data.bars?.length ? <><CandleChart data={data} /><details><summary>Stored candle values</summary><div className="table-wrap"><table><thead><tr><th>Timestamp</th><th>Close</th><th>Volume</th><th>Backend SMA20</th><th>Ingested</th></tr></thead>
         <tbody>{data.bars.map(bar => <tr key={bar.ts}><td>{bar.ts}</td><td>{bar.close}</td><td>{bar.volume}</td><td>{bar.sma20 ?? 'UNAVAILABLE'}</td><td>{bar.ingested_at}</td></tr>)}</tbody></table></div></details></> : <p>No usable closed candles for this selection. No prices have been fabricated.</p>}
     </>}
+    {instrument && <FundamentalPanel key={instrument} api={api} instrument={instrument} />}
   </section>;
 }

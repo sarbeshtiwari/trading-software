@@ -1849,6 +1849,24 @@ export interface components {
             /** Mode */
             mode: string | null;
         };
+        /** BalanceHealth */
+        BalanceHealth: {
+            /** Metrics */
+            metrics: {
+                [key: string]: string | null;
+            };
+            /** Components */
+            components: {
+                [key: string]: string | null;
+            };
+            /** Score */
+            score: string | null;
+            /**
+             * Formula
+             * @default BALANCE_HEALTH_V1
+             */
+            formula: string;
+        };
         /** BanAdmission */
         BanAdmission: {
             origin: components["schemas"]["DataOrigin"];
@@ -2986,6 +3004,84 @@ export interface components {
             /** Execution Realism */
             execution_realism: string;
         };
+        /** FundamentalDetail */
+        FundamentalDetail: {
+            /** Instrument Id */
+            instrument_id: string;
+            /** Source */
+            source: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Max Age Days */
+            max_age_days: number;
+            /** Status */
+            status: string;
+            view: components["schemas"]["FundamentalView"];
+            /** Valuation */
+            valuation: {
+                [key: string]: string | null;
+            };
+            /** Quality */
+            quality: {
+                [key: string]: string | null;
+            };
+            health: components["schemas"]["BalanceHealth"];
+            score: components["schemas"]["FundamentalScore"];
+        };
+        /** FundamentalEvidence */
+        FundamentalEvidence: {
+            /** Instrument Id */
+            instrument_id: string;
+            /** Source */
+            source: string;
+            /**
+             * Known At
+             * Format: date-time
+             */
+            known_at: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Metrics */
+            metrics: {
+                [key: string]: components["schemas"]["Metric"] | null;
+            };
+        };
+        /** FundamentalScore */
+        FundamentalScore: {
+            /**
+             * Formula
+             * @default QUALITY_HEALTH_V1
+             */
+            formula: string;
+            /** Record Id */
+            record_id: string | null;
+            /** Components */
+            components: {
+                [key: string]: string | null;
+            };
+            /** Score */
+            score: string | null;
+        };
+        /** FundamentalView */
+        FundamentalView: {
+            /** Record Id */
+            record_id: string | null;
+            evidence: components["schemas"]["FundamentalEvidence"] | null;
+            /** Metrics */
+            metrics: {
+                [key: string]: components["schemas"]["Metric"] | null;
+            };
+            /** Exclusions */
+            exclusions: {
+                [key: string]: string;
+            };
+        };
         /** GroundedInterpretation */
         GroundedInterpretation: {
             interpretation: components["schemas"]["Interpretation"] | null;
@@ -3443,6 +3539,16 @@ export interface components {
             end: number;
             /** Reason */
             reason?: ("AMBIGUOUS" | "BELOW_THRESHOLD") | null;
+        };
+        /** Metric */
+        Metric: {
+            /** Value */
+            value: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
         };
         /** NewsContribution */
         NewsContribution: {
@@ -7890,9 +7996,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["FundamentalDetail"];
                 };
             };
             /** @description Validation Error */

@@ -3773,9 +3773,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Fundamentals Api V1 Fundamentals  Instrument Id  Get"
+                  "$ref": "#/components/schemas/FundamentalDetail"
                 }
               }
             }
@@ -5540,6 +5538,65 @@
           "mode"
         ],
         "title": "AuditView"
+      },
+      "BalanceHealth": {
+        "properties": {
+          "metrics": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Metrics"
+          },
+          "components": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Components"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "formula": {
+            "type": "string",
+            "title": "Formula",
+            "default": "BALANCE_HEALTH_V1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metrics",
+          "components",
+          "score"
+        ],
+        "title": "BalanceHealth"
       },
       "BanAdmission": {
         "properties": {
@@ -9176,6 +9233,243 @@
         ],
         "title": "FillView"
       },
+      "FundamentalDetail": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "title": "Instrument Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          },
+          "max_age_days": {
+            "type": "integer",
+            "title": "Max Age Days"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "view": {
+            "$ref": "#/components/schemas/FundamentalView"
+          },
+          "valuation": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Valuation"
+          },
+          "quality": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Quality"
+          },
+          "health": {
+            "$ref": "#/components/schemas/BalanceHealth"
+          },
+          "score": {
+            "$ref": "#/components/schemas/FundamentalScore"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "source",
+          "as_of",
+          "max_age_days",
+          "status",
+          "view",
+          "valuation",
+          "quality",
+          "health",
+          "score"
+        ],
+        "title": "FundamentalDetail"
+      },
+      "FundamentalEvidence": {
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Instrument Id"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Source"
+          },
+          "known_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Known At"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date",
+            "title": "Period End"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Metric"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Metrics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "instrument_id",
+          "source",
+          "known_at",
+          "period_end",
+          "metrics"
+        ],
+        "title": "FundamentalEvidence"
+      },
+      "FundamentalScore": {
+        "properties": {
+          "formula": {
+            "type": "string",
+            "title": "Formula",
+            "default": "QUALITY_HEALTH_V1"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "components": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Components"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "record_id",
+          "components",
+          "score"
+        ],
+        "title": "FundamentalScore"
+      },
+      "FundamentalView": {
+        "properties": {
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalEvidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metrics": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Metric"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Metrics"
+          },
+          "exclusions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Exclusions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "record_id",
+          "evidence",
+          "metrics",
+          "exclusions"
+        ],
+        "title": "FundamentalView"
+      },
       "GroundedInterpretation": {
         "properties": {
           "interpretation": {
@@ -10462,6 +10756,27 @@
           "end"
         ],
         "title": "Mention"
+      },
+      "Metric": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value"
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time",
+            "title": "As Of"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "as_of"
+        ],
+        "title": "Metric"
       },
       "NewsContribution": {
         "properties": {

@@ -118,6 +118,10 @@ async def test_valuation_api(db_engine, fake_clock):
             "/api/v1/fundamentals/ins-test", params={"source": "manual-test"}
         )
         assert response.status_code == 200
+        assert response.json()["instrument_id"] == "ins-test"
+        assert response.json()["source"] == "manual-test"
+        assert response.json()["max_age_days"] == 365
+        assert response.json()["as_of"] == fake_clock.now().isoformat()
         assert response.json()["valuation"]["pe_ratio"] == "20"
         assert response.json()["valuation"]["pb_ratio"] is None
         assert response.json()["valuation"]["dividend_yield"] == "0"

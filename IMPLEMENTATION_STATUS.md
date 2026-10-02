@@ -5477,3 +5477,24 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Exact next task: connect source-grounded point-in-time fundamentals to the
   selected instrument using the existing fundamentals store/API, typed response
   contracts and explicit unavailable/stale evidence. Do not invent vendor data.
+
+### Point-in-time fundamentals in instrument detail (2026-10-02)
+
+- Chart checkpoint **e6f37c7** is pushed to origin/main and remote-verified,
+  owner author only. Existing fundamentals API now has a typed response with
+  instrument/source identity, query cutoff and freshness policy. Existing
+  point-in-time filtering and deterministic valuation/quality scores are reused.
+- Selected Market instrument exposes manual source evidence, period/knowledge
+  timestamps, usable metric values, stale exclusions and backend score details.
+  Requests are bounded; changing instruments clears previous evidence. No source
+  values are invented and record availability does not imply metric completeness.
+- Fundamentals unit/API regression **15 passed**. Frontend **49 passed**, build
+  successful. Actual Edge **1 passed** including real manual import/API rendering,
+  chart interval changes and missing-source removal of previously shown values.
+  No new full-suite or external fundamentals verification claim.
+- FE-005 remains partial pending broader acceptance/source discovery. Counts
+  remain **229 verified / 135 partial / 10 unverified / 159 not started**.
+- Next: expose bounded point-in-time source discovery for the selected instrument
+  so the owner need not know an imported source identifier, with source receipt
+  provenance and stale/unavailable handling. Continue existing Market detail,
+  not a new screen or vendor-data substitute. Groww LIVE remains unverified.
