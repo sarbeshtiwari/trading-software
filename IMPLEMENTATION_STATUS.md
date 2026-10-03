@@ -6225,3 +6225,39 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   No requirement promotion or whole-suite success claim. Next: publish this
   verified correction, freeze source/tests and run a fresh complete suite with
   existing PostgreSQL, Redis and Edge enabled; retain the failed run as evidence.
+
+### Corrected full recovery acceptance running (2026-10-03)
+
+- Fix **4111c957407091f12d1df9ca7af62a8d034b3ea3** is pushed and remote-verified
+  on origin/main, configured owner only, no co-author. Source/tests are frozen.
+- Fresh full-suite session **23447** is running with actual PostgreSQL, Redis and
+  Edge enabled. Log: `backend/logs/full-orphan-restoration-corrected.txt`.
+  No final result yet. Poll this exact handle until terminal; do not restart on
+  quiet output. Prior session 68743 is finished and must not be polled again.
+- The failed full run remains 1742 passed / 7 failed; all seven failure cases
+  have passing targeted verification after the correction. Whole-suite acceptance
+  remains pending until session 23447 finishes.
+- After the interrupted observer resumed, the SAME session 23447 was confirmed
+  live repeatedly; no test restart occurred. Latest progress is 32%, with no
+  failure markers so far. Python PID 21096 is the active test process (started
+  2026-10-03 13:21 local time); both process CPU and test progress have advanced.
+  The bounded observer cell 1586 is finished, but the actual test session is NOT.
+  Continue polling 23447; source/tests remain frozen until its final result.
+
+### Corrected full recovery acceptance completed (2026-10-03)
+
+- Session **23447 is finished**: **1750 passed / 0 failed / 0 skipped**, three
+  existing warnings, 2h12m20s. Actual PostgreSQL, Redis and Edge were enabled;
+  source/tests stayed frozen and the interrupted observer never restarted tests.
+  Log: `backend/logs/full-orphan-restoration-corrected.txt`. Do not poll this
+  completed session. This supersedes the 1721 passing whole-suite baseline.
+- Orphan discovery, owner review, verified accounting/protection planning,
+  transactional restoration, restart/exit/journal and API/browser controls now
+  have full regression acceptance, including the corrected migration on SQLite
+  and PostgreSQL. This does not certify recovery with genuinely missing history,
+  server/database failure classes, external Groww execution or notification delivery.
+- Frontend remains **66 passed**, production build successful. Counts unchanged:
+  **228 verified / 143 partial / 10 unverified / 152 not started**. No M1/M2 claim.
+- Next: verify PAPER process-restart recovery across a real subprocess boundary,
+  preserving persisted orders/fills/protection and refusing duplicate execution.
+  Existing new-executor tests are not evidence of an actual process restart.
