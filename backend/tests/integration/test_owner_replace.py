@@ -21,6 +21,7 @@ from app.db.models.trading import Order
 from app.execution import replacement as replacement_service
 from app.execution.paper import PaperExecution
 from app.execution.replacement_state import recover_replacements
+from app.monitoring.gate import get_trading_gate
 from app.risk.safety import RiskSafety
 from app.trading.worker import PaperWorker
 from tests.integration.test_paper_execution import credentials, setup_execution
@@ -32,7 +33,8 @@ __all__ = ["credentials"]
 
 
 @pytest.mark.parametrize(
-    "failure", [None, "cancel", "interrupted", "risk_after_cancel", "accepted_interrupt"]
+    "failure", [None, "cancel", "interrupted", "risk_after_cancel", "accepted_interrupt",
+                "owner_interrupted", "owner_accepted_interrupt"]
 )
 async def test_replace_unfilled_entry_uses_new_approval_and_replays(
     db_engine, credentials, fake_clock, tmp_path, monkeypatch, failure
@@ -54,6 +56,17 @@ async def test_replace_unfilled_entry_uses_new_approval_and_replays(
     )
     await worker.start(schedule=False)
     monkeypatch.setattr(orders_api, "active_worker", lambda: worker)
+    monkeypatch.setattr("app.api.emergency.active_worker", lambda: worker)
+
+    async def owner_recovery():
+        response = await client.post("/api/v1/emergency", json={
+            "action": "RECOVER_WORKER", "confirmation": "RECOVER PAPER WORKER",
+            "reason": "Owner reviewed interrupted replacement after connection recovery",
+        })
+        assert response.status_code == 200, response.text
+        assert response.json()["entries_blocked"]
+        assert not get_trading_gate().new_entries_allowed
+
     try:
         body = {
             "request_id": str(uuid4()),
@@ -61,7 +74,7 @@ async def test_replace_unfilled_entry_uses_new_approval_and_replays(
             "confirmation": "REPLACE PAPER ENTRY",
             "replacement_proposal_id": replacement.proposal_id,
         }
-        if failure == "accepted_interrupt":
+        if failure in {"accepted_interrupt", "owner_accepted_interrupt"}:
             monkeypatch.setattr(
                 replacement_service,
                 "finish_replacement",
@@ -77,6 +90,18 @@ async def test_replace_unfilled_entry_uses_new_approval_and_replays(
                     reason=body["reason"],
                 )
             assert len(await engine.broker.list_orders()) == 2
+            if failure == "owner_accepted_interrupt":
+                await owner_recovery()
+                await owner_recovery()
+                async with db_session.session_scope() as session:
+                    receipts = list(await session.scalars(sa.select(AuditEvent).where(
+                        AuditEvent.event_type == "ENTRY_REPLACE_RESULT",
+                    )))
+                    assert len(receipts) == 1
+                    assert receipts[0].result["code"] == "INTERRUPTED_REVIEW_REQUIRED"
+                    assert receipts[0].result["replacement_status"] == "OPEN"
+                assert len(await engine.broker.list_orders()) == 2
+                return
             await worker.stop()
             restored = PaperExecution(engine.source, settings=engine.settings, clock=fake_clock)
             worker = PaperWorker(
@@ -97,7 +122,7 @@ async def test_replace_unfilled_entry_uses_new_approval_and_replays(
             await recover_replacements(restored)
             assert len(await restored.broker.list_orders()) == 2
             return
-        if failure == "interrupted":
+        if failure in {"interrupted", "owner_interrupted"}:
             original_prepare = replacement_service.prepare_replacement
 
             async def interrupted(*args, **kwargs):
@@ -116,8 +141,12 @@ async def test_replace_unfilled_entry_uses_new_approval_and_replays(
                 )
             with pytest.raises(SafetyError, match="REPLACEMENT_AUTHORIZATION_REQUIRED"):
                 await engine.submit(replacement.proposal_id)
-            await recover_replacements(engine)
-            await recover_replacements(engine)
+            if failure == "owner_interrupted":
+                await owner_recovery()
+                await owner_recovery()
+            else:
+                await recover_replacements(engine)
+                await recover_replacements(engine)
             async with db_session.session_scope() as session:
                 reserved = await session.get(Proposal, replacement.proposal_id)
                 assert reserved.status == "EXECUTION_BLOCKED"

@@ -6335,3 +6335,23 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   preserving no-replay semantics and independent entry gates; verify actual
   interrupted replacement evidence through the owner action. Then continue
   remaining operational failure-class acceptance without disrupting owner services.
+
+### Owner recovery aligns with interrupted replacement handling (2026-10-03)
+
+- Recovery control checkpoint **d3176c4e7d8eea8faa231b06abb68b9d7dfff832** is
+  pushed and remote-verified on origin/main, configured owner only, no co-author.
+- Owner recovery now invokes the same interrupted-replacement finalization and
+  expiry-warning services as startup before checking protection. No parallel
+  execution path or replacement resubmission. Tests interrupt actual replacement
+  handling both before submission and after broker acceptance; repeated owner
+  API recovery retains exactly one/two broker orders respectively, finalizes the
+  existing record once and keeps entries blocked.
+- Replacement/control acceptance **16 passed**, actual PostgreSQL/Edge/review
+  selection **3 passed**, expiry warning/cancellation regression **6 passed**;
+  all zero failures/skips. Sessions 22406, 54906 and 38907 finished. Ruff passes.
+  Frontend unchanged: **67 passed**, production build successful at d3176c4.
+- REC-007 remains partial; counts **228 verified / 145 partial / 10 unverified /
+  150 not started**. Last whole-suite **1750 passed** predates these changes.
+- Next: freeze code/tests and run full PostgreSQL/Redis/Edge regression for both
+  recovery units, then continue remaining runtime outage acceptance. Never claim
+  connection termination proves a database/server restart; LIVE stays unverified.

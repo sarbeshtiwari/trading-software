@@ -6,6 +6,8 @@ from app.core.errors import SafetyError
 from app.core.ids import new_id
 from app.db import session as db_session
 from app.emergency.controls import EmergencyControls
+from app.execution.expiry import warn_expiring_positions
+from app.execution.replacement_state import recover_replacements
 from app.modes import TradingMode
 from app.monitoring.gate import get_trading_gate
 
@@ -29,6 +31,8 @@ async def recover_worker(worker, *, actor, reason):
         gate.block("paper_worker_error", "PAPER_WORKER_REVIEW_REQUIRED")
         try:
             await worker.executor.recover()
+            await recover_replacements(worker.executor)
+            await warn_expiring_positions(worker.executor)
             await worker.executor.verify_protection()
             worker.detail = "Owner recovered supervision; entries disabled; review still required"
             await worker._heartbeat(beat_at=worker.clock.utcnow())

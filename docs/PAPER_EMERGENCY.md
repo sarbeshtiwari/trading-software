@@ -48,7 +48,9 @@ fills and link all attempts, including partial fills before cancellation.
 
 After a storage interruption, `RECOVER_WORKER` serializes with the running worker,
 persists entry inhibition, reconciles the persisted PAPER broker and independently
-checks protection. It may synchronize pending fills or protective exits. It does
+checks protection. It may synchronize pending fills or protective exits. It also
+finalizes interrupted replacement records without resubmitting replacements and
+rechecks expiry warnings using the same services as worker startup. It does
 not certify continuous protection during the interruption. A successful recovery
 records an owner-attributed receipt and a fresh heartbeat without inventing a
 completed strategy cycle. Failure or cancellation leaves execution unready and
