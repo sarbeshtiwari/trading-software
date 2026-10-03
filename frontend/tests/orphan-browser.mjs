@@ -30,5 +30,13 @@ try {
   await page.getByText('UNAVAILABLE_ADOPTED_POSITION_ACCOUNTING', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Monitoring', exact: true }).click();
   await page.getByRole('region', { name: 'PAPER orphan review', exact: true }).getByText(/ACKNOWLEDGED by owner/).waitFor();
+  await panel.getByRole('button', { name: /^Inspect recovery plan / }).click();
+  await recovery.getByLabel('Restoration reason', { exact: true }).fill('Owner reviewed historical fills and retained protection');
+  await recovery.getByLabel('Type RESTORE PAPER POSITION', { exact: true }).fill('RESTORE PAPER POSITION');
+  await recovery.getByRole('button', { name: 'Restore verified PAPER position', exact: true }).click();
+  await panel.getByRole('status').filter({ hasText: 'entries are not authorized' }).waitFor();
+  await page.getByRole('button', { name: 'Positions', exact: true }).click();
+  await page.getByRole('cell', { name: 'OPEN', exact: true }).waitFor();
+  assert.equal(await page.getByRole('cell', { name: 'ADOPTED', exact: true }).count(), 0);
   console.log('ORPHAN_VISIBILITY_BROWSER_VERIFIED');
 } finally { await browser.close(); }

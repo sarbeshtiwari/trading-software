@@ -6162,3 +6162,41 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   hash and fresh broker quantities/FIFO, and leave discrepancies/risk latches
   blocked until independent reconciliation/protection review. Current gates check
   every adopted flag, so do not simply clear that flag or invent a closing trade.
+
+### Explicit PAPER position restoration and restart/exit (2026-10-03)
+
+- Prior checkpoint **e8ce81d3c7b9298825d5408400bde19e37c0d4d4** is pushed and
+  remote-verified on origin/main, configured owner author only, no co-author.
+- Monitoring now offers authenticated restoration with a separate typed phrase,
+  reason and exact reviewed plan hash. Worker exclusion, system/broker revision
+  locks, current broker order terms/statuses and quantity/cost-basis/FIFO checks
+  precede the transactional repair. Pending orders or changed evidence refuse it.
+- The adopted row is a temporary observation, not an invented trade: its complete
+  snapshot is archived in the immutable orphan audit chain before replacing that
+  projection with the proven original position ID. Orders/fills are unchanged;
+  original-position audit links to the restoration receipt. Original fixed and
+  trailing protection is retained but active supervision remains unverified.
+- Realised FIFO accounting and recorded charges are reconstructed. Current mark
+  and unrealised P&L stay unavailable pending valid market observation. Discrepancy
+  counters, risk latches and emergency controls remain unchanged. Same-request
+  retry returns the historical receipt without another repair or broker call.
+- Real-service tests verify restore, new executor/restart, independent protection
+  check, actual PAPER exit, journal and API state; partial-exit recovery preserves
+  150 remaining units and 400 gross realised P&L. Negative cases cover unauthenticated
+  access, wrong phrase, stale plan, broker drift/pending state, worker exclusion
+  and notification persistence rollback. Initial tests caught an async ORM lazy
+  load while archiving a SQL NULL field; explicit refresh fixes it without zeros.
+- Backend targeted restoration/plan selection **17 passed** before two additional
+  refusal cases. Final broad unit/safety/PAPER/recovery/reference-exit regression
+  **808 passed / 0 failed / 0 skipped**, one existing warning; session 38420 finished,
+  `backend/logs/orphan-restoration-regression.txt`. Actual PostgreSQL transaction
+  and Edge owner-restoration selection **3 passed**. Frontend **66 passed**,
+  generated contracts/typecheck/build successful. Changed Python modules pass Ruff.
+- REC-005 stays partial: genuinely absent execution history, broader recovery
+  failure classes and non-PAPER modes remain pending. Counts unchanged **228
+  verified / 143 partial / 10 unverified / 152 not started**. Last full-suite baseline
+  remains **1721 passed**; no M1/M2, Groww LIVE or external delivery claim.
+- Next: freeze source/tests and run the complete backend suite with actual
+  PostgreSQL, Redis and Edge enabled for the accumulated orphan recovery changes.
+  Observe the exact process to completion, then continue pending operational
+  recovery acceptance. Do not restart a quiet test process.

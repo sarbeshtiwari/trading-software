@@ -151,5 +151,15 @@ async def test_partial_exit_recovery_plan_preserves_fifo_profit(db_engine, crede
         assert len(plan["source_fill_ids"]) == 2
         assert plan["lots"][0]["quantity"] == 150
         assert len(await engine.broker.list_orders()) == 2
+        restored = await api.post(f"/api/v1/reconciliation/orphans/{identifier}/restore", json={
+            "reason": "Reviewed partial exit and remaining FIFO accounting",
+            "confirmation": "RESTORE PAPER POSITION", "expected_head": plan["plan_hash"],
+        })
+        assert restored.status_code == 200, restored.text
+        async with db_session.session_scope() as session:
+            position = await session.get(Position, original_id)
+            assert position.net_quantity == 150 and position.realised_pnl == 400
+            assert position.bought_quantity == 250 and position.sold_quantity == 100
+        assert len(await engine.broker.list_orders()) == 2
     finally:
         await api.aclose()

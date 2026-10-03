@@ -1790,6 +1790,58 @@
         }
       }
     },
+    "/api/v1/reconciliation/orphans/{identifier}/restore": {
+      "post": {
+        "tags": [
+          "reconciliation"
+        ],
+        "summary": "Restore Orphan",
+        "operationId": "restore_orphan_api_v1_reconciliation_orphans__identifier__restore_post",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestorationReceipt"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reconciliation": {
       "get": {
         "tags": [
@@ -15000,6 +15052,45 @@
           "confirmation"
         ],
         "title": "ResolveRequest"
+      },
+      "RestorationReceipt": {
+        "properties": {
+          "orphan_position_id": {
+            "type": "string",
+            "title": "Orphan Position Id"
+          },
+          "restored_position_id": {
+            "type": "string",
+            "title": "Restored Position Id"
+          },
+          "plan_hash": {
+            "type": "string",
+            "title": "Plan Hash"
+          },
+          "audit_hash": {
+            "type": "string",
+            "title": "Audit Hash"
+          },
+          "entries_authorized": {
+            "type": "boolean",
+            "title": "Entries Authorized",
+            "default": false
+          },
+          "protection_verified": {
+            "type": "boolean",
+            "title": "Protection Verified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orphan_position_id",
+          "restored_position_id",
+          "plan_hash",
+          "audit_hash"
+        ],
+        "title": "RestorationReceipt"
       },
       "ResultView": {
         "properties": {

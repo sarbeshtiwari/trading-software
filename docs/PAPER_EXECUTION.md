@@ -76,3 +76,36 @@ authenticated PAPER emergency controls; there is no arbitrary order-entry UI.
 Journal/preflight/account/fill state is connected through `/api/v1/workspace`.
 Full notifications/outbox, EOD, session calendar and all required failure/recovery
 cases still need completion. M1/M2 and Groww LIVE remain unverified.
+
+## Owner recovery of a missing position projection
+
+Monitoring exposes PAPER orphan observations with explicitly unavailable accounting.
+Acknowledgment records review only. Inspecting a recovery plan replays existing
+audited fills/FIFO and original risk approval, retaining any audited trailing stop.
+Neither action repairs positions or authorizes trading.
+
+When the original position row alone is missing but its history remains intact:
+
+1. Keep the PAPER worker stopped. Orphan discovery already refuses normal startup;
+   leave the authenticated API available for owner inspection.
+2. In Monitoring, acknowledge the orphan and inspect the recovery plan. Missing,
+   ambiguous, changed or unsealed history must be investigated, not filled in.
+3. Supply a meaningful restoration reason and type `RESTORE PAPER POSITION`.
+   The API binds the exact reviewed plan hash and rechecks persisted PAPER broker
+   orders, quantity, cost basis and FIFO under the broker revision lock. Pending
+   orders, another worker, changed evidence or a storage failure refuse restoration.
+4. Restoration archives the full adopted observation in its immutable audit chain
+   and replaces only that temporary projection with the original position ID.
+   Original orders/fills remain untouched; no entry or closing trade is invented.
+   The original position's audit chain links to the restoration receipt.
+5. Restart the configured PAPER worker for independent reconciliation and protection
+   checks. Complete the separate owner discrepancy review. Restoration does not
+   clear discrepancies, risk latches or emergency controls, and does not certify
+   current marks/protection. Unrealised P&L stays unavailable until a valid mark.
+
+POST `/api/v1/reconciliation/orphans/{id}/restore` requires authentication, the
+reviewed plan hash in `expected_head`, `reason`, and the confirmation above.
+Retrying the same completed request returns its historical receipt, not fresh
+trading authorization. Notification intent and both audit links commit atomically
+with reconstruction; external delivery is not verified. Truly missing execution
+history and broader multi-process recovery remain unsupported, fail-closed cases.

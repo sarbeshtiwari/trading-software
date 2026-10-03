@@ -1,6 +1,7 @@
 """Reconstruct economic evidence; a plan does not repair state or authorize orders."""
 
 import hashlib
+from contextlib import AsyncExitStack
 from decimal import Decimal
 
 import sqlalchemy as sa
@@ -79,8 +80,9 @@ async def require_source_orders(session, entry, verified_orders, trades):
     require_fill_totals({row.id: row for row in rows}, trades)
 
 
-async def build(identifier, now, owner):
-    async with db_session.session_scope() as session:
+async def build(identifier, now, owner, *, session=None):
+    async with AsyncExitStack() as stack:
+        session = session or await stack.enter_async_context(db_session.session_scope())
         position = await session.get(Position, identifier)
         review = await inspect(session, position, now, owner)
         if not review.acknowledged:

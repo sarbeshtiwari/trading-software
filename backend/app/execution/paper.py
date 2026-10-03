@@ -1549,6 +1549,7 @@ class PaperExecution:
         if found or adopted:
             self.gate.block("paper_orphans", "ORPHAN_POSITION_OWNER_RECOVERY_REQUIRED")
             raise SafetyError("ORPHAN_POSITION_OWNER_RECOVERY_REQUIRED")
+        self.gate.clear("paper_orphans")
 
     async def _reconcile_state(self, *, allow_review_pending=False):
         await self._discover_orphans()

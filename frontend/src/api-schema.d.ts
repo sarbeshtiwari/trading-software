@@ -533,6 +533,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reconciliation/orphans/{identifier}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Orphan */
+        post: operations["restore_orphan_api_v1_reconciliation_orphans__identifier__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reconciliation": {
         parameters: {
             query?: never;
@@ -5002,6 +5019,27 @@ export interface components {
             /** Confirmation */
             confirmation: string;
         };
+        /** RestorationReceipt */
+        RestorationReceipt: {
+            /** Orphan Position Id */
+            orphan_position_id: string;
+            /** Restored Position Id */
+            restored_position_id: string;
+            /** Plan Hash */
+            plan_hash: string;
+            /** Audit Hash */
+            audit_hash: string;
+            /**
+             * Entries Authorized
+             * @default false
+             */
+            entries_authorized: boolean;
+            /**
+             * Protection Verified
+             * @default false
+             */
+            protection_verified: boolean;
+        };
         /** ResultView */
         ResultView: {
             /**
@@ -7141,6 +7179,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PositionRecoveryPlan"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_orphan_api_v1_reconciliation_orphans__identifier__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestorationReceipt"];
                 };
             };
             /** @description Validation Error */

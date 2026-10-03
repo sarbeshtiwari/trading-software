@@ -13,9 +13,9 @@ from app.core.clock import get_clock
 from app.core.errors import SafetyError
 from app.db import session as db_session
 from app.db.models.system import Discrepancy
-from app.execution import discrepancies, orphan_review, position_recovery
+from app.execution import discrepancies, orphan_restore, orphan_review, position_recovery
 from app.modes import TradingMode
-from app.trading.worker import active_worker
+from app.trading.worker import WorkerLock, active_worker
 
 router = APIRouter(prefix="/reconciliation", tags=["reconciliation"])
 
@@ -110,6 +110,30 @@ async def orphan_recovery_plan(identifier: str):
         raise HTTPException(409, "Recovery evidence malformed or unavailable") from None
     except Exception:
         raise HTTPException(503, "Recovery planning unavailable") from None
+
+
+@router.post("/orphans/{identifier}/restore", response_model=orphan_restore.RestorationReceipt)
+async def restore_orphan(identifier: str, body: ResolveRequest, request: Request):
+    require_paper()
+    if body.confirmation != "RESTORE PAPER POSITION":
+        raise HTTPException(422, "Typed confirmation does not match")
+    if active_worker() is not None:
+        raise HTTPException(409, "Stop the PAPER worker before restoring a projection")
+    settings = get_settings()
+    try:
+        return await asyncio.wait_for(orphan_restore.restore(
+            identifier, expected_plan=body.expected_head, actor=request.state.principal.username,
+            reason=body.reason, settings=settings, clock=get_clock(),
+            lock=WorkerLock(settings.log_dir / "paper-worker.lock"),
+        ), timeout=20)
+    except SafetyError as error:
+        raise HTTPException(409, error.message) from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(409, "Restoration evidence invalid; inspect current state") from None
+    except Exception:
+        raise HTTPException(
+            503, "Restoration unavailable; inspect current state before retry"
+        ) from None
 
 
 @router.get("", response_model=DiscrepancyPage)

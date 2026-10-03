@@ -11,9 +11,14 @@ from app.agents.validation import _utc
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
 from app.db.models.decision import Proposal, RiskDecision
+from app.db.models.execution import PaperExecutionSlot, PaperStateRevision
 from app.db.models.instrument import Instrument
+from app.db.models.paper import PaperBrokerState
+from app.db.models.system import SystemState
 from app.db.models.trading import Order, Position, Trade
+from app.execution.orphan_restore import restore
 from app.execution.position_recovery import build
+from app.trading.worker import WorkerLock
 from tests.integration.test_orphan_review import adopted_fixture
 from tests.integration.test_paper_execution import credentials
 from tests.integration.test_position_recovery_plan import reviewed_orphan
@@ -24,15 +29,16 @@ POSTGRES_URL = os.environ.get("ATS_TEST_POSTGRES_URL")
 
 @pytest.mark.skipif(not POSTGRES_URL, reason="set ATS_TEST_POSTGRES_URL")
 async def test_postgres_plan_preserves_fixture_audit_evidence(
-    db_engine, credentials, fake_clock, monkeypatch
+    db_engine, credentials, fake_clock, monkeypatch, tmp_path
 ):
-    _executor, api = await adopted_fixture(credentials, fake_clock)
+    executor, api = await adopted_fixture(credentials, fake_clock)
     engine = create_async_engine(POSTGRES_URL)
     try:
         identifier = await reviewed_orphan(api)
         expected = await build(identifier, fake_clock.utcnow(), "owner")
         tables = [model.__table__ for model in (
-            Instrument, Order, Position, Trade, AuditEvent, Proposal, RiskDecision
+            Instrument, Order, Position, Trade, AuditEvent, Proposal, RiskDecision,
+            PaperExecutionSlot, PaperStateRevision, PaperBrokerState, SystemState,
         )]
         snapshots = {}
         async with db_session.session_scope() as session:
@@ -56,6 +62,18 @@ async def test_postgres_plan_preserves_fixture_audit_evidence(
                 ))
                 actual = await build(identifier, fake_clock.utcnow(), "owner")
                 assert actual == expected
+                receipt = await restore(
+                    identifier, expected_plan=actual.plan_hash, actor="owner",
+                    reason="Owner reviewed PostgreSQL fixture reconstruction",
+                    settings=executor.settings, clock=fake_clock,
+                    lock=WorkerLock(tmp_path / "recovery.lock"),
+                )
+                async with db_session.session_scope() as session:
+                    assert await session.get(Position, identifier) is None
+                    restored = await session.get(Position, receipt.restored_position_id)
+                    assert restored.net_quantity == 250 and restored.realised_pnl == 0
+                    assert restored.unrealised_pnl is None and not restored.is_protected
+                    assert await session.scalar(sa.select(sa.func.count()).select_from(Trade)) == 1
             finally:
                 await transaction.rollback()
     finally:

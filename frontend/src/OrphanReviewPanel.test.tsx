@@ -47,3 +47,24 @@ test('recovery inspection is read-only and clears the old plan on refresh', asyn
   fireEvent.click(screen.getByRole('button', { name: 'Refresh orphan evidence' }));
   expect(screen.queryByRole('region', { name: 'Verified historical recovery plan' })).not.toBeInTheDocument();
 });
+
+test('restoration requires its own confirmation and binds the reviewed plan', async () => {
+  const item = { position_id: 'orphan-1', acknowledged: true, blockers: ['ENTRIES_BLOCKED'] };
+  const plan = { orphan_position_id: 'orphan-1', original_position_id: 'original-1', plan_hash: 'b'.repeat(64) };
+  const fetcher = vi.fn(async (url: string, options?: RequestInit) => new Response(JSON.stringify(
+    options?.method === 'POST' ? { restored_position_id: 'original-1', plan_hash: plan.plan_hash, entries_authorized: false, protection_verified: false }
+      : url.includes('/recovery-plan') ? plan : { items: [item], has_more: false }
+  )));
+  vi.stubGlobal('fetch', fetcher);
+  render(<OrphanReviewPanel api={new Api()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Inspect recovery plan orphan-1' }));
+  const submit = await screen.findByRole('button', { name: 'Restore verified PAPER position' });
+  expect(submit).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Restoration reason'), { target: { value: 'Reviewed original fills and protection' } });
+  fireEvent.change(screen.getByLabelText('Type RESTORE PAPER POSITION'), { target: { value: 'RESTORE PAPER POSITION' } });
+  fireEvent.click(submit);
+  expect(await screen.findByRole('status')).toHaveTextContent('entries are not authorized');
+  const post = fetcher.mock.calls.find(([, options]) => options?.method === 'POST');
+  expect(post?.[0]).toContain('/orphans/orphan-1/restore');
+  expect(JSON.parse(String(post?.[1]?.body)).expected_head).toBe(plan.plan_hash);
+});

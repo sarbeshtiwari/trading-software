@@ -5,6 +5,7 @@ import type { components } from './api-schema';
 type Page = components['schemas']['OrphanReviewPage'];
 type Item = components['schemas']['OrphanReview'];
 type Plan = components['schemas']['PositionRecoveryPlan'];
+type Receipt = components['schemas']['RestorationReceipt'];
 
 export function OrphanReviewPanel({ api }: { api: Api }) {
   const [data, setData] = useState<Page>();
@@ -53,7 +54,7 @@ export function OrphanReviewPanel({ api }: { api: Api }) {
     } finally { window.clearTimeout(timeout); setBusy(false); }
   }
   async function inspectPlan(item: Item) {
-    setBusy(true); setPlan(undefined); setError('');
+    setBusy(true); setPlan(undefined); setError(''); setConfirmation(''); setReason('');
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 18000);
     try {
@@ -61,6 +62,24 @@ export function OrphanReviewPanel({ api }: { api: Api }) {
       setPlan(result);
     } catch (failure) { setError(controller.signal.aborted ? 'Recovery inspection timed out.' : String(failure)); }
     finally { window.clearTimeout(timeout); setBusy(false); }
+  }
+  async function restore() {
+    if (!plan) return;
+    setBusy(true); setError(''); setOutcome('');
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 23000);
+    try {
+      const receipt = await api.request<Receipt>(`/reconciliation/orphans/${encodeURIComponent(plan.orphan_position_id)}/restore`, {
+        method: 'POST', signal: controller.signal,
+        body: JSON.stringify({ reason, confirmation, expected_head: plan.plan_hash }),
+      });
+      if (receipt.plan_hash !== plan.plan_hash || receipt.entries_authorized || receipt.protection_verified) throw new Error('Unexpected restoration receipt; inspect audit state.');
+      setSelected(undefined); setConfirmation('');
+      await load();
+      setOutcome(`Position ${receipt.restored_position_id} restored. Orphan observation archived in audit. Restart the PAPER worker for protection and reconciliation review; entries are not authorized.`);
+    } catch (failure) {
+      setError(controller.signal.aborted ? 'Restoration response timed out; inspect current state before retrying.' : String(failure));
+    } finally { window.clearTimeout(timeout); setBusy(false); }
   }
   return <section aria-label="PAPER orphan review"><h2>PAPER orphan review</h2>
     <p>These are historical broker observations, not fresh market verification. Acknowledgment never repairs P&amp;L, protects/closes a position, or arms trading.</p>
@@ -82,6 +101,10 @@ export function OrphanReviewPanel({ api }: { api: Api }) {
     {plan && <section aria-label="Verified historical recovery plan"><h3>Verified historical recovery plan</h3>
       <p>This does not restore the position or arm trading. Recorded charges do not imply complete fees. Fresh broker checks and protection recovery remain required.</p>
       <pre>{JSON.stringify(plan, null, 2)}</pre>
+      <p>Restoration requires the PAPER worker to be stopped. It archives the orphan observation and rebuilds proven history; it does not place an order or authorize entries.</p>
+      <label>Restoration reason<input value={reason} onChange={event => setReason(event.target.value)} /></label>
+      <label>Type RESTORE PAPER POSITION<input value={confirmation} onChange={event => setConfirmation(event.target.value)} /></label>
+      <button disabled={busy || reason.trim().length < 10 || confirmation !== 'RESTORE PAPER POSITION'} onClick={() => void restore()}>Restore verified PAPER position</button>
     </section>}
     {selected && <><pre>{JSON.stringify(selected, null, 2)}</pre>
       <label>Orphan acknowledgment reason<input value={reason} onChange={event => setReason(event.target.value)} /></label>
