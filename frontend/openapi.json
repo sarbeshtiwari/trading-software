@@ -1651,6 +1651,103 @@
         }
       }
     },
+    "/api/v1/reconciliation/orphans": {
+      "get": {
+        "tags": [
+          "reconciliation"
+        ],
+        "summary": "Orphan Listing",
+        "operationId": "orphan_listing_api_v1_reconciliation_orphans_get",
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrphanReviewPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reconciliation/orphans/{identifier}/acknowledge": {
+      "post": {
+        "tags": [
+          "reconciliation"
+        ],
+        "summary": "Acknowledge Orphan",
+        "operationId": "acknowledge_orphan_api_v1_reconciliation_orphans__identifier__acknowledge_post",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrphanReview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reconciliation": {
       "get": {
         "tags": [
@@ -12611,6 +12708,116 @@
           "execution_realism"
         ],
         "title": "OrderView"
+      },
+      "OrphanReview": {
+        "properties": {
+          "position_id": {
+            "type": "string",
+            "title": "Position Id"
+          },
+          "trading_symbol": {
+            "type": "string",
+            "title": "Trading Symbol"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "observed_average_price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Observed Average Price"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "head_hash": {
+            "type": "string",
+            "title": "Head Hash"
+          },
+          "acknowledged": {
+            "type": "boolean",
+            "title": "Acknowledged"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blockers",
+            "default": [
+              "HISTORY_NOT_RECONSTRUCTED",
+              "PROTECTION_UNVERIFIED",
+              "ENTRIES_BLOCKED"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "Historical PAPER observation. Acknowledgment does not repair or arm trading."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "position_id",
+          "trading_symbol",
+          "quantity",
+          "observed_average_price",
+          "observed_at",
+          "head_hash",
+          "acknowledged",
+          "acknowledged_by",
+          "acknowledged_at"
+        ],
+        "title": "OrphanReview"
+      },
+      "OrphanReviewPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrphanReview"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "title": "OrphanReviewPage"
       },
       "PaperEvidence": {
         "properties": {

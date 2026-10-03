@@ -482,6 +482,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reconciliation/orphans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orphan Listing */
+        get: operations["orphan_listing_api_v1_reconciliation_orphans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reconciliation/orphans/{identifier}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Orphan */
+        post: operations["acknowledge_orphan_api_v1_reconciliation_orphans__identifier__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reconciliation": {
         parameters: {
             query?: never;
@@ -4175,6 +4209,51 @@ export interface components {
             /** Execution Realism */
             execution_realism: string;
         };
+        /** OrphanReview */
+        OrphanReview: {
+            /** Position Id */
+            position_id: string;
+            /** Trading Symbol */
+            trading_symbol: string;
+            /** Quantity */
+            quantity: number;
+            /** Observed Average Price */
+            observed_average_price: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Head Hash */
+            head_hash: string;
+            /** Acknowledged */
+            acknowledged: boolean;
+            /** Acknowledged By */
+            acknowledged_by: string | null;
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /**
+             * Blockers
+             * @default [
+             *       "HISTORY_NOT_RECONSTRUCTED",
+             *       "PROTECTION_UNVERIFIED",
+             *       "ENTRIES_BLOCKED"
+             *     ]
+             */
+            blockers: string[];
+            /**
+             * Scope
+             * @default Historical PAPER observation. Acknowledgment does not repair or arm trading.
+             */
+            scope: string;
+        };
+        /** OrphanReviewPage */
+        OrphanReviewPage: {
+            /** Items */
+            items: components["schemas"]["OrphanReview"][];
+            /** Has More */
+            has_more: boolean;
+        };
         /** PaperEvidence */
         PaperEvidence: {
             policy: components["schemas"]["PaperEvidencePolicy-Output"] | null;
@@ -6880,6 +6959,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventFailureView"];
+                };
+            };
+        };
+    };
+    orphan_listing_api_v1_reconciliation_orphans_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrphanReviewPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_orphan_api_v1_reconciliation_orphans__identifier__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrphanReview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

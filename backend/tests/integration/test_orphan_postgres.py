@@ -15,7 +15,7 @@ from app.core.enums import Exchange, InstrumentType, Product, Segment
 from app.db import session as db_session
 from app.db.models.instrument import Instrument
 from app.db.models.trading import Position
-from app.execution import orphans
+from app.execution import orphan_review, orphans
 from tests.conftest import BACKEND_ROOT
 
 POSTGRES_URL = os.environ.get("ATS_TEST_POSTGRES_URL")
@@ -65,6 +65,17 @@ async def test_postgres_adoption_and_no_lossy_downgrade(fake_clock, monkeypatch)
                     assert position.net_quantity == -10 and position.realised_pnl is None
                     assert position.total_charges is None and position.net_pnl is None
                     assert not await orphans.discover(session, [remote], fake_clock)
+                    review = await orphan_review.inspect(session, position, fake_clock.utcnow(), "owner")
+                    identifier = position.id
+                acknowledged = await orphan_review.acknowledge(
+                    identifier, actor="owner", reason="Reviewed isolated PostgreSQL evidence",
+                    expected_head=review.head_hash, clock=fake_clock,
+                )
+                assert acknowledged.acknowledged and acknowledged.acknowledged_by == "owner"
+                async with db_session.session_scope() as session:
+                    position = await session.get(Position, identifier)
+                    assert (await orphan_review.inspect(session, position, fake_clock.utcnow(), "owner")).acknowledged
+                    assert position.total_charges is None and position.net_pnl is None
                 with pytest.raises(RuntimeError, match="accounting is unavailable"):
                     await connection.run_sync(migration, "downgrade")
                 assert await connection.scalar(sa.text("SELECT count(*) FROM positions")) == 1

@@ -5,14 +5,15 @@ from typing import Any
 
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, Field, field_validator
 
 from app.analysis.equity import EvidenceModel
 from app.config import get_settings
+from app.core.clock import get_clock
 from app.core.errors import SafetyError
 from app.db import session as db_session
 from app.db.models.system import Discrepancy
-from app.execution import discrepancies
+from app.execution import discrepancies, orphan_review
 from app.modes import TradingMode
 from app.trading.worker import active_worker
 
@@ -51,10 +52,47 @@ class ResolveRequest(EvidenceModel):
     reason: str = Field(min_length=10, max_length=500)
     confirmation: str
 
+    @field_validator("reason")
+    @classmethod
+    def meaningful_reason(cls, value):
+        cleaned = value.strip()
+        if len(cleaned) < 10:
+            raise ValueError("a meaningful review reason is required")
+        return cleaned
+
 
 def require_paper():
     if get_settings().trading_mode != TradingMode.PAPER:
         raise HTTPException(423, "PAPER reconciliation only")
+
+
+@router.get("/orphans", response_model=orphan_review.OrphanReviewPage)
+async def orphan_listing(offset: int = Query(default=0, ge=0, le=10000)):
+    require_paper()
+    try:
+        return await asyncio.wait_for(orphan_review.listing(
+            offset, get_clock().utcnow(), get_settings().dashboard_username
+        ), timeout=10)
+    except (SafetyError, ValueError, KeyError):
+        raise HTTPException(409, "Orphan evidence unavailable or invalid") from None
+    except Exception:
+        raise HTTPException(503, "Orphan inspection unavailable") from None
+
+
+@router.post("/orphans/{identifier}/acknowledge", response_model=orphan_review.OrphanReview)
+async def acknowledge_orphan(identifier: str, body: ResolveRequest, request: Request):
+    require_paper()
+    if body.confirmation != "ACKNOWLEDGE PAPER ORPHAN":
+        raise HTTPException(422, "Typed confirmation does not match")
+    try:
+        return await asyncio.wait_for(orphan_review.acknowledge(
+            identifier, actor=request.state.principal.username, reason=body.reason,
+            expected_head=body.expected_head, clock=get_clock(),
+        ), timeout=10)
+    except (SafetyError, ValueError, KeyError):
+        raise HTTPException(409, "Orphan evidence changed or invalid; review again") from None
+    except Exception:
+        raise HTTPException(503, "Acknowledgment unavailable; inspect current state") from None
 
 
 @router.get("", response_model=DiscrepancyPage)

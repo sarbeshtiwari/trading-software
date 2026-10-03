@@ -6070,3 +6070,34 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   planning in the existing operational UI, without treating acknowledgment as
   accounting repair or re-arm. Then implement source-evidenced protection/closure
   recovery; arbitrary clearing of adopted flags or inventing entry fills is forbidden.
+
+### Authenticated orphan acknowledgment in Monitoring (2026-10-03)
+
+- Adoption checkpoint **1dada321f6cb0a9f810c1cf202c6698e6e2dfdb6** is pushed and
+  remote-verified under the owner identity only. Existing Monitoring now lists
+  verified historical orphan evidence and its accounting/protection blockers.
+  Owner acknowledgment requires authentication, meaningful reason, typed phrase
+  and the reviewed audit hash. Reads/actions have bounded execution and pagination.
+- Source audit integrity/mode/actor/time and position projection are verified;
+  changed quantity, side, accounting, instrument mapping or protection evidence
+  refuses review. Broker average-price comparison respects database precision.
+  Acknowledgment appends owner/time/evidence audit atomically; retry returns the
+  existing result. It changes no position, discrepancy counter, risk gate or order.
+  It is historical review, not current broker verification or trading authorization.
+- Added GET `/api/v1/reconciliation/orphans` and POST
+  `/api/v1/reconciliation/orphans/{id}/acknowledge`. Actual Edge owner workflow and
+  reload retain acknowledged status while account accounting remains unavailable.
+  Actual PostgreSQL fresh-session acknowledgment persistence also passed.
+- Final PostgreSQL/API/recovery/browser selection **8 passed / 0 failed / 0
+  skipped**, session 42211 finished. Broad unit/safety/PAPER/review regression
+  **786 passed / 0 failed / 0 skipped**, one existing warning, session 68542
+  finished; `backend/logs/orphan-review-regression.txt`. Frontend **64 passed**,
+  generated contracts and production build successful. New modules/tests pass Ruff.
+- REC-005 stays partial. Counts unchanged **228 verified / 143 partial / 10
+  unverified / 152 not started**. Last whole-suite baseline remains 1721.
+  No external delivery, Groww LIVE or M1/M2 completion claim.
+- Next: source-backed orphan recovery planning and closure/protection. First
+  distinguish a missing local position projection with intact audited orders/fills
+  from genuinely unavailable execution history. Restore only what authoritative
+  evidence proves; do not create synthetic entry trades or clear accounting blockers
+  merely because the owner acknowledged discovery.
