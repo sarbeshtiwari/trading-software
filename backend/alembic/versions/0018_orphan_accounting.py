@@ -12,8 +12,9 @@ FIELDS = ("realised_pnl", "unrealised_pnl", "total_charges")
 
 
 def upgrade():
-    for field in FIELDS:
-        op.alter_column("positions", field, existing_type=sa.Numeric(20, 2), nullable=True)
+    with op.batch_alter_table("positions") as batch:
+        for field in FIELDS:
+            batch.alter_column(field, existing_type=sa.Numeric(20, 2), nullable=True)
 
 
 def downgrade():
@@ -23,5 +24,6 @@ def downgrade():
     )).first()
     if missing:
         raise RuntimeError("Cannot downgrade while position accounting is unavailable")
-    for field in FIELDS:
-        op.alter_column("positions", field, existing_type=sa.Numeric(20, 2), nullable=False)
+    with op.batch_alter_table("positions") as batch:
+        for field in FIELDS:
+            batch.alter_column(field, existing_type=sa.Numeric(20, 2), nullable=False)

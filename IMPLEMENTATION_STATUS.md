@@ -6200,3 +6200,28 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   PostgreSQL, Redis and Edge enabled for the accumulated orphan recovery changes.
   Observe the exact process to completion, then continue pending operational
   recovery acceptance. Do not restart a quiet test process.
+
+### Full recovery regression found and corrected migration portability (2026-10-03)
+
+- Recovery checkpoint **2e0a1150120a9df6356063b4b1838258dec90906** is pushed
+  and remote-verified, configured owner only. Full-suite session **68743 finished**:
+  **1742 passed / 7 failed / 0 skipped**, three existing warnings, 52m51s.
+  PostgreSQL, Redis and Edge were enabled. Log:
+  `backend/logs/full-orphan-restoration-checkpoint.txt`. Do not poll/restart that
+  finished session or describe this run as passing acceptance.
+- All seven failures originate in migration 0018 issuing PostgreSQL-style
+  `ALTER COLUMN` against SQLite. Replaced direct alteration with the repository's
+  existing Alembic batch pattern. PostgreSQL retains native alteration; SQLite
+  reconstructs the table without changing accounting values or filling NULLs.
+- The previously failing cases plus app-boot and new SQLite data-preservation
+  acceptance now pass: **15 passed / 0 failed**, two existing warnings. The new
+  test proves negative/positive amounts and indexes survive, and EACH unknown
+  accounting field independently blocks downgrade rather than becoming zero.
+- Actual PostgreSQL fresh install/drift/downgrade/re-upgrade, temporary orphan
+  downgrade refusal/restoration and SQLite preservation selection **4 passed /
+  0 failed / 0 skipped**. Changed files pass Ruff and diff checks. Frontend unchanged:
+  **66 passed**, production build successful at the recovery checkpoint.
+- Counts unchanged **228 verified / 143 partial / 10 unverified / 152 not started**.
+  No requirement promotion or whole-suite success claim. Next: publish this
+  verified correction, freeze source/tests and run a fresh complete suite with
+  existing PostgreSQL, Redis and Edge enabled; retain the failed run as evidence.
