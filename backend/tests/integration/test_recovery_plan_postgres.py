@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.agents.validation import _utc
 from app.db import session as db_session
 from app.db.models.audit import AuditEvent
+from app.db.models.decision import Proposal, RiskDecision
 from app.db.models.instrument import Instrument
 from app.db.models.trading import Order, Position, Trade
 from app.execution.position_recovery import build
@@ -30,7 +31,9 @@ async def test_postgres_plan_preserves_fixture_audit_evidence(
     try:
         identifier = await reviewed_orphan(api)
         expected = await build(identifier, fake_clock.utcnow(), "owner")
-        tables = [model.__table__ for model in (Instrument, Order, Position, Trade, AuditEvent)]
+        tables = [model.__table__ for model in (
+            Instrument, Order, Position, Trade, AuditEvent, Proposal, RiskDecision
+        )]
         snapshots = {}
         async with db_session.session_scope() as session:
             for table in tables:

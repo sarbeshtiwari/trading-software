@@ -10411,6 +10411,62 @@
         ],
         "title": "HealthStatus"
       },
+      "HistoricalProtection": {
+        "properties": {
+          "stop": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Stop"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Target"
+          },
+          "trailing_stop": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailing Stop"
+          },
+          "risk_decision_id": {
+            "type": "string",
+            "title": "Risk Decision Id"
+          },
+          "position_audit_head": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Audit Head"
+          },
+          "active_protection_verified": {
+            "type": "boolean",
+            "title": "Active Protection Verified",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stop",
+          "target",
+          "trailing_stop",
+          "risk_decision_id",
+          "position_audit_head"
+        ],
+        "title": "HistoricalProtection"
+      },
       "ImportArticle": {
         "properties": {
           "article": {
@@ -13586,6 +13642,9 @@
             "format": "date-time",
             "title": "Opened At"
           },
+          "historical_protection": {
+            "$ref": "#/components/schemas/HistoricalProtection"
+          },
           "lots": {
             "items": {
               "$ref": "#/components/schemas/RecoveryLot"
@@ -13646,6 +13705,7 @@
           "recorded_charges",
           "charges_complete",
           "opened_at",
+          "historical_protection",
           "lots",
           "source_fill_ids",
           "source_audit_hashes",

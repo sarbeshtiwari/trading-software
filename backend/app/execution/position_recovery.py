@@ -17,6 +17,7 @@ from app.db.models.audit import AuditEvent
 from app.db.models.trading import Order, Position, Trade
 from app.execution.orphan_review import inspect
 from app.execution.paper import replay_fills, stable_id
+from app.execution.recovery_protection import HistoricalProtection, reconstruct
 from app.modes import TradingMode
 from app.portfolio.fifo import Result
 from app.portfolio.fill_evidence import fill_snapshot
@@ -38,6 +39,7 @@ class PositionRecoveryPlan(EvidenceModel):
     recorded_charges: Decimal
     charges_complete: bool
     opened_at: AwareDatetime
+    historical_protection: HistoricalProtection
     lots: tuple[RecoveryLot, ...]
     source_fill_ids: tuple[str, ...]
     source_audit_hashes: tuple[str, ...]
@@ -151,6 +153,9 @@ async def build(identifier, now, owner):
                 trade.cost_breakdown.get("status") == "ESTIMATED" for trade in trades
             ),
             opened_at=_utc(ordered[0].executed_at),
+            historical_protection=await reconstruct(
+                session, entry, _utc(ordered[0].executed_at), now
+            ),
             lots=tuple(RecoveryLot(
                 source_fill_id=lot.source_id, quantity=lot.quantity, price=lot.price
             ) for lot in lots),

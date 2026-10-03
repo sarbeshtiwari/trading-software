@@ -9,9 +9,14 @@ import sqlalchemy as sa
 from app.core.enums import ExitReason
 from app.core.errors import SafetyError
 from app.db import session as db_session
+from app.db.models.audit import AuditEvent
+from app.db.models.decision import Proposal, RiskDecision
 from app.db.models.trading import Order, Position, Trade
+from app.execution.position_recovery import build
 from tests.integration.test_orphan_review import adopted_fixture
 from tests.integration.test_paper_execution import credentials, setup_execution
+from tests.integration.test_reference_exits import quote_at
+from tests.integration.test_reference_worker import setup_worker
 
 __all__ = ["credentials"]
 
@@ -40,6 +45,8 @@ async def test_recovery_plan_replays_verified_fills_without_mutation(db_engine, 
         assert Decimal(plan["gross_realised_pnl"]) == 0
         assert Decimal(plan["recorded_charges"]) == 0 and not plan["charges_complete"]
         assert "EXPLICIT_RESTORATION_REQUIRED" in plan["blockers"]
+        assert Decimal(plan["historical_protection"]["stop"]) == 98
+        assert not plan["historical_protection"]["active_protection_verified"]
         assert (await api.get(endpoint)).json()["plan_hash"] == plan["plan_hash"]
         async with db_session.session_scope() as session:
             trade = await session.scalar(sa.select(Trade))
@@ -53,7 +60,43 @@ async def test_recovery_plan_replays_verified_fills_without_mutation(db_engine, 
         await api.aclose()
 
 
-@pytest.mark.parametrize("fault", ["price", "fifo", "missing", "future", "order"])
+@pytest.mark.parametrize("corrupt_history", [False, True])
+async def test_recovery_preserves_real_reference_trailing_history(
+    db_engine, credentials, fake_clock, tmp_path, corrupt_history
+):
+    worker, provider, api = await setup_worker(credentials, fake_clock, tmp_path)
+    try:
+        await worker.cycle()
+        quote_at(provider, fake_clock, "106")
+        await worker.cycle()
+        assert not worker.failed, worker.detail
+        async with db_session.session_scope() as session:
+            position = await session.scalar(sa.select(Position))
+            assert position.trailing_stop_price == 102
+            await session.delete(position)
+        with pytest.raises(SafetyError, match="ORPHAN_POSITION"):
+            await worker.executor.recover()
+        identifier = await reviewed_orphan(api)
+        if corrupt_history:
+            async with db_session.session_scope() as session:
+                record = await session.scalar(sa.select(AuditEvent).where(
+                    AuditEvent.event_type == "REFERENCE_EXIT_STATE"
+                ).order_by(AuditEvent.sequence.desc()))
+                record.result = {**record.result, "trailing_stop": "96"}
+            with pytest.raises(SafetyError, match="RECOVERY_PROTECTION_HISTORY_INVALID"):
+                await build(identifier, fake_clock.utcnow(), "owner")
+            return
+        plan = await build(identifier, fake_clock.utcnow(), "owner")
+        assert plan.historical_protection.trailing_stop == 102
+        assert plan.historical_protection.stop == 96
+        assert plan.historical_protection.position_audit_head
+        assert not plan.historical_protection.active_protection_verified
+    finally:
+        await worker.stop()
+        await api.aclose()
+
+
+@pytest.mark.parametrize("fault", ["price", "fifo", "missing", "future", "order", "stop", "risk"])
 async def test_recovery_plan_refuses_unproven_history(db_engine, credentials, fake_clock, fault):
     _engine, api = await adopted_fixture(credentials, fake_clock)
     try:
@@ -68,11 +111,17 @@ async def test_recovery_plan_refuses_unproven_history(db_engine, credentials, fa
                 await session.delete(trade)
             elif fault == "future":
                 trade.executed_at = fake_clock.utcnow() + timedelta(seconds=1)
-            else:
+            elif fault == "order":
                 (await session.get(Order, trade.order_id)).filled_quantity -= 1
+            elif fault == "stop":
+                order = await session.get(Order, trade.order_id)
+                (await session.get(Proposal, order.proposal_id)).stop_loss -= 1
+            else:
+                order = await session.get(Order, trade.order_id)
+                (await session.get(RiskDecision, order.risk_decision_id)).approved = False
         response = await api.get(f"/api/v1/reconciliation/orphans/{identifier}/recovery-plan")
         assert response.status_code == 409, response.text
-        assert "RECOVERY_" in response.text
+        assert "RECOVERY_" in response.text or "APPROVAL_" in response.text
     finally:
         await api.aclose()
 

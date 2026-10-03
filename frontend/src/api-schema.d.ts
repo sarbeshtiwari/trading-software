@@ -3430,6 +3430,24 @@ export interface components {
          * @enum {string}
          */
         HealthStatus: "PASS" | "DEGRADED" | "FAIL" | "SKIPPED";
+        /** HistoricalProtection */
+        HistoricalProtection: {
+            /** Stop */
+            stop: string;
+            /** Target */
+            target: string;
+            /** Trailing Stop */
+            trailing_stop: string | null;
+            /** Risk Decision Id */
+            risk_decision_id: string;
+            /** Position Audit Head */
+            position_audit_head: string | null;
+            /**
+             * Active Protection Verified
+             * @default false
+             */
+            active_protection_verified: boolean;
+        };
         /** ImportArticle */
         ImportArticle: {
             article: components["schemas"]["ArticleInput"];
@@ -4520,6 +4538,7 @@ export interface components {
              * Format: date-time
              */
             opened_at: string;
+            historical_protection: components["schemas"]["HistoricalProtection"];
             /** Lots */
             lots: components["schemas"]["RecoveryLot"][];
             /** Source Fill Ids */

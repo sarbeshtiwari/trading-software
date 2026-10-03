@@ -6131,3 +6131,34 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   and subsequent audited stop changes, then implement explicit source-backed
   restoration with fresh broker checks. Preserve adopted observation history;
   never invent entry trades or clear blockers on acknowledgment alone.
+
+### Historical protection preserved in orphan recovery plans (2026-10-03)
+
+- Checkpoint **4005206f749ab4a671e1e27a4eba9ca4d9846f3b** is pushed and remote
+  verified on origin/main, configured owner author only, no co-author.
+- Recovery plans now require an audit-bound original risk decision and reuse
+  existing deterministic approval replay to recover the original stop/target.
+  Position-chain integrity, identity, mode, timestamps and reference-exit actor
+  are verified before retaining the latest audited trailing stop. Regressing
+  trailing stops and changed approval/history evidence refuse planning.
+- A real reference-worker fixture advances the trailing stop from the original
+  stop of 96 to 102 before local position loss; recovery preserves 102 rather
+  than silently weakening protection. Historical levels explicitly do not prove
+  active supervision. No position restoration, entry-gate release or broker order.
+- Targeted recovery/reference-exit tests **19 passed**. Actual PostgreSQL parity
+  **1 passed**. Broad unit/safety/PAPER/recovery/reference-exit regression **800
+  passed / 0 failed / 0 skipped**, one existing warning; session 41575 finished,
+  `backend/logs/recovery-protection-regression.txt`. Frontend **65 passed**,
+  regenerated contract/typecheck/production build successful. Ruff passes.
+- The first added reference test assumed the separate execution fixture's stop
+  of 98; the actual reference strategy uses 96. Corrected the fixture expectation,
+  not production mathematics. Whole-suite baseline remains **1721 passed**.
+- REC-005 remains partial; counts remain **228 verified / 143 partial / 10
+  unverified / 152 not started**. Groww market-data 403, LIVE and real notification
+  delivery remain unresolved/unverified; M1/M2 not complete.
+- Next: implement transactional explicit restoration. Preserve the orphan
+  observation and audit lineage separately from the restored original position;
+  use broker revision locking plus worker exclusion, require the reviewed plan
+  hash and fresh broker quantities/FIFO, and leave discrepancies/risk latches
+  blocked until independent reconciliation/protection review. Current gates check
+  every adopted flag, so do not simply clear that flag or invent a closing trade.
