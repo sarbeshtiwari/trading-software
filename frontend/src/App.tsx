@@ -88,7 +88,7 @@ function RiskPanel({ api, onChange, revision }: { api: Api; onChange: () => void
 }
 
 function EmergencyPanel({ api, onChange }: { api: Api; onChange: () => void }) {
-  const phrases = { KILL: 'KILL PAPER', DISABLE_ENTRIES: 'DISABLE PAPER ENTRIES', FLATTEN: 'FLATTEN PAPER', CLEAR: 'CLEAR PAPER EMERGENCY', REVIEW_WORKER: 'REVIEW PAPER WORKER' };
+  const phrases = { KILL: 'KILL PAPER', DISABLE_ENTRIES: 'DISABLE PAPER ENTRIES', FLATTEN: 'FLATTEN PAPER', CLEAR: 'CLEAR PAPER EMERGENCY', REVIEW_WORKER: 'REVIEW PAPER WORKER', RECOVER_WORKER: 'RECOVER PAPER WORKER' };
   const [action, setAction] = useState<keyof typeof phrases>('DISABLE_ENTRIES');
   const [reason, setReason] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -104,6 +104,7 @@ function EmergencyPanel({ api, onChange }: { api: Api; onChange: () => void }) {
   }
   return <section><h2>PAPER emergency controls</h2>
     <p>These are real application actions. Blocking entries does not close positions. Flatten requires a running worker and valid market data; inspect each outcome. Clear requires fresh health checks and reconciliation and never clears other risk latches. Worker review requires a flat reconciled account and discards unexecuted approvals and interrupted cycles instead of replaying them.</p>
+    <p>Worker recovery rechecks broker state and protection after an interruption. It may synchronize pending fills or protective exits. It always disables entries and still requires separate worker review and emergency clearance; it does not arm trading.</p>
     {result ? <Records rows={[result]} /> : <p>Emergency state unavailable or loading.</p>}
     {error && <p role="alert" className="error">{error}</p>}
     <label>Emergency action<select value={action} onChange={event => { setAction(event.target.value as keyof typeof phrases); setConfirmation(''); }}>{Object.keys(phrases).map(key => <option key={key}>{key}</option>)}</select></label>

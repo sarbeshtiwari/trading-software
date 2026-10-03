@@ -6291,3 +6291,47 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: inspect database connection-loss recovery and fail-closed worker state.
   Exercise isolated PostgreSQL connections without restarting the owner's service;
   distinguish connection recovery from a genuine database/server restart claim.
+
+### Connection-loss recovery control acceptance in progress (2026-10-03)
+
+- New authenticated `RECOVER_WORKER` action in the existing Risk view durably
+  disables entries before reconciling the PAPER broker and checking protection.
+  It retains kill/risk/discrepancy gates and requires separate worker review;
+  it is not re-arming. Recovery records a heartbeat without fabricating a cycle.
+- Actual termination of an isolated PostgreSQL test connection, followed by
+  owner recovery through the production Edge dashboard/API, passes. Combined
+  recovery/control/review/emergency selection: **15 passed / 0 failed / 0 skipped**,
+  session 16478 finished; `backend/logs/worker-recovery-control.txt`.
+  This is connection-loss evidence, not PostgreSQL/server restart certification.
+- Browser acceptance initially failed because an exact label selector included
+  option text. Reused the existing accessible combobox selector; rerun passed.
+  Earlier heartbeat acceptance exposed a missing timestamp before the first
+  cycle; explicit recovery heartbeat time preserves the absent last-cycle value.
+- Added cancellation-during-protection recovery coverage. Source is now frozen
+  for PAPER execution/reference strategy/exit/worker/emergency/safety regression,
+  session **94195**, log `backend/logs/worker-recovery-regression.txt`. No final
+  result yet: poll this session, do not restart a quiet process.
+- Work remains uncommitted pending regression. Counts unchanged: **228 verified /
+  145 partial / 10 unverified / 150 not started**. Whole-suite baseline remains
+  **1750 passed**; frontend latest **67 passed**, production build successful.
+- Next: finish regression and cancellation acceptance, update REC-008 evidence
+  without claiming all failure classes, commit/push under the configured owner,
+  then continue operational recovery gaps. No M1/M2 or Groww LIVE claim.
+
+### Connection-loss recovery control verified (2026-10-03)
+
+- Session **94195 finished**: **43 passed / 0 failed / 0 skipped** across PAPER
+  execution, reference worker/exits, owner recovery/review, emergency and safety.
+  Cancellation after durable inhibition leaves the executor unready, entries
+  blocked and no success receipt. Worker-stop races cannot reactivate it.
+- Actual SQLite/PostgreSQL subprocess recovery rerun with production pool settings:
+  **4 passed / 0 failed / 0 skipped**, session 44744 finished. Frontend rerun:
+  **67 passed**, TypeScript/production build successful, session 50214 finished.
+  Earlier actual PostgreSQL/Edge/control selection remains **15 passed**.
+- REC-008 remains partial: connection termination is not a server/database
+  restart. No new requirement completion; counts **228 verified / 145 partial /
+  10 unverified / 150 not started**. Whole-suite baseline remains **1750 passed**.
+- Next: align owner recovery with startup's interrupted-replacement cleanup,
+  preserving no-replay semantics and independent entry gates; verify actual
+  interrupted replacement evidence through the owner action. Then continue
+  remaining operational failure-class acceptance without disrupting owner services.

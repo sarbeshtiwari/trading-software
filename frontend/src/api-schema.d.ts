@@ -2699,7 +2699,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "KILL" | "DISABLE_ENTRIES" | "FLATTEN" | "CLEAR" | "REVIEW_WORKER";
+            action: "KILL" | "DISABLE_ENTRIES" | "FLATTEN" | "CLEAR" | "REVIEW_WORKER" | "RECOVER_WORKER";
             /** Reason */
             reason: string;
             /** Confirmation */

@@ -40,7 +40,9 @@ async def process_database(settings, storage, monkeypatch):
             await connection.execute(sa.text(f'CREATE DATABASE "{database}"'))
             created = True
         await run_alembic(target, "upgrade", "head")
-        engine = create_async_engine(target)
+        engine = create_async_engine(target, **db_session._engine_kwargs(
+            settings.model_copy(update={"database_url": target.render_as_string(hide_password=False)})
+        ))
         async with engine.begin() as connection:
             for table in metadata.sorted_tables:
                 if snapshots[table.name]:

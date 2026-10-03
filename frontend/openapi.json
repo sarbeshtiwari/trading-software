@@ -7971,7 +7971,8 @@
               "DISABLE_ENTRIES",
               "FLATTEN",
               "CLEAR",
-              "REVIEW_WORKER"
+              "REVIEW_WORKER",
+              "RECOVER_WORKER"
             ],
             "title": "Action"
           },

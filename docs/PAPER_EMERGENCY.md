@@ -11,6 +11,7 @@ The action body contains only `action`, `reason` (at least 10 characters) and
 | `FLATTEN` | `FLATTEN PAPER` | Inhibits entries, then asks the active worker to cancel entry orders and close positions safely |
 | `CLEAR` | `CLEAR PAPER EMERGENCY` | Clears only emergency flags after fresh critical health checks pass and the running recovered worker reconciles |
 | `REVIEW_WORKER` | `REVIEW PAPER WORKER` | Reviews a flat, reconciled worker after fresh health checks, discards unexecuted approved decisions and closes interrupted producer claims as stand-downs |
+| `RECOVER_WORKER` | `RECOVER PAPER WORKER` | Restores supervision after an interruption, keeping entries durably disabled and requiring separate review |
 
 An action requires owner authentication and is attributed to that owner in the
 audit chain. Flags live in the existing database singleton, are checked during
@@ -44,6 +45,20 @@ after synchronization/reconciliation, for the remaining position quantity only.
 Each replacement has a distinct idempotency key and recorded predecessor.
 Pending/unknown exits are never blindly replaced. Journals aggregate all exit
 fills and link all attempts, including partial fills before cancellation.
+
+After a storage interruption, `RECOVER_WORKER` serializes with the running worker,
+persists entry inhibition, reconciles the persisted PAPER broker and independently
+checks protection. It may synchronize pending fills or protective exits. It does
+not certify continuous protection during the interruption. A successful recovery
+records an owner-attributed receipt and a fresh heartbeat without inventing a
+completed strategy cycle. Failure or cancellation leaves execution unready and
+entries blocked. A stopped worker must first be started normally.
+
+Recovery is not re-arming: the kill switch, risk latches, discrepancies and worker
+review requirement remain. Inspect positions/orders, resolve discrepancies, then
+use the separate `REVIEW_WORKER` action when flat and reconciled. Emergency
+clearance and any risk reset retain their independent checks. Never edit database
+flags to bypass these steps.
 
 Current limitations: PAPER only, no standalone emergency CLI, no automatic
 replay of an unavailable-worker flatten request, and existing pending exits are

@@ -250,14 +250,14 @@ class PaperWorker:
             )
         return f"PAPER_WORKER_REVIEW_REQUIRED; {detail}" if self.failed else detail
 
-    async def _heartbeat(self):
+    async def _heartbeat(self, *, beat_at=None):
         async with db_session.session_scope() as session:
             row = await session.get(Heartbeat, "paper-worker")
             previous = row.detail if row else None
             if row is None:
                 row = Heartbeat(id="paper-worker")
                 session.add(row)
-            row.beat_at = self.last_cycle
+            row.beat_at = beat_at or self.last_cycle
             row.process_id = str(os.getpid())
             row.detail = {
                 "failed": self.failed,

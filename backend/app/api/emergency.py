@@ -1,5 +1,6 @@
 """Authenticated typed-confirmation PAPER emergency controls."""
 
+import asyncio
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
@@ -12,6 +13,7 @@ from app.emergency.audit import record_refusal
 from app.emergency.controls import EmergencyControls
 from app.emergency.flatten import flatten
 from app.modes import TradingMode
+from app.trading.recover import recover_worker
 from app.trading.review import review_worker
 from app.trading.worker import active_worker
 
@@ -19,7 +21,9 @@ router = APIRouter(prefix="/emergency", tags=["emergency"])
 
 
 class EmergencyAction(EvidenceModel):
-    action: Literal["KILL", "DISABLE_ENTRIES", "FLATTEN", "CLEAR", "REVIEW_WORKER"]
+    action: Literal[
+        "KILL", "DISABLE_ENTRIES", "FLATTEN", "CLEAR", "REVIEW_WORKER", "RECOVER_WORKER"
+    ]
     reason: str = Field(min_length=10, max_length=500)
     confirmation: str
 
@@ -61,6 +65,7 @@ async def execute(body: EmergencyAction, actor: str):
     if get_settings().trading_mode != TradingMode.PAPER:
         raise HTTPException(423, "Only PAPER controls are implemented")
     phrases = {
+        "RECOVER_WORKER": "RECOVER PAPER WORKER",
         "REVIEW_WORKER": "REVIEW PAPER WORKER",
         "CLEAR": "CLEAR PAPER EMERGENCY",
         "KILL": "KILL PAPER",
@@ -69,6 +74,14 @@ async def execute(body: EmergencyAction, actor: str):
     }
     if body.confirmation != phrases[body.action]:
         raise HTTPException(422, "Typed emergency confirmation does not match")
+    if body.action == "RECOVER_WORKER":
+        await asyncio.wait_for(
+            recover_worker(active_worker(), actor=actor, reason=body.reason), timeout=20
+        )
+        state = await EmergencyControls().restore()
+        return EmergencyResult(
+            **state, execution="WORKER_RECOVERED_ENTRIES_REMAIN_DISABLED", outcomes=[]
+        )
     if body.action == "REVIEW_WORKER":
         reviewed = await review_worker(active_worker(), actor=actor, reason=body.reason)
         state = await EmergencyControls().restore()

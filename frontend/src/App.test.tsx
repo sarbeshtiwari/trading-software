@@ -5,7 +5,10 @@ import { Api } from './api';
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-test('emergency UI requires typed confirmation and reports unavailable flatten honestly', async () => {
+test.each([
+  { action: 'FLATTEN', confirmation: 'FLATTEN PAPER', execution: 'WORKER_UNAVAILABLE_FLATTEN_NOT_EXECUTED' },
+  { action: 'RECOVER_WORKER', confirmation: 'RECOVER PAPER WORKER', execution: 'WORKER_RECOVERED_ENTRIES_REMAIN_DISABLED' },
+])('emergency UI requires typed confirmation and reports $action honestly', async ({ action, confirmation, execution }) => {
   const workspace = { trading_mode: 'PAPER', generated_at: '2026-09-21T04:30:00Z',
     new_entries_allowed: false, blockers: [], broker_verification: 'GROWW_LIVE_UNVERIFIED',
     account: null, account_status: 'UNAVAILABLE', regime_status: 'UNAVAILABLE',
@@ -15,22 +18,23 @@ test('emergency UI requires typed confirmation and reports unavailable flatten h
     if (url.endsWith('/auth/refresh')) body = { access_token: 'isolated-ui-token' };
     else if (url.endsWith('/risk')) body = { status: 'UNAVAILABLE', limits: null, latches: {} };
     else if (url.endsWith('/emergency')) body = init?.method === 'POST'
-      ? { entries_blocked: true, kill_switch: false, execution: 'WORKER_UNAVAILABLE_FLATTEN_NOT_EXECUTED', outcomes: [] }
+      ? { entries_blocked: true, kill_switch: false, execution, outcomes: [] }
       : { entries_blocked: false, kill_switch: false, execution: 'STATE_ONLY', outcomes: [] };
     return new Response(JSON.stringify(body), { status: 200 });
   });
   vi.stubGlobal('fetch', fetcher);
   render(<App />);
   fireEvent.click(await screen.findByRole('button', { name: 'Risk' }));
-  fireEvent.change(await screen.findByLabelText('Emergency action'), { target: { value: 'FLATTEN' } });
+  fireEvent.change(await screen.findByLabelText('Emergency action'), { target: { value: action } });
   const execute = screen.getByRole('button', { name: 'Execute authenticated emergency action' });
   expect(execute).toBeDisabled();
   fireEvent.change(screen.getByLabelText('Emergency reason'), { target: { value: 'Owner requests safe paper flatten' } });
-  fireEvent.change(screen.getByLabelText('Type FLATTEN PAPER'), { target: { value: 'FLATTEN PAPER' } });
+  fireEvent.change(screen.getByLabelText(`Type ${confirmation}`), { target: { value: confirmation } });
   fireEvent.click(execute);
-  expect(await screen.findByText('WORKER_UNAVAILABLE_FLATTEN_NOT_EXECUTED')).toBeInTheDocument();
+  expect(await screen.findByText(execution)).toBeInTheDocument();
   const submitted = fetcher.mock.calls.find(([url, init]) => url.endsWith('/emergency') && init?.method === 'POST');
-  expect(JSON.parse(submitted![1]!.body as string)).toEqual({ action: 'FLATTEN', reason: 'Owner requests safe paper flatten', confirmation: 'FLATTEN PAPER' });
+  expect(JSON.parse(submitted![1]!.body as string)).toEqual({ action, reason: 'Owner requests safe paper flatten', confirmation });
+  expect(screen.getByText(/It always disables entries/)).toBeInTheDocument();
   expect(screen.queryByText('All positions closed')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Positions' }));
   expect(screen.getByText('102')).toBeInTheDocument();
