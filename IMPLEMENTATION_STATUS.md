@@ -6007,3 +6007,30 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   PostgreSQL, Redis and Edge enabled for the accumulated reconciliation changes.
   Observe the exact process to completion; then fix failures or continue remaining
   recovery acceptance. Do not restart a quiet test process.
+
+### Full reconciliation acceptance running (2026-10-03)
+
+- Recovery checkpoint **a67ce3d880ea52dcb5ee882cf508a5f5271c3282** is pushed and
+  remote-verified on origin/main with the owner identity only, no co-author.
+- Complete backend suite is running as session **82429** with actual PostgreSQL,
+  Redis and Edge enabled. Log: `backend/logs/full-reconciliation-checkpoint.txt`.
+  No final result yet. Source/tests are frozen; documentation-only updates allowed.
+- Poll this exact session until authoritative completion. Do not restart on quiet
+  output or observation timeout. Last whole-suite result remains 1699 passed;
+  current scoped regression is 792 passed, frontend 62 passed/build successful.
+
+### Full reconciliation acceptance completed (2026-10-03)
+
+- Session **82429 is finished**: **1721 passed / 0 failed / 0 skipped**, three
+  existing warnings, 1h08m26s. PostgreSQL, Redis and Edge acceptance were enabled;
+  log `backend/logs/full-reconciliation-checkpoint.txt`. Source/tests stayed frozen.
+  Do not restart or poll this completed session. This supersedes the 1699 baseline.
+- PAPER recovery, owner discrepancy review, FIFO/order mismatch evidence and
+  refusal accounting now have full regression coverage. This does not establish
+  live Groww execution, external notification delivery or all recovery requirements.
+  Frontend remains **62 passed**, production build successful.
+- Counts unchanged **228 verified / 142 partial / 10 unverified / 153 not
+  started**. No M1/M2 completion claim. Next: inspect orphan-position recovery and
+  its relationship to the existing journal/proposal/accounting constraints before
+  selecting the next integrated recovery change; preserve broker evidence and
+  never invent historical fills, costs, P&L or proposal attribution.
