@@ -1748,6 +1748,48 @@
         }
       }
     },
+    "/api/v1/reconciliation/orphans/{identifier}/recovery-plan": {
+      "get": {
+        "tags": [
+          "reconciliation"
+        ],
+        "summary": "Orphan Recovery Plan",
+        "operationId": "orphan_recovery_plan_api_v1_reconciliation_orphans__identifier__recovery_plan_get",
+        "parameters": [
+          {
+            "name": "identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionRecoveryPlan"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reconciliation": {
       "get": {
         "tags": [
@@ -13502,6 +13544,116 @@
         ],
         "title": "PollState"
       },
+      "PositionRecoveryPlan": {
+        "properties": {
+          "orphan_position_id": {
+            "type": "string",
+            "title": "Orphan Position Id"
+          },
+          "original_position_id": {
+            "type": "string",
+            "title": "Original Position Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "average_price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Average Price"
+          },
+          "gross_realised_pnl": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Gross Realised Pnl"
+          },
+          "recorded_charges": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Recorded Charges"
+          },
+          "charges_complete": {
+            "type": "boolean",
+            "title": "Charges Complete"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opened At"
+          },
+          "lots": {
+            "items": {
+              "$ref": "#/components/schemas/RecoveryLot"
+            },
+            "type": "array",
+            "title": "Lots"
+          },
+          "source_fill_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Fill Ids"
+          },
+          "source_audit_hashes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Audit Hashes"
+          },
+          "orphan_review_hash": {
+            "type": "string",
+            "title": "Orphan Review Hash"
+          },
+          "plan_hash": {
+            "type": "string",
+            "title": "Plan Hash"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blockers",
+            "default": [
+              "BROKER_STATE_REVALIDATION_REQUIRED",
+              "PROTECTION_RECONSTRUCTION_REQUIRED",
+              "EXPLICIT_RESTORATION_REQUIRED",
+              "ENTRIES_BLOCKED"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "Verified historical accounting plan only; no repair or trading authorization."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "orphan_position_id",
+          "original_position_id",
+          "proposal_id",
+          "quantity",
+          "average_price",
+          "gross_realised_pnl",
+          "recorded_charges",
+          "charges_complete",
+          "opened_at",
+          "lots",
+          "source_fill_ids",
+          "source_audit_hashes",
+          "orphan_review_hash",
+          "plan_hash"
+        ],
+        "title": "PositionRecoveryPlan"
+      },
       "PositionView": {
         "properties": {
           "id": {
@@ -14148,6 +14300,31 @@
           "blocked"
         ],
         "title": "RecordedHealth"
+      },
+      "RecoveryLot": {
+        "properties": {
+          "source_fill_id": {
+            "type": "string",
+            "title": "Source Fill Id"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "price": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Price"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_fill_id",
+          "quantity",
+          "price"
+        ],
+        "title": "RecoveryLot"
       },
       "ReferenceInputs": {
         "properties": {

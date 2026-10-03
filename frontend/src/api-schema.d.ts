@@ -516,6 +516,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reconciliation/orphans/{identifier}/recovery-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Orphan Recovery Plan */
+        get: operations["orphan_recovery_plan_api_v1_reconciliation_orphans__identifier__recovery_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reconciliation": {
         parameters: {
             query?: never;
@@ -4480,6 +4497,55 @@ export interface components {
             status: "NOT_POLLED" | "PENDING" | "DEGRADED" | "ACQUIRED_UNVERIFIED" | "EMPTY" | "STALE";
             result?: components["schemas"]["PollResult"] | null;
         };
+        /** PositionRecoveryPlan */
+        PositionRecoveryPlan: {
+            /** Orphan Position Id */
+            orphan_position_id: string;
+            /** Original Position Id */
+            original_position_id: string;
+            /** Proposal Id */
+            proposal_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Average Price */
+            average_price: string;
+            /** Gross Realised Pnl */
+            gross_realised_pnl: string;
+            /** Recorded Charges */
+            recorded_charges: string;
+            /** Charges Complete */
+            charges_complete: boolean;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Lots */
+            lots: components["schemas"]["RecoveryLot"][];
+            /** Source Fill Ids */
+            source_fill_ids: string[];
+            /** Source Audit Hashes */
+            source_audit_hashes: string[];
+            /** Orphan Review Hash */
+            orphan_review_hash: string;
+            /** Plan Hash */
+            plan_hash: string;
+            /**
+             * Blockers
+             * @default [
+             *       "BROKER_STATE_REVALIDATION_REQUIRED",
+             *       "PROTECTION_RECONSTRUCTION_REQUIRED",
+             *       "EXPLICIT_RESTORATION_REQUIRED",
+             *       "ENTRIES_BLOCKED"
+             *     ]
+             */
+            blockers: string[];
+            /**
+             * Scope
+             * @default Verified historical accounting plan only; no repair or trading authorization.
+             */
+            scope: string;
+        };
         /** PositionView */
         PositionView: {
             /** Id */
@@ -4703,6 +4769,15 @@ export interface components {
             missing: string[];
             /** Blocked */
             blocked: string[];
+        };
+        /** RecoveryLot */
+        RecoveryLot: {
+            /** Source Fill Id */
+            source_fill_id: string;
+            /** Quantity */
+            quantity: number;
+            /** Price */
+            price: string;
         };
         /** ReferenceInputs */
         ReferenceInputs: {
@@ -7016,6 +7091,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrphanReview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    orphan_recovery_plan_api_v1_reconciliation_orphans__identifier__recovery_plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionRecoveryPlan"];
                 };
             };
             /** @description Validation Error */

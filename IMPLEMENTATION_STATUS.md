@@ -1,7 +1,7 @@
 # IMPLEMENTATION_STATUS.md
 
 **Project:** AI-Assisted Indian Equity & F&O Trading System (ATS)
-**Last updated:** 2026-10-02
+**Last updated:** 2026-10-03
 **Trading mode of record:** `PAPER` (no other mode can be reached — LIVE has no arming path yet)
 
 > This file always reflects the REAL state of the project (execution contract §4).
@@ -6101,3 +6101,33 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   from genuinely unavailable execution history. Restore only what authoritative
   evidence proves; do not create synthetic entry trades or clear accounting blockers
   merely because the owner acknowledged discovery.
+
+### Source-backed historical orphan recovery plan (2026-10-03)
+
+- Prior checkpoint **4d3112bc6a826014b1bb6862887624c813f28cb1** is published on
+  origin/main. Authenticated Monitoring now inspects a typed historical recovery
+  plan through GET `/api/v1/reconciliation/orphans/{id}/recovery-plan`.
+- Planning requires acknowledged orphan evidence, a unique original position
+  lineage, intact order/fill audit chains, complete recorded fill totals and
+  agreement with the adopted quantity/cost basis. Existing FIFO replay derives
+  remaining lots, gross realised P&L and recorded charges. Missing fees remain
+  explicitly incomplete; recorded estimates are not verified broker billing.
+- The plan is read-only. It creates no position, fill or order, does not repair
+  protection, and does not clear entry gates. Refresh removes stale displayed
+  plans. Fresh broker revalidation, protection reconstruction and explicit
+  restoration remain mandatory next steps; REC-005 remains partial.
+- Broad unit/safety/PAPER/recovery regression **788 passed / 0 failed / 0 skipped**,
+  one existing warning; session 95346 finished, authoritative log
+  `backend/logs/recovery-plan-regression.txt`. Plan-specific tests **7 passed**,
+  actual PostgreSQL temporary-table parity **1 passed**, Edge/API/orphan selection
+  **9 passed**. Frontend **65 passed**, generated contract and build successful.
+  These scoped runs do not replace the last full-suite baseline of **1721 passed**.
+- An initial adversarial test attempted a database-forbidden overfilled order;
+  the constraint correctly refused it. The fixture now tampers within that
+  constraint so application-level evidence validation is actually exercised.
+- Counts unchanged: **228 verified / 143 partial / 10 unverified / 152 not started**.
+  No external notification, live Groww or M1/M2 completion claim.
+- Exact next task: reconstruct original protection from approved proposal/risk
+  and subsequent audited stop changes, then implement explicit source-backed
+  restoration with fresh broker checks. Preserve adopted observation history;
+  never invent entry trades or clear blockers on acknowledgment alone.

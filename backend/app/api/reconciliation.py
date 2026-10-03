@@ -13,7 +13,7 @@ from app.core.clock import get_clock
 from app.core.errors import SafetyError
 from app.db import session as db_session
 from app.db.models.system import Discrepancy
-from app.execution import discrepancies, orphan_review
+from app.execution import discrepancies, orphan_review, position_recovery
 from app.modes import TradingMode
 from app.trading.worker import active_worker
 
@@ -93,6 +93,23 @@ async def acknowledge_orphan(identifier: str, body: ResolveRequest, request: Req
         raise HTTPException(409, "Orphan evidence changed or invalid; review again") from None
     except Exception:
         raise HTTPException(503, "Acknowledgment unavailable; inspect current state") from None
+
+
+@router.get(
+    "/orphans/{identifier}/recovery-plan", response_model=position_recovery.PositionRecoveryPlan
+)
+async def orphan_recovery_plan(identifier: str):
+    require_paper()
+    try:
+        return await asyncio.wait_for(position_recovery.build(
+            identifier, get_clock().utcnow(), get_settings().dashboard_username
+        ), timeout=15)
+    except SafetyError as error:
+        raise HTTPException(409, error.message) from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(409, "Recovery evidence malformed or unavailable") from None
+    except Exception:
+        raise HTTPException(503, "Recovery planning unavailable") from None
 
 
 @router.get("", response_model=DiscrepancyPage)

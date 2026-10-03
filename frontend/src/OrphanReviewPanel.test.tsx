@@ -32,3 +32,18 @@ test('unavailable orphan evidence is not shown as successful empty recovery', as
   expect(await screen.findByRole('alert')).toHaveTextContent('ORPHAN REVIEW UNAVAILABLE');
   expect(screen.queryByText(/No recorded orphans/)).not.toBeInTheDocument();
 });
+
+test('recovery inspection is read-only and clears the old plan on refresh', async () => {
+  const item = { position_id: 'orphan-1', acknowledged: true, acknowledged_by: 'owner', blockers: ['ENTRIES_BLOCKED'] };
+  const fetcher = vi.fn(async (url: string, _options?: RequestInit) => new Response(JSON.stringify(
+    url.includes('/recovery-plan') ? { original_position_id: 'original-1', quantity: 150, gross_realised_pnl: '400' }
+      : { items: [item], has_more: false }
+  )));
+  vi.stubGlobal('fetch', fetcher);
+  render(<OrphanReviewPanel api={new Api()} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Inspect recovery plan orphan-1' }));
+  expect(await screen.findByRole('region', { name: 'Verified historical recovery plan' })).toHaveTextContent('does not restore the position or arm trading');
+  expect(fetcher.mock.calls.every(([, options]) => !options?.method || options.method === 'GET')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh orphan evidence' }));
+  expect(screen.queryByRole('region', { name: 'Verified historical recovery plan' })).not.toBeInTheDocument();
+});

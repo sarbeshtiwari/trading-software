@@ -21,6 +21,11 @@ try {
   await panel.getByLabel('Type ACKNOWLEDGE PAPER ORPHAN').fill('ACKNOWLEDGE PAPER ORPHAN');
   await panel.getByRole('button', { name: 'Record orphan acknowledgment', exact: true }).click();
   await panel.getByRole('status').filter({ hasText: 'Entries remain blocked' }).waitFor();
+  await panel.getByRole('button', { name: /^Inspect recovery plan / }).click();
+  const recovery = panel.getByRole('region', { name: 'Verified historical recovery plan' });
+  await recovery.waitFor();
+  assert.match(await recovery.innerText(), /original_position_id/);
+  assert.match(await recovery.innerText(), /does not restore the position or arm trading/);
   await page.reload();
   await page.getByText('UNAVAILABLE_ADOPTED_POSITION_ACCOUNTING', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Monitoring', exact: true }).click();
