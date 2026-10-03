@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 143 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 152 | |
+| `[~]` In progress | 145 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 150 | |
 | **Total** | **533** | |
 
 ---
@@ -6261,3 +6261,33 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: verify PAPER process-restart recovery across a real subprocess boundary,
   preserving persisted orders/fills/protection and refusing duplicate execution.
   Existing new-executor tests are not evidence of an actual process restart.
+
+### Actual PAPER process-crash and restart acceptance (2026-10-03)
+
+- Full-suite evidence checkpoint **e3179e17fd0976f910cf98a19cfc7c28ceddfe80** is
+  pushed and remote-verified under the configured owner identity only.
+- Added a tests-only subprocess driver using the production PAPER worker,
+  executor, persisted broker, stored quote/audit reader and deterministic clock.
+  No parallel trading implementation or live broker calls. Actual child termination
+  occurs after recovery while a position or pending order exists; another child
+  recovers the same database/entry identity and closes through the real OMS.
+- Both scenarios pass on SQLite and disposable migrated PostgreSQL databases in
+  the existing server: **4 passed / 0 failed / 0 skipped**. Owner data is untouched;
+  fixture databases are dropped only after tracked child cleanup. Assertions cover
+  released OS lock, duplicate-entry prevention, exactly two lifecycle fills,
+  position closure, charges and gross/net journal linkage.
+- Related execution/reference-worker/reference-exit/protection regression **31
+  passed / 0 failed / 0 skipped**, session 20681 finished. New helpers/tests pass
+  Ruff and diff checks. Frontend unchanged: prior **66 passed**, build successful.
+  Latest whole-suite remains **1750 passed**; the new four cases are scoped evidence,
+  not a new whole-suite total. No production source changed in this unit.
+- Initial attempts exposed sandbox Windows subprocess-pipe restrictions and a
+  test readiness marker that failed to normalize CRLF; elevated isolated execution
+  and normalized marker comparison fixed the harness. PostgreSQL fixture metadata
+  import was corrected before final acceptance. No safety gate was bypassed.
+- REC-007/008 move only to partial. Counts **228 verified / 145 partial / 10
+  unverified / 150 not started**. This is application-process restart evidence,
+  not server/network/database restart, every interruption point or M2 validation.
+- Next: inspect database connection-loss recovery and fail-closed worker state.
+  Exercise isolated PostgreSQL connections without restarting the owner's service;
+  distinguish connection recovery from a genuine database/server restart claim.

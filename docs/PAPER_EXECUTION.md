@@ -109,3 +109,19 @@ Retrying the same completed request returns its historical receipt, not fresh
 trading authorization. Notification intent and both audit links commit atomically
 with reconstruction; external delivery is not verified. Truly missing execution
 history and broader multi-process recovery remain unsupported, fail-closed cases.
+
+## Process-crash acceptance scope
+
+`tests/integration/test_process_recovery.py` terminates a real child process after
+the production PAPER worker has recovered an open position or pending order. A
+second child reopens the same database, acquires the released OS lock, recovers the
+same entry identity, processes outstanding fills and exits through the real OMS.
+Assertions verify exactly one entry, two lifecycle fills, closure, charge estimates
+and net/gross journal linkage. Market data is explicitly synthetic fixture input
+persisted through the existing ingestion/audit path; no live broker is contacted.
+
+Both SQLite and isolated PostgreSQL databases on the existing server are covered.
+PostgreSQL variants require `ATS_TEST_POSTGRES_URL`; generated test databases are
+migrated, populated only with fixture state, and removed after child cleanup.
+This verifies application process restart, not server restart, database restart,
+network outage, every possible interruption point or time-based PAPER validation.
