@@ -268,9 +268,9 @@ class Position(TimestampMixin, Base):
     bought_quantity: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     sold_quantity: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
 
-    realised_pnl: Mapped[Decimal] = mapped_column(MONEY, nullable=False, default=0)
-    unrealised_pnl: Mapped[Decimal] = mapped_column(MONEY, nullable=False, default=0)
-    total_charges: Mapped[Decimal] = mapped_column(MONEY, nullable=False, default=0)
+    realised_pnl: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True, default=0)
+    unrealised_pnl: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True, default=0)
+    total_charges: Mapped[Optional[Decimal]] = mapped_column(MONEY, nullable=True, default=0)
     last_price: Mapped[Optional[Decimal]] = mapped_column(PRICE, nullable=True)
     marked_at: Mapped[Optional[datetime]] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
@@ -310,5 +310,9 @@ class Position(TimestampMixin, Base):
         return self.state in (PositionState.OPEN, PositionState.ADOPTED) and self.net_quantity != 0
 
     @property
-    def net_pnl(self) -> Decimal:
+    def net_pnl(self) -> Optional[Decimal]:
+        if any(value is None for value in (
+            self.realised_pnl, self.unrealised_pnl, self.total_charges
+        )):
+            return None
         return self.realised_pnl + self.unrealised_pnl - self.total_charges

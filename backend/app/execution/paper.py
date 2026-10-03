@@ -45,7 +45,7 @@ from app.db.models.journal import JournalEntry
 from app.db.models.system import SINGLETON_ID, PortfolioSnapshot, SystemState
 from app.db.models.trading import Order, Position, Trade
 from app.emergency.rejections import observe_rejection
-from app.execution import discrepancies
+from app.execution import discrepancies, orphans
 from app.execution.event_types import PAPER_EVENT_TYPES
 from app.execution.expiry import warn_expiring_positions
 from app.execution.freshness import require_entry_sources
@@ -284,6 +284,7 @@ class PaperExecution:
         self.ready = False
         self.gate.block("paper_recovery", "PAPER_RECONCILE_REQUIRED")
         await self.broker.connect()
+        await self._discover_orphans()
         async with db_session.session_scope() as session:
             orders = list(
                 (
@@ -333,6 +334,8 @@ class PaperExecution:
                     )
                 ).all()
             )
+            if any(position.adopted_from_broker for position in positions):
+                raise SafetyError("ADOPTED_POSITION_ACCOUNTING_UNAVAILABLE")
             future_fill = await session.scalar(
                 sa.select(Trade.id)
                 .where(Trade.mode == TradingMode.PAPER, Trade.executed_at > as_of)
@@ -1169,6 +1172,8 @@ class PaperExecution:
             position = await session.get(Position, position_id, with_for_update=True)
             if position is None or position.mode != TradingMode.PAPER:
                 raise SafetyError("PAPER_POSITION_REQUIRED")
+            if position.adopted_from_broker:
+                raise SafetyError("ADOPTED_POSITION_REQUIRES_HISTORY_AND_PROTECTION_RECOVERY")
             entry = await session.get(Order, stable_id("ord", "entry:" + position.proposal_id))
             existing = await self._latest_exit(session, position.id)
         if existing:
@@ -1534,7 +1539,19 @@ class PaperExecution:
             raise
         await incidents.observe("RECONCILIATION_DISCREPANCY", active=result is False)
 
+    async def _discover_orphans(self):
+        remote = await self.broker.get_positions()
+        async with db_session.session_scope() as session:
+            found = await orphans.discover(session, remote, self.clock)
+            adopted = await session.scalar(sa.select(Position.id).where(
+                Position.mode == TradingMode.PAPER, Position.adopted_from_broker.is_(True)
+            ).limit(1))
+        if found or adopted:
+            self.gate.block("paper_orphans", "ORPHAN_POSITION_OWNER_RECOVERY_REQUIRED")
+            raise SafetyError("ORPHAN_POSITION_OWNER_RECOVERY_REQUIRED")
+
     async def _reconcile_state(self, *, allow_review_pending=False):
+        await self._discover_orphans()
         remote_orders = await self.broker.list_orders()
         async with db_session.session_scope() as session:
             local_orders = list(await session.scalars(

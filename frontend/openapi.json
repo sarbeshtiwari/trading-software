@@ -13392,8 +13392,15 @@
             "default": "UNAVAILABLE"
           },
           "realised_pnl": {
-            "type": "string",
-            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Realised Pnl"
           },
           "unrealised_pnl": {
@@ -13407,6 +13414,16 @@
               }
             ],
             "title": "Unrealised Pnl"
+          },
+          "adopted_from_broker": {
+            "type": "boolean",
+            "title": "Adopted From Broker",
+            "default": false
+          },
+          "accounting_status": {
+            "type": "string",
+            "title": "Accounting Status",
+            "default": "RECORDED"
           },
           "mode": {
             "type": "string",
@@ -17929,7 +17946,8 @@
             "type": "string",
             "enum": [
               "SNAPSHOT_ONLY",
-              "UNAVAILABLE"
+              "UNAVAILABLE",
+              "UNAVAILABLE_ADOPTED_POSITION_ACCOUNTING"
             ],
             "title": "Account Status"
           },

@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 142 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 153 | |
+| `[~]` In progress | 143 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 152 | |
 | **Total** | **533** | |
 
 ---
@@ -6034,3 +6034,39 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   its relationship to the existing journal/proposal/accounting constraints before
   selecting the next integrated recovery change; preserve broker evidence and
   never invent historical fills, costs, P&L or proposal attribution.
+
+### PAPER orphan adoption and honest unavailable accounting (2026-10-03)
+
+- Full acceptance checkpoint **1c782a33922d341685283167b85fa4aa5dd46726** is
+  pushed and remote-verified. Recovery/reconciliation now discover broker positions
+  missing locally, distinguish pending-order synchronization, and adopt exactly
+  mapped instruments as ADOPTED with broker quantity/cost basis and flagged origin.
+  No fabricated fills, opening timestamp, strategy/proposal lineage or accounting.
+  Unknown instrument mappings remain explicit discrepancy evidence, not fake instruments.
+- Adoption, audit, critical notification intent and discrepancy commit atomically;
+  notification persistence failure rolls back adoption. Repeated startup preserves
+  one adopted row/audit. Risk approval, account calculation and normal execution
+  refuse until history/protection recovery. An orphan cannot be silently closed
+  through a proposal path that lacks its history. External delivery is unverified.
+- Migration **0018_orphan_accounting** permits NULL position P&L/charges, preserving
+  ordinary known zero defaults. Downgrade refuses existing unavailable accounting
+  rather than fabricating zeros. Disposable PostgreSQL upgrade/downgrade/schema
+  check passed; actual temporary-table adoption and downgrade-refusal passed.
+  Verified migration applied to existing PostgreSQL; `alembic check` reports no drift.
+- Existing Dashboard/Positions show ADOPTED, unknown P&L and unavailable account
+  accounting. Adopted rows are prioritized; database-wide presence suppresses stale
+  aggregate display even beyond the view limit. Real Edge reload acceptance passed.
+- PostgreSQL/API/restart/browser selection **3 passed**, fresh migration **1 passed**;
+  normal execution selection **15 passed**. Broad unit/safety/reference-worker/
+  reconciliation regression **799 passed / 0 failed / 0 skipped**, one existing
+  warning, session 44451 finished; `backend/logs/orphan-adoption-regression.txt`.
+  Frontend **62 passed**, types/build successful. Development tests caught incorrect
+  enum imports and the new account-status literal missing from its response schema;
+  both corrected before passing acceptance. New modules/tests pass Ruff.
+- REC-005 is partial only. Counts **228 verified / 143 partial / 10 unverified /
+  152 not started**. Last whole-suite remains 1721; no new whole-suite, M1/M2 or
+  Groww LIVE claim. No live broker orders were submitted.
+- Exact next task: authenticated/audited orphan acknowledgment and explicit recovery
+  planning in the existing operational UI, without treating acknowledgment as
+  accounting repair or re-arm. Then implement source-evidenced protection/closure
+  recovery; arbitrary clearing of adopted flags or inventing entry fills is forbidden.

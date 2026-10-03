@@ -57,8 +57,10 @@ class PositionView(Row):
     trailing_stop_price: Decimal | None
     is_protected: bool
     watchdog_observation: str = "UNAVAILABLE"
-    realised_pnl: Decimal
+    realised_pnl: Decimal | None
     unrealised_pnl: Decimal | None
+    adopted_from_broker: bool = False
+    accounting_status: str = "RECORDED"
     mode: str
     execution_realism: str
 
@@ -251,7 +253,9 @@ class WorkspaceView(BaseModel):
     blockers: list[str]
     broker_verification: Literal["GROWW_LIVE_UNVERIFIED"]
     account: AccountView | None
-    account_status: Literal["SNAPSHOT_ONLY", "UNAVAILABLE"]
+    account_status: Literal[
+        "SNAPSHOT_ONLY", "UNAVAILABLE", "UNAVAILABLE_ADOPTED_POSITION_ACCOUNTING"
+    ]
     regime_status: str
     regime: RegimeView | None = None
     positions: list[PositionView]
@@ -313,9 +317,14 @@ async def workspace():
             .order_by(PortfolioSnapshot.ts.desc(), PortfolioSnapshot.id.desc())
             .limit(1)
         )
+        adopted_exists = bool(await session.scalar(sa.select(Position.id).where(
+            Position.mode == mode, Position.adopted_from_broker.is_(True)
+        ).limit(1)))
         positions = list(
             (
-                await session.scalars(sa.select(Position).where(Position.mode == mode).limit(200))
+                await session.scalars(sa.select(Position).where(Position.mode == mode)
+                                      .order_by(Position.adopted_from_broker.desc(), Position.id)
+                                      .limit(200))
             ).all()
         )
         orders = list(
@@ -408,6 +417,10 @@ async def workspace():
     for position in positions:
         view = PositionView.model_validate(position)
         view.watchdog_observation = protection_states[position.id]
+        if position.adopted_from_broker:
+            view.accounting_status = "UNAVAILABLE_HISTORY_NOT_RECONSTRUCTED"
+            view.realised_pnl = None
+            view.unrealised_pnl = None
         if position.marked_at is None or position.last_price is None:
             view.unrealised_pnl = None
         position_views.append(view)
@@ -461,12 +474,17 @@ async def workspace():
     return WorkspaceView(
         trading_mode=mode.value,
         generated_at=now.astimezone(UTC),
-        new_entries_allowed=gate.new_entries_allowed,
+        new_entries_allowed=gate.new_entries_allowed and not adopted_exists,
         trading_enabled=gate.trading_enabled,
-        blockers=list(gate.state.reasons),
+        blockers=list(gate.state.reasons) + (
+            ["ADOPTED_POSITION_OWNER_RECOVERY_REQUIRED"] if adopted_exists else []
+        ),
         broker_verification="GROWW_LIVE_UNVERIFIED",
-        account=AccountView.model_validate(account) if account else None,
-        account_status="SNAPSHOT_ONLY" if account else "UNAVAILABLE",
+        account=AccountView.model_validate(account)
+        if account and not adopted_exists else None,
+        account_status="UNAVAILABLE_ADOPTED_POSITION_ACCOUNTING"
+        if adopted_exists
+        else ("SNAPSHOT_ONLY" if account else "UNAVAILABLE"),
         regime_status=regime_status,
         regime=regime_view,
         positions=position_views,

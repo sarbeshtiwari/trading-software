@@ -19,6 +19,7 @@ from app.db import session as db_session
 from app.db.models.audit import AuditEvent
 from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.system import SINGLETON_ID, Discrepancy, SystemState
+from app.db.models.trading import Position
 from app.modes import TradingMode
 from app.monitoring.gate import get_trading_gate
 from app.notifications.outbox import enqueue
@@ -141,6 +142,11 @@ class RiskSafety:
             raise
 
     async def require_entries_in_session(self, session, market, limits, *, strategy_id=None):
+        adopted = await session.scalar(sa.select(Position.id).where(
+            Position.mode == market.mode, Position.adopted_from_broker.is_(True)
+        ).limit(1))
+        if adopted:
+            raise ValueError("adopted position accounting and protection require recovery")
         system = await session.get(SystemState, SINGLETON_ID)
         unresolved = await session.scalar(sa.select(Discrepancy.id).where(
             Discrepancy.kind == "PAPER_RECONCILIATION", Discrepancy.resolved.is_(False)

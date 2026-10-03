@@ -4433,9 +4433,19 @@ export interface components {
              */
             watchdog_observation: string;
             /** Realised Pnl */
-            realised_pnl: string;
+            realised_pnl: string | null;
             /** Unrealised Pnl */
             unrealised_pnl: string | null;
+            /**
+             * Adopted From Broker
+             * @default false
+             */
+            adopted_from_broker: boolean;
+            /**
+             * Accounting Status
+             * @default RECORDED
+             */
+            accounting_status: string;
             /** Mode */
             mode: string;
             /** Execution Realism */
@@ -5939,7 +5949,7 @@ export interface components {
              * Account Status
              * @enum {string}
              */
-            account_status: "SNAPSHOT_ONLY" | "UNAVAILABLE";
+            account_status: "SNAPSHOT_ONLY" | "UNAVAILABLE" | "UNAVAILABLE_ADOPTED_POSITION_ACCOUNTING";
             /** Regime Status */
             regime_status: string;
             regime?: components["schemas"]["RegimeView"] | null;
