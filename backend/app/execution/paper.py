@@ -145,7 +145,7 @@ def storage_guard(method):
     async def guarded(self, *args, **kwargs):
         try:
             return await method(self, *args, **kwargs)
-        except SQLAlchemyError:
+        except (SQLAlchemyError, OSError, asyncio.TimeoutError):
             self.ready = False
             self.gate.block("paper_storage", "PAPER_STORAGE_UNAVAILABLE_REVIEW_REQUIRED")
             raise

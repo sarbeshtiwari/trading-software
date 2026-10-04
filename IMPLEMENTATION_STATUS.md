@@ -6399,3 +6399,39 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   execution during the outage, owner recovery after connectivity returns,
   durable accounting and no duplicate orders. Do not stop/restart owner services
   or label a connection-loss test as database/server restart verification.
+
+### Isolated network-outage safety correction in progress (2026-10-04)
+
+- Full acceptance evidence **bcbfafc72492b5f5e63e684be02d5ad54342cb6b** is
+  pushed and remote-verified on origin/main, configured owner only.
+- A tests-only loopback TCP relay now interrupts actual connections to a
+  disposable PostgreSQL fixture database without stopping owner infrastructure.
+  The first actual outage test failed: connection refusal bypassed the
+  SQLAlchemy-only storage handler, leaving `executor.ready` true. No successful
+  outage acceptance is claimed from that run (`backend/logs/network-recovery.txt`).
+- The handler now also fails closed on OS connection errors and asyncio timeouts.
+  The test requires actual refusal, blocked entry, owner recovery and preserved
+  position accounting/order/fill counts. New test helpers pass Ruff; the existing
+  large execution module has nine pre-existing complexity/line-length findings,
+  not changed by this one-line handler correction.
+- Corrected network/PAPER execution/owner-recovery selection is running as
+  session **12567**, `backend/logs/network-recovery-corrected.txt`. Source/tests
+  are frozen until its result. No new commit or requirement promotion yet.
+  Last full suite remains **1762 passed**, predating this correction.
+
+### Real TCP outage and fail-closed correction verified (2026-10-04)
+
+- Session **12567 finished**: **21 passed / 0 failed / 0 skipped**, 2m35s,
+  covering the real PostgreSQL TCP outage plus PAPER execution and owner recovery.
+  The relay is tests-only, forwards actual bytes without recording/fabricating
+  traffic, closes its own sockets during the outage, and restores its same local
+  endpoint. Owner database/services are untouched; fixture database is disposable.
+- Actual OS connection refusal now marks execution unready and blocks the
+  existing proposal before submission. Owner recovery retains entry inhibition;
+  the original order, fill, quantity, realised P&L and charges remain unchanged.
+  REC-008 stays partial: this does not cover all broker-network faults or server/
+  database restart. Counts **228 verified / 145 partial / 10 unverified / 150
+  not started**. Frontend unchanged: **67 passed**, build successful.
+- Next: cover timeout and in-flight TCP disconnect boundaries, including failure
+  during owner recovery itself, using the same production lifecycle. Do not mask
+  interrupted test evidence or claim M1/M2 or Groww LIVE verification.
