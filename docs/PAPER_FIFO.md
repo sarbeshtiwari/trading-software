@@ -49,3 +49,24 @@ current quote and updating the position. This does not change FIFO lots or
 fabricate a fill. Closed positions do not require new market marks, and existing
 future-state checks remain authoritative. General derivative notional/net exposure
 and multi-position acceptance are not claimed complete by this guard.
+
+## Pending entry commitments
+
+Risk snapshots include the unfilled remainder of each nonterminal PAPER entry.
+Each commitment requires its audit-bound approved preflight and matching order
+identity, quantity, side, limit price, strategy and data origin. Missing or
+altered evidence fails closed instead of treating the pending order as free
+capacity. Cancelled/rejected/completed orders no longer reserve an unfilled part.
+
+Pending exposure and risk use the sealed per-unit preflight values. Available
+risk capital subtracts the pending margin plus fee-risk reserve from broker
+available margin; this is a conservative commitment, not a broker charge or fill.
+Partial fills move quantity into marked open exposure without counting the same
+proposal twice in position limits. Restart rebuilds commitments from durable
+orders and receipts. Long-option tests reserve full premium plus configured fee
+estimates, not an invented exchange margin.
+
+The existing single-lifecycle execution reservation remains in force. Snapshot
+metadata explicitly labels counts as open-and-pending lifecycles and exposure as
+open marks plus pending commitments. This is not generalized simultaneous-position
+execution, derivative underlying/delta notional, or LIVE reconciliation acceptance.

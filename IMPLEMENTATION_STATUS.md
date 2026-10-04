@@ -49,8 +49,8 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 |---|---|---|
 | `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 145 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 150 | |
+| `[~]` In progress | 146 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 149 | |
 | **Total** | **533** | |
 
 ---
@@ -6832,3 +6832,36 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: inspect exposure semantics for supported long options and pending capital
   reservations; verify the decision pipeline uses the same instrument/sector/
   underlying measures rather than claiming the generic portfolio contract done.
+
+### Pending PAPER entry commitments integrated (2026-10-04)
+
+- **5f768ffb75d12f5f5aaeae58a848fa02aef5a689** is pushed and remote-verified.
+- Production portfolio risk state now derives unfilled entry commitments from
+  audit-bound approved preflights, validates order/strategy/origin/side/price/time
+  linkage, and includes remaining exposure, risk and conservative margin/fee
+  reserves. Pending/open parts share one proposal lifecycle for position counts.
+  Cancellation releases only the unfilled commitment; fills remain actual fills.
+  Existing single-lifecycle execution serialization has not been removed.
+- Real PAPER tests verify pending counts by strategy, capacity release, restart,
+  partial-fill conservation and refusal of altered/future evidence. Long-option
+  pending fixture reserves 4 x 101 premium plus 12.28 configured estimated costs,
+  with no broker position or spent premium invented before fill. Snapshot metadata
+  identifies open-plus-pending count/exposure semantics.
+- Initial assertion used the generic 20% margin instead of fixture-approved
+  100/unit (11 passed / 1 failed); corrected to its explicit sealed input. The
+  option assertion initially reused filled-price 100 rather than pending ask 101
+  (35 passed / 1 failed); corrected from the existing fixture quote, not by changing
+  production calculations. Final account/option/time selection **36 passed / 0
+  failed / 0 skipped**, 67.98s, session 16473 finished. Final future/order-integrity
+  selection **6 passed / 0 failed / 0 skipped**, 11.95s, session 66718 finished.
+  Earlier execution/reference/option regression **44 passed**, session 42964.
+  Logs `backend/logs/pending-account-corrected.txt`, `pending-account-future.txt`,
+  `pending-account-regression.txt`. Changed new modules/tests pass Ruff.
+- PORT-004 advances from not started to **partial**, not verified: generalized
+  signed/net exposure, derivative underlying notional and multi-position execution
+  remain incomplete. Ledger count verified directly: **228 verified / 146 partial /
+  10 unverified / 149 not started = 533**. Full baseline **1792 passed** predates
+  scoped changes; frontend remains **67 passed/build successful**.
+- Next: verify pending commitments through durable snapshots/API and PostgreSQL
+  restart acceptance, then inspect the next missing integrated portfolio dependency.
+  PAPER default, Groww LIVE unverified, no M1/M2 or external delivery claim.

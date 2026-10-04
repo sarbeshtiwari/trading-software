@@ -385,6 +385,15 @@ async def verify_option_lifecycle(
     if pending:
         assert position is None
         assert worker.executor.broker.account.used_margin == 0
+        committed = await worker.executor.portfolio_state(
+            "long-option-breakout", DataOrigin.SYNTHETIC
+        )
+        assert committed.open_and_pending_positions == 1
+        assert committed.reserved_risk == Decimal("416.28")
+        assert sum(item.notional for item in committed.exposures) == Decimal(404)
+        assert committed.available_margin == (
+            worker.executor.broker.account.available_margin - Decimal("416.28")
+        )
     else:
         assert position.net_quantity == 4
         assert position.stop_loss_price == 96 and position.target_price == 400

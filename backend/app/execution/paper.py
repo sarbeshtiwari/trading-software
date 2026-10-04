@@ -64,6 +64,7 @@ from app.portfolio.costs import FeeSchedule, risk_cost_reserve
 from app.portfolio.fifo import Lot, match_fill
 from app.portfolio.fill_evidence import record_fill
 from app.portfolio.journal_integrity import bind_journal
+from app.portfolio.pending import pending_entries
 from app.risk.active import active_limits
 from app.risk.audit import RiskAudit
 from app.risk.engine import evaluate
@@ -376,6 +377,7 @@ class PaperExecution:
                     )
                 ).all()
             )
+            pending = await pending_entries(session, now=as_of, origin=data_origin)
         open_positions = [position for position in positions if position.net_quantity]
         if any(
             not trade.cost_breakdown or "fifo" not in trade.cost_breakdown for trade in day_trades
@@ -385,8 +387,8 @@ class PaperExecution:
             (Decimal(trade.cost_breakdown["fifo"]["realised_delta"]) for trade in day_trades),
             Decimal(0),
         )
-        exposures = []
-        reserved = Decimal(0)
+        exposures = [entry.exposure for entry in pending]
+        reserved = sum((entry.risk for entry in pending), Decimal(0))
         for position in open_positions:
             if (
                 position.last_price is None
@@ -419,12 +421,21 @@ class PaperExecution:
             peak_equity=max(account.starting_capital, account.equity, peaks or Decimal(0)),
             realised_day_pnl=realised - (day_charges or Decimal(0)),
             unrealised_day_pnl=account.unrealised_pnl(),
-            available_margin=max(Decimal(0), account.available_margin),
+            available_margin=max(
+                Decimal(0), account.available_margin - sum(
+                    (entry.margin for entry in pending), Decimal(0)
+                )
+            ),
             reserved_risk=reserved,
             exposures=tuple(exposures),
-            open_and_pending_positions=len(open_positions),
-            strategy_open_and_pending_positions=sum(
-                position.strategy_id == strategy_id for position in open_positions
+            open_and_pending_positions=len(
+                {position.proposal_id or position.id for position in open_positions}
+                | {entry.proposal_id for entry in pending}
+            ),
+            strategy_open_and_pending_positions=len(
+                {position.proposal_id or position.id for position in open_positions
+                 if position.strategy_id == strategy_id}
+                | {entry.proposal_id for entry in pending if entry.strategy_id == strategy_id}
             ),
             strategy_id=strategy_id,
             entries_blocked=False,
@@ -1532,6 +1543,8 @@ class PaperExecution:
                             "data_origin": context.market.data_origin.value,
                             "execution_realism": "SIMULATED",
                             "pnl_basis": "GROSS_WITH_SEPARATE_CHARGE_ESTIMATES",
+                            "position_count_basis": "OPEN_AND_PENDING_LIFECYCLES",
+                            "exposure_basis": "OPEN_MARKS_PLUS_PENDING_PREFLIGHT_COMMITMENTS",
                         }
                     ],
                 )
