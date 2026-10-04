@@ -6547,3 +6547,34 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   timeout/cancellation. Changed tests and import ordering pass lint; diff checks
   pass. This scoped result does not replace full acceptance. Next: publish the
   correction and run a new frozen complete PostgreSQL/Redis/Edge suite.
+
+### Corrected database-deadline full acceptance running (2026-10-04)
+
+- Correction **125fcee43d390eef658419844072c619ae989bba** is pushed and
+  remote-verified on origin/main, configured owner author only, no co-author.
+- Fresh full-suite session **60671** is running with PostgreSQL, Redis and Edge.
+  Log: `backend/logs/full-database-deadlines-corrected.txt`. Source/tests frozen;
+  poll this exact handle to terminal. No passing full result yet.
+- Prior session 67782 is finished (1783 passed / 4 failed), not a live process;
+  targeted correction session 69241 is finished (17 passed). Keep both results.
+  Counts remain **228 verified / 145 partial / 10 unverified / 150 not started**.
+  Next: complete acceptance, then continue outstanding operational recovery work.
+
+### Corrected database deadline acceptance completed (2026-10-04)
+
+- Session **60671 finished: 1787 passed / 0 failed / 0 skipped**, three existing
+  warnings, 1h00m41s. PostgreSQL, Redis and Edge enabled. Source/tests remained
+  frozen; the same process was observed through completion. Log:
+  `backend/logs/full-database-deadlines-corrected.txt`. This supersedes the 1762
+  passing baseline. Retain failed session 67782 as regression evidence.
+- Full acceptance now covers bound session configuration, deadline/cancellation
+  rollback, stalled TCP cleanup without checked-out pool leaks, owner recovery,
+  historical subprocess isolation and fail-closed discrepancy handling. This is
+  not database/server restart certification or real-market PAPER validation.
+- Frontend unchanged: **67 passed**, production build successful. Counts remain
+  **228 verified / 145 partial / 10 unverified / 150 not started**. No M1/M2,
+  Groww LIVE or external notification delivery claim.
+- Next: inspect isolated database-server restart acceptance using disposable test
+  infrastructure only. Existing owner PostgreSQL/Redis must remain untouched;
+  distinguish application/process, transport and database-server recovery evidence.
+  Reuse actual PAPER worker/OMS state rather than creating a parallel test pipeline.
