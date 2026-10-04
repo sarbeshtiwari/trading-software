@@ -36,6 +36,10 @@ class NotificationService:
         if self._worker is None or self._worker.done():
             self._worker = asyncio.create_task(self._run())
 
+    @property
+    def running(self):
+        return self._worker is not None and not self._worker.done()
+
     def submit(self, notification):
         try:
             notification = Notification.model_validate(freeze_snapshot(notification.model_dump()))

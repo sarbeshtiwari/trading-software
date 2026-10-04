@@ -148,3 +148,14 @@ and no trusted delivery outcomes for the affected record. It does not expose
 unverified payload text or rewrite the audit evidence. Restarts retain this
 behavior; valid acknowledged requests are not resent. These checks use the actual
 PAPER lifecycle and isolated transport fixtures, not external delivery evidence.
+
+### Runtime visibility
+
+The existing Monitoring component distinguishes `DISABLED`, `STARTING`,
+`DEGRADED` and `RUNNING`. Configured channel objects alone do not establish a
+running service: both the immediate delivery worker and durable outbox task must
+be alive, and an outbox pass must have completed. Failed outbox storage reads stay
+degraded until a subsequent successful pass; stopped tasks remain degraded even
+when channel configuration still exists. Persisted failed/corrupt notice outcomes
+also remain visible. `RUNNING` describes local tasks, not remote delivery or
+permission to trade; notification failures cannot clear risk gates.

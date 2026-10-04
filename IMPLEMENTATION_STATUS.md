@@ -6757,3 +6757,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   failures through existing Monitoring APIs/UI. Do not spend another unit solely
   repeating green suites; prefer missing integrated behavior. Recheck inspection
   server process handles before claiming the dashboard is still running.
+
+### Notification runtime observability integrated (2026-10-04)
+
+- **c62a47636b4790185ddf8a8d47c9823cdf3d6c76** is pushed and remote-verified
+  on origin/main, configured owner author only. Full acceptance evidence retained.
+- Fixed misleading Monitoring status: configured notification channels previously
+  implied RUNNING even when delivery tasks stopped or the outbox failed. The
+  existing workspace now checks both actual tasks and the last outbox pass,
+  distinguishes STARTING/DISABLED/DEGRADED/RUNNING, and retains recorded corruption/
+  delivery degradation. No remote acknowledgement or trading permission is implied.
+- Tests start real notification runtime with isolated channels, stop each task,
+  inject an outbox storage error and observe recovery through the same workspace
+  response used by Monitoring. Initial integration **20 passed**; notification/
+  workspace/incidents regression **45 passed / 0 failed / 0 skipped**, 47.11s,
+  session 39175 finished, `backend/logs/notification-runtime-health-regression.txt`.
+  FE-015 remains partial; no requirement promotion or schema/UI fixture changes.
+- Counts **228 verified / 145 partial / 10 unverified / 150 not started**. Last
+  complete backend **1792 passed** predates this scoped change; frontend remains
+  **67 passed**, build successful. Groww LIVE/external delivery remain unverified.
+- Next: address remaining health-report/UI fidelity (per-component observation
+  timestamps and stale-state handling) using actual recorded health reports,
+  without exposing raw secret-bearing exception text or claiming current health
+  from an old snapshot. PAPER stays default; owner services remain untouched.

@@ -25,7 +25,7 @@ from app.execution.protection import protection_status
 from app.monitoring.gate import get_trading_gate
 from app.monitoring.healthchecks import get_health_registry
 from app.notifications.outbox import recorded_states
-from app.notifications.runtime import current_service
+from app.notifications.runtime import status as notification_status
 from app.risk.entry_models import EntryEvidence
 from app.trading.worker import worker_status
 
@@ -433,22 +433,22 @@ async def workspace():
         if report
         else []
     )
+    delivery_state = notification_status()
+    if delivery_state["status"] != "DISABLED" and any(
+        "FAILED" in row["channels"].values() or row["status"] == "INTEGRITY_FAILURE"
+        for row in notification_states
+    ):
+        delivery_state = {
+            "status": "DEGRADED",
+            "detail": (
+                "Recorded notification failures; provider delivery is not externally verified"
+            ),
+        }
     components += [
         ComponentView(name="scheduler", **worker_status()),
         ComponentView(
             name="notifications",
-            status=(
-                "DEGRADED"
-                if not current_service().channels
-                or any(
-                    "FAILED" in row["channels"].values() or row["status"] == "INTEGRITY_FAILURE"
-                    for row in notification_states
-                )
-                else "RUNNING"
-            )
-            if current_service()
-            else "DISABLED",
-            detail="Provider delivery is not externally verified",
+            **delivery_state,
         ),
     ]
     gate = get_trading_gate()

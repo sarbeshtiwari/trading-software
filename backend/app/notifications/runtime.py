@@ -19,6 +19,8 @@ class Runtime:
     service: NotificationService | None = None
     outbox_task: asyncio.Task | None = None
     outbox_stop: asyncio.Event | None = None
+    outbox_observed: bool = False
+    outbox_failed: bool = False
 
 
 _runtime = Runtime()
@@ -26,6 +28,24 @@ _runtime = Runtime()
 
 def current_service():
     return _runtime.service
+
+
+def status():
+    service = _runtime.service
+    if service is None:
+        return {"status": "DISABLED", "detail": "Notification runtime unavailable or disabled"}
+    if not service.running or _runtime.outbox_task is None or _runtime.outbox_task.done():
+        return {"status": "DEGRADED", "detail": "Notification delivery task not running"}
+    if not service.channels:
+        return {"status": "DEGRADED", "detail": "No notification channel configured"}
+    if _runtime.outbox_failed:
+        return {
+            "status": "DEGRADED",
+            "detail": "Notification outbox unavailable; no success assumed",
+        }
+    if not _runtime.outbox_observed:
+        return {"status": "STARTING", "detail": "Notification outbox not yet observed"}
+    return {"status": "RUNNING", "detail": "Provider delivery is not externally verified"}
 
 
 async def stop_notifications():
@@ -43,6 +63,8 @@ async def stop_notifications():
     service, _runtime.service = _runtime.service, None
     if service is not None:
         await service.stop()
+    _runtime.outbox_observed = False
+    _runtime.outbox_failed = False
 
 
 async def start_notifications(settings):
@@ -91,9 +113,13 @@ async def _deliver_outbox(service, stopping):
     while not stopping.is_set():
         try:
             await outbox.dispatch_once()
+            _runtime.outbox_observed = True
+            _runtime.outbox_failed = False
         except asyncio.CancelledError:
             raise
         except Exception:
+            _runtime.outbox_observed = True
+            _runtime.outbox_failed = True
             logger.error("Notification outbox unavailable; pending notices remain unacknowledged")
         try:
             await asyncio.wait_for(stopping.wait(), timeout=5)

@@ -1,5 +1,6 @@
 """Runtime wiring with isolated recording channels, never remote delivery claims."""
 
+import asyncio
 from datetime import timedelta
 from types import SimpleNamespace
 
@@ -10,6 +11,7 @@ from fastapi import Response
 
 from app.agents.pipeline import DecisionPipeline
 from app.api.health import ready
+from app.api.workspace import workspace
 from app.audit.service import AuditService
 from app.config import Settings
 from app.db import session as db_session
@@ -73,6 +75,58 @@ async def test_disabled_missing_and_malformed_configuration(fake_clock):
     assert {row[2] for row in service.outcomes} == {"DISABLED"}
     assert await runtime.start_notifications(configured(notification_quiet_start="22:00")) is None
     assert runtime.current_service() is None
+
+
+async def test_monitoring_never_calls_stopped_delivery_tasks_running(db_engine, monkeypatch):
+    monkeypatch.setattr(runtime, "configured_channels", lambda *args, **kwargs: {
+        "email": RecordingChannel()
+    })
+    service = await runtime.start_notifications(configured())
+    assert runtime.status()["status"] == "STARTING"
+    for _attempt in range(100):
+        if runtime.status()["status"] == "RUNNING":
+            break
+        await asyncio.sleep(0.01)
+    assert runtime.status()["status"] == "RUNNING"
+    await service.stop()
+    state = await workspace()
+    notice = next(item for item in state.components if item.name == "notifications")
+    assert notice.status == "DEGRADED" and "not running" in notice.detail
+    await service.start()
+    runtime._runtime.outbox_task.cancel()
+    await asyncio.gather(runtime._runtime.outbox_task, return_exceptions=True)
+    state = await workspace()
+    notice = next(item for item in state.components if item.name == "notifications")
+    assert notice.status == "DEGRADED" and "not running" in notice.detail
+
+
+async def test_monitoring_reports_outbox_storage_failure_and_recovery(db_engine, monkeypatch):
+    monkeypatch.setattr(runtime, "configured_channels", lambda *args, **kwargs: {
+        "email": RecordingChannel()
+    })
+    original = NotificationOutbox.dispatch_once
+    failing = True
+
+    async def dispatch(outbox):
+        if failing:
+            raise sa.exc.OperationalError("isolated storage failure", None, None)
+        return await original(outbox)
+
+    monkeypatch.setattr(NotificationOutbox, "dispatch_once", dispatch)
+    await runtime.start_notifications(configured())
+    for _attempt in range(100):
+        if runtime.status()["status"] == "DEGRADED":
+            break
+        await asyncio.sleep(0.01)
+    state = await workspace()
+    notice = next(item for item in state.components if item.name == "notifications")
+    assert notice.status == "DEGRADED" and "outbox unavailable" in notice.detail
+    failing = False
+    for _attempt in range(600):
+        if runtime.status()["status"] == "RUNNING":
+            break
+        await asyncio.sleep(0.01)
+    assert runtime.status()["status"] == "RUNNING"
 
 
 async def test_risk_breach_notifies_only_after_durable_audit(db_engine, monkeypatch):
