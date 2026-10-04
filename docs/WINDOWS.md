@@ -111,3 +111,30 @@ no actual observations or trades have been recorded; no demo prices are supplied
 
 Groww LIVE and external delivery remain unverified. The application is not yet
 certified for unattended trading or M1/M2 completion.
+
+## Inspect the application without enabling execution
+
+If your private `.env` selects SUPERVISED/Groww, you can inspect the real PAPER
+application without editing it. In a **new PowerShell terminal**, from `backend`:
+
+```powershell
+$env:TRADING_MODE = 'PAPER'
+$env:BROKER_PROVIDER = 'paper'
+$env:PAPER_WORKER_ENABLED = 'false'
+$env:NOTIFICATION_ENABLED = 'false'
+$env:NEWS_POLLING_ENABLED = 'false'
+$env:NEWS_RESEARCH_ENABLED = 'false'
+$env:INSTRUMENT_REFRESH_ENABLED = 'false'
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+These are process-environment overrides, not changes to `.env`. Close that
+terminal when finished so later commands do not accidentally inherit them.
+Use the existing database/Redis and owner authentication configuration. In a
+second terminal run the frontend command above and open `http://localhost:5173`.
+
+This starts the real API/dashboard with execution and external delivery disabled;
+it does not generate market data or trades. Missing data/refresh checks may keep
+trading blocked, which is expected. Even health/readiness API routes require
+authentication: an unauthenticated HTTP 401 demonstrates access control, not a
+failed backend. Sign in normally; do not replace or bypass owner credentials.

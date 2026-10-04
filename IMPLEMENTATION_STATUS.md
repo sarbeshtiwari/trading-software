@@ -6625,3 +6625,28 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   expose truthful operational blockers without altering private mode settings,
   enabling orders or inventing market observations. Owner Docker services remain
   intact. Groww data HTTP 403 and LIVE external verification remain unresolved.
+
+### Local application startup observed (2026-10-04)
+
+- Recovery receipt checkpoint **d79b0dd5e03b73189a9381f18851c7ffb13f913c** is
+  pushed and remote-verified. Owner author only, no co-author.
+- Actual configured PostgreSQL is reachable at migration `0018_orphan_accounting`;
+  Redis PING succeeded. No service or database was recreated. Private settings
+  still select SUPERVISED/Groww with execution worker disabled; left unchanged.
+- Started actual Uvicorn on loopback port 8000 using process-only PAPER/paper
+  overrides, worker/remote notifications/source refresh disabled. Session 72801
+  owns this process; log `backend/logs/local-paper-runtime.txt`. Startup completed;
+  watchdog truthfully blocks entries for unavailable instrument refresh/market
+  data and reports degraded market/news checks. No broker orders were attempted.
+- Started existing Vite on localhost 5173, session 30754. Actual headless Edge
+  rendered the login form; frontend HTTP 200, direct protected backend HTTP 401
+  and proxied readiness HTTP 401. This proves serving/proxy/access control, not
+  authenticated current-owner dashboard acceptance or an active trading session.
+  Owner password was not supplied and authentication was not bypassed.
+- Added reproducible inspection-only PowerShell commands to WINDOWS.md; private
+  environment remains untouched. No requirement promotions, no synthetic runtime
+  observations and no new full-suite claim. Counts 228 verified / 145 partial /
+  10 unverified / 150 not started; last full backend 1787, frontend 67/build passed.
+- Next: continue integrated PAPER gaps while keeping this inspection runtime
+  disabled for orders. Do not mistake fixture lifecycle acceptance for real-market
+  eligibility, or token authentication for working Groww market-data access.
