@@ -252,3 +252,10 @@ order is not duplicated; protection is checked and a costed exit produces its
 journal through production services. This is database-server recovery evidence,
 not host reboot, uninterrupted outage protection, real-market PAPER eligibility,
 or Groww verification.
+
+Actual TCP outage tests also interrupt the owner recovery success-audit write.
+An interrupted receipt must leave execution unready and entries inhibited; no
+success record is assumed. After transport restoration, explicit recovery may
+complete once without duplicating orders or changing existing accounting. This
+does not prove the outcome of every ambiguous database commit; reconciliation
+remains mandatory rather than automatic resubmission.

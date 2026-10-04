@@ -6603,3 +6603,25 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: verify actual transport interruption during owner recovery, including
   the success-audit boundary; never clear storage/entry gates after incomplete
   recovery. Groww LIVE, real notification delivery and M1/M2 remain unverified.
+
+### Recovery audit transport interruption verified (2026-10-04)
+
+- Database-server acceptance checkpoint **c70e72a1040eb876226fc1a29d8995741f2c812f**
+  is pushed and remote-verified on origin/main, configured owner only, no co-author.
+- Extended the actual TCP outage test to disconnect transport at the recovery
+  success-audit boundary. The real database write fails; the worker stays unready,
+  entries remain blocked, resubmission is refused and no success receipt exists.
+  Reconnecting and explicitly recovering creates exactly one success receipt,
+  without changing order/fill count, position quantity, realised P&L or charges.
+- Final actual PostgreSQL/network plus owner-control selection: **9 passed /
+  0 failed / 0 skipped**, 85.48s, session 63448 finished; log
+  `backend/logs/recovery-receipt-network-final.txt`. Earlier four-case network
+  selection also passed. No production safety gate was changed to make tests pass.
+- Counts unchanged: **228 verified / 145 partial / 10 unverified / 150 not
+  started**. Whole-suite baseline **1787 passed**, frontend **67 passed**, build
+  successful; these new tests are scoped evidence, not a new whole-suite run.
+- Next: return to actual local runtime/readiness acceptance. No listener was
+  observed on application ports 8000/5173; inspect startup prerequisites and
+  expose truthful operational blockers without altering private mode settings,
+  enabling orders or inventing market observations. Owner Docker services remain
+  intact. Groww data HTTP 403 and LIVE external verification remain unresolved.

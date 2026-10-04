@@ -9,10 +9,13 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.audit.service import AuditService
 from app.core.errors import SafetyError
 from app.db import session as db_session
+from app.db.models.audit import AuditEvent
 from app.db.models.trading import Order, Position, Trade
 from app.monitoring.gate import get_trading_gate
+from app.trading.recover import recover_worker
 from tests.integration.test_reference_worker import credentials, setup_worker
 from tests.network_proxy import NetworkProxy
 from tests.process_database import process_database
@@ -22,8 +25,9 @@ __all__ = ["credentials"]
 
 @pytest.mark.skipif(not os.environ.get("ATS_TEST_POSTGRES_URL"), reason="set ATS_TEST_POSTGRES_URL")
 @pytest.mark.parametrize("outage", ["refused", "stalled"])
+@pytest.mark.parametrize("interrupt_receipt", [False, True])
 async def test_database_network_outage_and_owner_recovery(
-    db_engine, credentials, fake_clock, tmp_path, monkeypatch, outage
+    db_engine, credentials, fake_clock, tmp_path, monkeypatch, outage, interrupt_receipt
 ):
     worker, _provider, api = await setup_worker(credentials, fake_clock, tmp_path, costed=True)
     monkeypatch.setattr("app.api.emergency.active_worker", lambda: worker)
@@ -80,6 +84,33 @@ async def test_database_network_outage_and_owner_recovery(
                         await worker.executor.submit(original.proposal_id)
                     if outage == "refused":
                         await proxy.start()
+                    if interrupt_receipt:
+                        append = AuditService.append_in_session
+
+                        async def disconnect_at_receipt(service, session, identity, details, **kwargs):
+                            if identity.event_type == "PAPER_WORKER_RECOVERED":
+                                await proxy.disconnect()
+                            return await append(service, session, identity, details, **kwargs)
+
+                        with monkeypatch.context() as receipt_scope:
+                            receipt_scope.setattr(
+                                AuditService, "append_in_session", disconnect_at_receipt
+                            )
+                            with pytest.raises((OSError, SQLAlchemyError, asyncio.TimeoutError)):
+                                await recover_worker(
+                                    worker, actor="owner",
+                                    reason="Owner reviewing interrupted recovery receipt",
+                                )
+                        assert not worker.executor.ready and worker.failed
+                        assert not get_trading_gate().new_entries_allowed
+                        assert engine.pool.checkedout() == 0
+                        with pytest.raises(SafetyError, match="RECOVERY"):
+                            await worker.executor.submit(original.proposal_id)
+                        await proxy.start()
+                        async with db_session.session_scope() as session:
+                            assert await session.scalar(sa.select(sa.func.count()).select_from(
+                                AuditEvent
+                            ).where(AuditEvent.event_type == "PAPER_WORKER_RECOVERED")) == 0
                     response = await api.post("/api/v1/emergency", json={
                         "action": "RECOVER_WORKER", "confirmation": "RECOVER PAPER WORKER",
                         "reason": "Owner reviewed isolated TCP interruption and restored connectivity",
@@ -88,6 +119,9 @@ async def test_database_network_outage_and_owner_recovery(
                     assert response.json()["entries_blocked"]
                     assert worker.executor.ready and worker.failed
                     async with db_session.session_scope() as session:
+                        assert await session.scalar(sa.select(sa.func.count()).select_from(
+                            AuditEvent
+                        ).where(AuditEvent.event_type == "PAPER_WORKER_RECOVERED")) == 1
                         assert await session.scalar(sa.select(sa.func.count()).select_from(Order)) == 1
                         assert await session.scalar(sa.select(sa.func.count()).select_from(Trade)) == 1
                         assert (await session.scalar(sa.select(Position))).net_quantity == 111
