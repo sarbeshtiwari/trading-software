@@ -63,6 +63,7 @@ test('authenticated dashboard renders backend blockers and truthful missing data
   render(<App />);
   expect(await screen.findByText(/ENTRIES BLOCKED/)).toHaveTextContent('DAILY LOSS LIMIT');
   expect(screen.getByText(/Groww LIVE execution/)).toHaveTextContent('UNVERIFIED');
+  expect(screen.getByText(/pending entry commitments/)).toBeInTheDocument();
   expect(screen.getByText('TRENDING_UP / STALE_OR_INCOMPLETE')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Positions' }));
   expect(screen.getByText(/No recorded data/)).toBeInTheDocument();

@@ -70,3 +70,9 @@ The existing single-lifecycle execution reservation remains in force. Snapshot
 metadata explicitly labels counts as open-and-pending lifecycles and exposure as
 open marks plus pending commitments. This is not generalized simultaneous-position
 execution, derivative underlying/delta notional, or LIVE reconciliation acceptance.
+
+The authenticated workspace exposes these commitments once the normal monitor
+has persisted an account snapshot. Before any snapshot exists it reports
+UNAVAILABLE, not invented cash or exposure. PostgreSQL recovery acceptance uses
+a disposable migrated database and the real OMS/monitor/API; restored pending
+orders preserve capacity and identity without inventing positions or fills.

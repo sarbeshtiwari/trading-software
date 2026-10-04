@@ -6865,3 +6865,30 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: verify pending commitments through durable snapshots/API and PostgreSQL
   restart acceptance, then inspect the next missing integrated portfolio dependency.
   PAPER default, Groww LIVE unverified, no M1/M2 or external delivery claim.
+
+### Pending commitment API and PostgreSQL acceptance (2026-10-04)
+
+- **c1e87e6231a54b43a9693088c047c09811f46a57** is pushed and remote-verified.
+- API acceptance now distinguishes absence of an observation from pending risk:
+  before the monitor's first snapshot the account is truthfully UNAVAILABLE;
+  after the actual monitor runs, exposure and conservative available capacity
+  reflect the unfilled entry while positions/fills remain empty. An initial test
+  expected a snapshot immediately after bare submit (5 passed / 1 failed); it now
+  exercises the actual production snapshot-producing monitor rather than inventing
+  a snapshot. Corrected SQLite selection **6 passed**, session 80126 finished.
+- Added disposable migrated PostgreSQL recovery coverage of the same pending
+  order, sealed reservation, authenticated API state and duplicate-submit identity.
+  Initial attempt **6 passed / 1 failed** because the configured server refused
+  connection and Docker's daemon pipe was absent. Started the installed Docker
+  Desktop at its verified per-user location; existing ats-db-1/ats-redis-1 became
+  healthy without container/database recreation. No owner trading data reset.
+- Final actual PostgreSQL/API selection **7 passed / 0 failed / 0 skipped**,
+  25.78s, session 18742 finished; `backend/logs/pending-account-postgres-restored.txt`.
+  Dashboard explicitly distinguishes commitments from fills/spent capital/charges.
+  Frontend **67 passed**, production build successful, session 86278 finished;
+  `backend/logs/frontend-pending-commitments.txt`. Changed test passes Ruff.
+- Counts **228 verified / 146 partial / 10 unverified / 149 not started**.
+  Last full backend **1792 passed** predates current scoped accounting changes.
+  Next: frozen full PostgreSQL/Redis/Edge/Docker acceptance for the shared risk/
+  snapshot changes, then address any demonstrated failures before progressing.
+  Groww LIVE, real-market PAPER evidence and external delivery remain unverified.

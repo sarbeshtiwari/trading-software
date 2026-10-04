@@ -1,5 +1,6 @@
 """Actual durable PAPER entry commitments are not free risk capacity."""
 
+import os
 from datetime import timedelta
 from decimal import Decimal
 
@@ -16,6 +17,7 @@ from app.execution.hygiene import PaperOrderHygiene
 from app.execution.paper import PaperExecution
 from tests.integration.test_auth import credentials
 from tests.integration.test_paper_execution import setup_execution
+from tests.process_database import process_database
 
 __all__ = ["credentials"]
 
@@ -35,6 +37,13 @@ async def test_pending_entry_reserves_capacity_and_cancel_releases_it(
         assert account.reserved_risk == Decimal(500)
         assert context.costs.margin_per_unit == Decimal(100)
         assert account.available_margin == Decimal(75000)
+        initial = (await client.get("/api/v1/workspace")).json()
+        assert initial["account"] is None and initial["account_status"] == "UNAVAILABLE"
+        await engine.monitor_once()
+        state = (await client.get("/api/v1/workspace")).json()
+        assert state["positions"] == [] and state["fills"] == []
+        assert Decimal(state["account"]["available_margin"]) == Decimal(75000)
+        assert Decimal(state["account"]["gross_exposure"]) == Decimal(25000)
         other = await engine.portfolio_state("another-strategy", context.market.data_origin)
         assert other.open_and_pending_positions == 1
         assert other.strategy_open_and_pending_positions == 0
@@ -99,5 +108,34 @@ async def test_partial_entry_and_restart_do_not_double_count_commitment(
         assert sum(item.notional for item in partial.exposures) == 25000
         assert partial.reserved_risk == 500
         assert partial.available_margin == restored.broker.account.available_margin - 20000
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.skipif(not os.environ.get("ATS_TEST_POSTGRES_URL"), reason="set ATS_TEST_POSTGRES_URL")
+async def test_postgres_pending_recovery_and_workspace_reservation(
+    db_engine, credentials, fake_clock, monkeypatch
+):
+    engine, proposal, _market, client, context = await setup_execution(
+        credentials, fake_clock, fill_config=FillConfig(slippage_bps=Decimal(0), latency_ms=2000)
+    )
+    try:
+        await engine.submit(proposal)
+        async with process_database(engine.settings, "postgres", monkeypatch):
+            restored = PaperExecution(engine.quote, settings=engine.settings, clock=fake_clock)
+            await restored.recover()
+            account = await restored.portfolio_state(context.strategy.id, context.market.data_origin)
+            assert account.open_and_pending_positions == 1
+            assert account.reserved_risk == 500 and account.available_margin == 75000
+            await restored.monitor_once()
+            response = await client.get("/api/v1/workspace")
+            assert response.status_code == 200
+            state = response.json()
+            assert state["positions"] == [] and state["fills"] == []
+            assert len(state["orders"]) == 1
+            assert Decimal(state["account"]["available_margin"]) == 75000
+            assert Decimal(state["account"]["gross_exposure"]) == 25000
+            assert await restored.submit(proposal) == state["orders"][0]["id"]
+            assert len(await restored.broker.list_orders()) == 1
     finally:
         await client.aclose()

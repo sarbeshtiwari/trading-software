@@ -215,6 +215,7 @@ export function App({ api: supplied }: { api?: Api }) {
       <WorkspaceUpdates api={api} refresh={load} />
       <div className={data?.new_entries_allowed ? 'status' : 'status blocked'}>{data ? (data.new_entries_allowed ? 'Entry gate clear — not proof of execution readiness' : `ENTRIES BLOCKED — ${data.blockers.join('; ')}`) : 'Loading application state…'}</div>
       <p className="muted">Groww LIVE execution: {data?.broker_verification ?? 'UNAVAILABLE'}. Persisted snapshots are not a live market feed. P&amp;L is gross unless explicitly labelled net. Charges may be incomplete; estimates are not broker bills.</p>
+      <p className="muted">Exposure and available-margin snapshots may include pending entry commitments. A reserved amount is not a fill, spent capital or a broker charge.</p>
       {error && <p role="alert" className="error">API ERROR — {error}. Displayed data may be stale.</p>}
       {data && <><p className="muted">Response time: {data.generated_at}</p>
         {page === 'Dashboard' && <><div className="cards">{[['Account', data.account_status], ['Equity', data.account?.equity], ['Realised P&L (snapshot)', data.account?.realised_pnl], ['Unrealised P&L (snapshot)', data.account?.unrealised_pnl], ['Exposure (snapshot)', data.account?.gross_exposure], ['Regime', data.regime ? `${data.regime.label} / ${data.regime_status}` : data.regime_status]].map(([name, value]) => <article key={String(name)}><span>{name}</span><strong>{shown(value)}</strong></article>)}</div><Records rows={data.regime ? [data.regime] : []} />
