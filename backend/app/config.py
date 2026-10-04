@@ -122,6 +122,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://ats:ats@localhost:5432/ats"
     database_pool_size: int = 10
     database_max_overflow: int = 5
+    database_connect_timeout_seconds: float = Field(default=5, gt=0, le=120)
+    database_command_timeout_seconds: float = Field(default=10, gt=0, le=120)
+    database_pool_timeout_seconds: float = Field(default=5, gt=0, le=120)
+    database_session_timeout_seconds: float = Field(default=20, gt=0, le=120)
     database_echo: bool = False
 
     # --- Redis ------------------------------------------------------------

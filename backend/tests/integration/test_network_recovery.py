@@ -6,6 +6,7 @@ import os
 import pytest
 import sqlalchemy as sa
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.errors import SafetyError
@@ -20,8 +21,9 @@ __all__ = ["credentials"]
 
 
 @pytest.mark.skipif(not os.environ.get("ATS_TEST_POSTGRES_URL"), reason="set ATS_TEST_POSTGRES_URL")
+@pytest.mark.parametrize("outage", ["refused", "stalled"])
 async def test_database_network_outage_and_owner_recovery(
-    db_engine, credentials, fake_clock, tmp_path, monkeypatch
+    db_engine, credentials, fake_clock, tmp_path, monkeypatch, outage
 ):
     worker, _provider, api = await setup_worker(credentials, fake_clock, tmp_path, costed=True)
     monkeypatch.setattr("app.api.emergency.active_worker", lambda: worker)
@@ -36,8 +38,15 @@ async def test_database_network_outage_and_owner_recovery(
             try:
                 await proxy.start()
                 proxied = target.set(host="127.0.0.1", port=proxy.listen_port)
-                engine = create_async_engine(proxied, **db_session._engine_kwargs(worker.settings))
+                bounded = worker.settings.model_copy(update={
+                    "database_connect_timeout_seconds": 5,
+                    "database_command_timeout_seconds": 2,
+                    "database_pool_timeout_seconds": 1,
+                })
+                engine = create_async_engine(proxied, **db_session._engine_kwargs(bounded))
+                db_session.install_connection_cleanup(engine)
                 with monkeypatch.context() as scoped:
+                    scoped.setattr(worker.settings, "database_session_timeout_seconds", 10)
                     scoped.setattr(db_session, "_sessionmaker", async_sessionmaker(
                         engine, expire_on_commit=False, autoflush=False
                     ))
@@ -47,14 +56,30 @@ async def test_database_network_outage_and_owner_recovery(
                         before = (await session.execute(sa.select(
                             Position.net_quantity, Position.realised_pnl, Position.total_charges
                         ))).one()
-                    await proxy.disconnect()
-                    with pytest.raises(OSError):
-                        await asyncio.wait_for(worker.executor.monitor_once(), timeout=10)
+                    if outage == "refused":
+                        await proxy.disconnect()
+                    else:
+                        proxy.forward.clear()
+                    operation = asyncio.create_task(worker.executor.monitor_once())
+                    try:
+                        if outage == "stalled":
+                            await asyncio.wait_for(proxy.stalled.wait(), timeout=5)
+                        done, _pending = await asyncio.wait({operation}, timeout=20)
+                        assert operation in done, "Database operation exceeded configured deadline"
+                        with pytest.raises((OSError, SQLAlchemyError, asyncio.TimeoutError)):
+                            await operation
+                    finally:
+                        if not operation.done():
+                            operation.cancel()
+                        proxy.forward.set()
+                        await asyncio.gather(operation, return_exceptions=True)
                     assert not worker.executor.ready
+                    assert engine.pool.checkedout() == 0
                     assert not get_trading_gate().new_entries_allowed
                     with pytest.raises(SafetyError, match="RECOVERY"):
                         await worker.executor.submit(original.proposal_id)
-                    await proxy.start()
+                    if outage == "refused":
+                        await proxy.start()
                     response = await api.post("/api/v1/emergency", json={
                         "action": "RECOVER_WORKER", "confirmation": "RECOVER PAPER WORKER",
                         "reason": "Owner reviewed isolated TCP interruption and restored connectivity",

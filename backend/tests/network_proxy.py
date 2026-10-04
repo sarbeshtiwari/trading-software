@@ -12,6 +12,9 @@ class NetworkProxy:
         self.listen_port = 0
         self.connections = set()
         self.tasks = set()
+        self.forward = asyncio.Event()
+        self.forward.set()
+        self.stalled = asyncio.Event()
 
     async def start(self):
         self.server = await asyncio.start_server(self._accept, "127.0.0.1", self.listen_port)
@@ -19,6 +22,9 @@ class NetworkProxy:
 
     async def _copy(self, reader, writer):
         while data := await reader.read(65536):
+            if not self.forward.is_set():
+                self.stalled.set()
+            await self.forward.wait()
             writer.write(data)
             await writer.drain()
 

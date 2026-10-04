@@ -10,10 +10,13 @@ Alembic both do) never opens a connection.
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional
 
 import sqlalchemy as sa
+from async_timeout import timeout
+from asyncpg import Connection as PostgresConnection
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -41,6 +44,17 @@ _engine: Optional[AsyncEngine] = None
 _sessionmaker: Optional[async_sessionmaker[AsyncSession]] = None
 
 
+def install_connection_cleanup(engine):
+    if engine.dialect.driver != "asyncpg":
+        return
+
+    @sa.event.listens_for(engine.sync_engine, "invalidate")
+    def terminate_invalidated(dbapi_connection, connection_record, exception):
+        driver = connection_record.driver_connection
+        if isinstance(driver, PostgresConnection):
+            driver.terminate()
+
+
 def _engine_kwargs(settings: Settings) -> dict[str, object]:
     url = settings.database_url
     # SQLite (used for fast model-level tests) has no meaningful pool settings.
@@ -52,6 +66,11 @@ def _engine_kwargs(settings: Settings) -> dict[str, object]:
         "max_overflow": settings.database_max_overflow,
         "pool_pre_ping": True,  # a stale connection after a DB restart must not surface as an error
         "pool_recycle": 1800,
+        "pool_timeout": settings.database_pool_timeout_seconds,
+        "connect_args": {
+            "timeout": settings.database_connect_timeout_seconds,
+            "command_timeout": settings.database_command_timeout_seconds,
+        },
     }
 
 
@@ -66,6 +85,7 @@ def init_engine(settings: Optional[Settings] = None, *, force: bool = False) -> 
         logger.warning("Re-initialising the database engine")
 
     _engine = create_async_engine(resolved.database_url, **_engine_kwargs(resolved))
+    install_connection_cleanup(_engine)
     _sessionmaker = async_sessionmaker(
         _engine,
         class_=AsyncSession,
@@ -98,8 +118,12 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
     factory = get_sessionmaker()
     session = factory()
     try:
-        yield session
-        await session.commit()
+        async with timeout(get_settings().database_session_timeout_seconds):
+            yield session
+            await session.commit()
+    except (asyncio.TimeoutError, asyncio.CancelledError):
+        await session.invalidate()
+        raise
     except Exception:
         await session.rollback()
         raise

@@ -6435,3 +6435,74 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: cover timeout and in-flight TCP disconnect boundaries, including failure
   during owner recovery itself, using the same production lifecycle. Do not mask
   interrupted test evidence or claim M1/M2 or Groww LIVE verification.
+
+### Bounded database waits in progress (2026-10-04)
+
+- **ce5b3d799aee51be60256b4016d339472bf81f53** is pushed and remote-verified.
+  Inspection found no configured asyncpg command deadline; a stalled connection
+  could therefore hold the execution cycle indefinitely. Added validated positive
+  finite connection/command/pool deadlines (5/10/5 seconds by default, max 120),
+  applied by the existing engine factory; SQLite options remain unchanged.
+- The existing tests-only TCP relay can now suspend forwarding without closing
+  sockets. Outage acceptance requires the production driver to time out itself,
+  rather than treating cancellation by the test harness as success.
+- Initial selection failed before outage injection because a one-second test
+  connection deadline was too short for local PostgreSQL SSL negotiation; the
+  unit test also inherited the SQLite fixture URL. Corrected the test connection
+  deadline to the production five seconds and made the unit dialect explicit.
+  Do not claim stalled-connection acceptance from that failed run.
+- Corrected session **34099** is running; log
+  `backend/logs/database-timeouts-corrected.txt`. Source/tests are frozen until
+  terminal. New test files pass Ruff; existing config/session files have unrelated
+  legacy lint findings. No commit or requirement promotion yet. Next: finish
+  actual timeout acceptance, recovery interruption coverage, and broader database/
+  PAPER regression before publishing. Whole-suite baseline remains **1762 passed**.
+- Session **34099 finished: 17 passed / 1 failed / 0 skipped**. Actual stalled
+  traffic still exceeded the 15-second harness ceiling despite configured driver
+  command timeout; cancelling the test operation exposed unfinished driver
+  cleanup/connection warnings. Refused-connection recovery and configuration
+  tests passed. This is a real unresolved timeout/cleanup gap, not acceptance.
+  Next: inspect asyncpg/SQLAlchemy cancellation and pool pre-ping cleanup, bound
+  the complete database operation safely, and rerun without leaked connections.
+  Keep the current timeout changes uncommitted until that behavior is corrected.
+
+### Bounded session and invalidation cleanup verification (2026-10-04)
+
+- Added an overall database-session deadline (default 20 seconds, configurable
+  positive finite up to 120) in addition to driver/pool deadlines. Timeout or
+  cancellation invalidates the session instead of attempting normal rollback on
+  the unusable connection. Python 3.10 support uses explicit `async-timeout`.
+- Initial deadline test returned control but emitted a connection cleanup warning;
+  stronger acceptance then proved a checked-out connection remained. Neither run
+  is considered successful cleanup evidence. The SQLAlchemy/asyncpg invalidation
+  path attempted graceful close over the stalled transport. An engine-scoped
+  public invalidation event now terminates the already-invalidated asyncpg driver
+  connection immediately; healthy connections and SQLite are not affected.
+- Final actual TCP/config selection **23 passed / 0 failed / 0 skipped**, no
+  cleanup warnings, session 50897 finished. Stalled/refused cases require zero
+  checked-out connections, owner recovery and unchanged position accounting.
+  Log: `backend/logs/database-hard-invalidation.txt`.
+- Added transaction timeout/cancellation rollback tests. Broad deadline, actual
+  PostgreSQL/Edge, process-restart, PAPER and configuration regression is running
+  as session **86074**, `backend/logs/database-deadline-regression.txt`.
+  Freeze source/tests until terminal; do not commit until verified. No requirement
+  promotion. Next: finish regression, document operational deadlines, then full
+  acceptance for this shared database-boundary change. Baseline **1762 passed**.
+
+### Database deadline regression passed (2026-10-04)
+
+- Session **86074 finished: 65 passed / 0 failed / 0 skipped**, 3m01s. Coverage
+  includes transaction timeout/cancellation rollback and subsequent session use,
+  PostgreSQL/Edge recovery, process crash/restart, PAPER execution and settings.
+  Log: `backend/logs/database-deadline-regression.txt`. Actual TCP/config selection
+  remains **23 passed** with zero checked-out connections and no cleanup warning.
+- Defaults and commit-ambiguity limitations are documented in PAPER_WORKER.md
+  and `.env.example`; the private environment was not changed. Source import
+  ordering corrected; unrelated legacy lint findings remain outside this unit.
+- Counts remain **228 verified / 145 partial / 10 unverified / 150 not started**.
+  Frontend unchanged: **67 passed**, production build successful. No blanket
+  recovery, Groww LIVE or M1/M2 completion claim.
+- Next: freeze source/tests and run the full PostgreSQL/Redis/Edge suite because
+  session deadlines affect a shared boundary. Preserve exact process/log evidence,
+  then continue operational recovery acceptance rather than extending timeouts
+  to conceal faults or retrying ambiguous trades.

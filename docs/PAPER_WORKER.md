@@ -206,3 +206,28 @@ quote-dependent protection checks so missing prices do not hide the expiry
 condition. They do not imply an exit, settlement, P&L or external delivery.
 Expired pending-entry cancellation and complete expiry lifecycle acceptance
 remain pending; EXCH-006 is partial rather than complete.
+
+### Database deadlines and recovery
+
+Database waits are bounded by configurable positive, finite deadlines (maximum
+120 seconds each):
+
+| Setting | Default | Scope |
+| --- | --- | --- |
+| `DATABASE_CONNECT_TIMEOUT_SECONDS` | 5 | PostgreSQL connection establishment |
+| `DATABASE_COMMAND_TIMEOUT_SECONDS` | 10 | Individual asyncpg commands |
+| `DATABASE_POOL_TIMEOUT_SECONDS` | 5 | Waiting for a pooled connection |
+| `DATABASE_SESSION_TIMEOUT_SECONDS` | 20 | Entire application session, including checkout and commit |
+
+A session deadline applies to work inside `session_scope`, not just SQL execution.
+Timeout/cancellation invalidates the session; it must not be reused or blindly
+retried. A timeout during commit is not proof that the commit failed: reconcile
+durable state before acting again. PAPER storage failures block new entries and
+require explicit owner recovery; recovery does not clear independent safety gates.
+
+The PostgreSQL engine terminates an already-invalidated driver connection instead
+of waiting for graceful network cleanup on an unusable connection. This uses the
+[SQLAlchemy invalidation event](https://docs.sqlalchemy.org/en/20/core/events.html#sqlalchemy.events.PoolEvents.invalidate),
+which occurs before connection close. Normal healthy connections retain pooling;
+SQLite does not receive PostgreSQL driver options. These settings do not certify
+continuous protection during an outage or replace reconciliation.
