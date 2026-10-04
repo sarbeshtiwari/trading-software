@@ -151,8 +151,9 @@ async def test_interrupted_send_uses_expiring_claim_and_persisted_attempt_budget
         await client.aclose()
 
 
-async def test_altered_notice_is_not_delivered(db_engine, credentials, fake_clock, tmp_path):
-    worker, _, client = await setup_worker(credentials, fake_clock, tmp_path)
+@pytest.mark.parametrize("malformed", [False, True])
+async def test_altered_notice_is_not_delivered(db_engine, credentials, fake_clock, tmp_path, malformed):
+    worker, provider, client = await setup_worker(credentials, fake_clock, tmp_path)
     channel = RecordingChannel()
     try:
         await worker.cycle()
@@ -163,13 +164,31 @@ async def test_altered_notice_is_not_delivered(db_engine, credentials, fake_cloc
                 "notification": stored.result["notification"]
                 | {"message": "isolated tampered fixture"}
             }
-        with pytest.raises(ValueError, match="integrity"):
-            await NotificationOutbox(
-                delivery(channel, fake_clock), clock=fake_clock
-            ).dispatch_once()
+            if malformed:
+                stored.result = {"notification": None}
+        outbox = NotificationOutbox(delivery(channel, fake_clock), clock=fake_clock)
+        assert await outbox.dispatch_once() == 0
         assert channel.messages == []
         state = (await client.get("/api/v1/workspace")).json()
         assert state["notifications"][0]["status"] == "INTEGRITY_FAILURE"
+        assert state["notifications"][0]["channels"] == {}
+        provider.get_quote.return_value = replace(
+            provider.get_quote.return_value,
+            ltp=Decimal(108),
+            bids=(replace(provider.get_quote.return_value.bids[0], price=Decimal(108)),),
+            asks=(replace(provider.get_quote.return_value.asks[0], price=Decimal("108.05")),),
+        )
+        await worker.cycle()
+        assert await outbox.dispatch_once() == 1
+        assert len(channel.messages) == 1
+        assert channel.messages[0].event_id != row.chain_id
+        restored = NotificationOutbox(delivery(channel, fake_clock), clock=fake_clock)
+        assert await restored.dispatch_once() == 0
+        state = (await client.get("/api/v1/workspace")).json()
+        assert len(state["notifications"]) == 2
+        assert {notice["status"] for notice in state["notifications"]} == {
+            "INTEGRITY_FAILURE", "RECORDED_CHANNEL_OUTCOMES"
+        }
         assert not worker.failed
     finally:
         await worker.stop()

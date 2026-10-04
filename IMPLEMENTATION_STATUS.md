@@ -6673,3 +6673,27 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: inspect remaining integrated notification coverage and operational PAPER
   readiness dependencies, rather than treating a notification request as external
   delivery. Do not bypass the owner login or Groww market-data HTTP 403 blocker.
+
+### Corrupt notification isolation (2026-10-04)
+
+- Budget warning checkpoint **e435d61ee84506741e36d41530bc9b077acf0df3** is
+  pushed and remote-verified on origin/main, configured owner only.
+- Found a real operational gap: one invalid request aborted each outbox pass,
+  starving subsequent independent alerts; malformed notification payloads could
+  also fail the workspace API before reporting integrity failure. Invalid
+  payloads/chains are now withheld individually, logged without payload text and
+  exposed as `INTEGRITY_FAILURE` with unavailable untrusted metadata. Valid later
+  notices continue. Database failures and cancellation are not swallowed.
+- Actual PAPER entry/exit tests tamper a persisted request (changed message or
+  malformed payload), observe zero sends for it, then verify later exit delivery,
+  API-visible failure, restart deduplication and unaffected worker operation.
+  Targeted 17 passed; wider notifications/incidents/advisory regression **62
+  passed / 0 failed / 0 skipped**, 51.47s, session 62651 finished, log
+  `backend/logs/notification-isolation-regression.txt`. Changed files pass Ruff.
+- Updated NOTIF-007 evidence without status promotion. Counts unchanged: **228
+  verified / 145 partial / 10 unverified / 150 not started**. Full-suite baseline
+  remains 1787 passed; frontend unchanged 67 passed/build successful. External
+  delivery, Groww LIVE and real-market PAPER eligibility remain unverified.
+- Next: frozen full acceptance including the new opt-in isolated Docker restart
+  cases, PostgreSQL/Redis and Edge. Preserve the running inspection app separately;
+  do not enable its execution worker or confuse it with the test deployment.

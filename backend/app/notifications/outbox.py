@@ -19,6 +19,20 @@ from app.notifications.routing import route_notification
 logger = logging.getLogger(__name__)
 
 
+class InvalidNotification(ValueError):
+    pass
+
+
+def validated_notice(request):
+    try:
+        notice = Notification.model_validate(request.result["notification"])
+        if notice.event_id != request.chain_id:
+            raise ValueError("notification identity mismatch")
+        return notice
+    except (ValueError, KeyError, TypeError) as error:
+        raise InvalidNotification("notification payload invalid") from error
+
+
 async def enqueue(session, *, key, event_type, severity, message, clock, source_event):
     identifier = "ntf" + hashlib.sha256(key.encode()).hexdigest()[:37]
     existing = await session.scalar(
@@ -95,15 +109,23 @@ class NotificationOutbox:
         async for request in self._requests():
             if processed >= self.service.policy.queue_size:
                 break
-            notice = Notification.model_validate(request.result["notification"])
-            routing = route_notification(notice.severity, self.clock.now(), self.service.routing)
-            for channel in routing.channels:
-                if processed >= self.service.policy.queue_size:
-                    return processed
-                if channel not in self.service.channels:
-                    continue
-                if await self._attempt(request, notice, channel):
-                    processed += 1
+            try:
+                notice = validated_notice(request)
+                routing = route_notification(
+                    notice.severity, self.clock.now(), self.service.routing
+                )
+                for channel in routing.channels:
+                    if processed >= self.service.policy.queue_size:
+                        return processed
+                    if channel not in self.service.channels:
+                        continue
+                    if await self._attempt(request, notice, channel):
+                        processed += 1
+            except InvalidNotification:
+                logger.error(
+                    "Invalid notification withheld; independent notices remain eligible",
+                    extra={"notification_request_id": request.id},
+                )
         return processed
 
     async def _attempt(self, request, notice, channel):
@@ -121,7 +143,7 @@ class NotificationOutbox:
                 ).all()
             )
             if not verify_records(rows) or not rows or rows[0].id != request.id:
-                raise ValueError("notification audit integrity failure")
+                raise InvalidNotification("notification audit integrity failure")
             attempts = [
                 row
                 for row in rows
@@ -230,6 +252,25 @@ async def recorded_states(session, now, *, limit=100):
     result = []
     for request in requests:
         chain = [row for row in rows if row.chain_id == request.chain_id]
+        try:
+            notice = validated_notice(request)
+            valid = verify_records(chain)
+        except InvalidNotification:
+            valid = False
+        if not valid:
+            result.append({
+                "event_id": request.chain_id,
+                "source_audit_id": "UNAVAILABLE",
+                "event_type": "UNAVAILABLE",
+                "requested_at": request.occurred_at,
+                "order_id": None,
+                "position_id": None,
+                "status": "INTEGRITY_FAILURE",
+                "channels": {},
+                "attempts": 0,
+                "external_delivery_verified": False,
+            })
+            continue
         attempts = [row for row in chain if row.event_type == "NOTIFICATION_ATTEMPT"]
         receipts = [row for row in chain if row.event_type == "NOTIFICATION_RECEIPT"]
         channels = {}
@@ -249,7 +290,7 @@ async def recorded_states(session, now, *, limit=100):
             {
                 "event_id": request.chain_id,
                 "source_audit_id": request.result["source_audit_id"],
-                "event_type": request.result["notification"]["event_type"],
+                "event_type": notice.event_type,
                 "requested_at": request.occurred_at,
                 "order_id": request.order_id,
                 "position_id": request.position_id,

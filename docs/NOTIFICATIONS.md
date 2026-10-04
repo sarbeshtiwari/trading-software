@@ -134,3 +134,17 @@ Routing/failure isolation is tested with isolated transport fixtures. No remote
 Telegram or email message was sent or claimed during development. Risk safety
 still emits durable CRITICAL audit events/local logs independently; configured
 remote delivery is additional, not a replacement. PAPER stays default.
+
+### Corrupt-request isolation
+
+An invalid notification payload or failed audit-chain verification is withheld
+without sending or acknowledging it. The dispatcher logs the request ID only and
+continues to independent requests; one corrupt entry cannot suppress later stop,
+exit or risk alerts. Cancellation and database errors still propagate to the
+supervisor rather than being mistaken for a corrupt individual request.
+
+The Monitoring API reports `INTEGRITY_FAILURE`, unavailable event/source metadata
+and no trusted delivery outcomes for the affected record. It does not expose
+unverified payload text or rewrite the audit evidence. Restarts retain this
+behavior; valid acknowledged requests are not resent. These checks use the actual
+PAPER lifecycle and isolated transport fixtures, not external delivery evidence.
