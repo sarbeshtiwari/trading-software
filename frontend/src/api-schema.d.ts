@@ -2355,6 +2355,12 @@ export interface components {
             status: string;
             /** Detail */
             detail: string;
+            /** Checked At */
+            checked_at?: string | null;
+            /** Recorded Status */
+            recorded_status?: string | null;
+            /** Critical */
+            critical?: boolean | null;
         };
         /** ConfigurationChange */
         ConfigurationChange: {

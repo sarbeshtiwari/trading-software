@@ -225,7 +225,7 @@ export function App({ api: supplied }: { api?: Api }) {
         {page === 'Journal' && <JournalPanel api={api} />}
         {page === 'Backtests' && <HistoricalPanel api={api} />}
         {page === 'Audit' && <AuditPanel api={api} />}
-        {page === 'Monitoring' && <><RuntimeReadinessPanel api={api} /><EventFailurePanel api={api} /><Records rows={data.components} /><ReconciliationPanel api={api} /><OrphanReviewPanel api={api} /><HealthHistoryPanel api={api} /><h2>Durable notification outcomes</h2><p>A channel acknowledgement is not independently verified message delivery. Pending/failed notices do not imply a trading failure.</p><Records rows={data.notifications ?? []} /><PaperSummaryPanel api={api} /></>}
+        {page === 'Monitoring' && <><RuntimeReadinessPanel api={api} /><EventFailurePanel api={api} /><p>Recorded health results are historical observations. Check status and checked_at; a recorded PASS does not override STALE or UNAVAILABLE. Task-only states have no health-check timestamp.</p><Records rows={data.components} /><ReconciliationPanel api={api} /><OrphanReviewPanel api={api} /><HealthHistoryPanel api={api} /><h2>Durable notification outcomes</h2><p>A channel acknowledgement is not independently verified message delivery. Pending/failed notices do not imply a trading failure.</p><Records rows={data.notifications ?? []} /><PaperSummaryPanel api={api} /></>}
         {page === 'Market / F&O' && <><MarketPanel api={api} /><p>Recorded option-chain summaries; live indices, Greeks and futures views remain unavailable until connected.</p><Records rows={data.chains} /><NewsSourcesPanel api={api} /></>}
         {page === 'Risk' && <RiskPanel api={api} revision={data} onChange={() => void load()} />}</>}
     </main></div>;

@@ -50,7 +50,8 @@ test('authenticated dashboard renders backend blockers and truthful missing data
     account: null, account_status: 'UNAVAILABLE', regime_status: 'STALE_OR_INCOMPLETE',
     regime: { id: 'fixture-regime', underlying: 'FIXTURE-INDEX', as_of: '2026-09-20T09:00:00Z', data_origin: 'SYNTHETIC', label: 'TRENDING_UP', candidate: 'TRENDING_UP', reason: 'INITIAL' },
     positions: [], orders: [], decisions: [], audit: [], strategies: [], chains: [], preflights: [], journal: [],
-    components: [{ name: 'scheduler', status: 'NOT_IMPLEMENTED', detail: 'No worker' }],
+    components: [{ name: 'scheduler', status: 'NOT_IMPLEMENTED', detail: 'No worker', checked_at: null, recorded_status: null, critical: null },
+      { name: 'database', status: 'STALE', recorded_status: 'PASS', checked_at: '2026-09-20T09:59:01Z', critical: true, detail: 'Old database observation' }],
     notifications: [{ event_id: 'isolated-notice', status: 'RECORDED_CHANNEL_OUTCOMES', channels: { email: 'FAILED' }, external_delivery_verified: false }],
     advisory_calls: [{ id: 'fixture-advisory', provider: 'fallback', outcome: 'FALLBACK_USED', cost_usd: '0', input_tokens: null }],
     advisory_budget: { reserved_usd: '2.020480', accounted_usd: '0.000300', cost_basis: 'OWNER_TARIFF_ESTIMATE_NOT_PROVIDER_INVOICE' },
@@ -67,6 +68,9 @@ test('authenticated dashboard renders backend blockers and truthful missing data
   expect(screen.getByText(/No recorded data/)).toBeInTheDocument();
   expect(localStorage.length).toBe(0);
   fireEvent.click(screen.getByRole('button', { name: 'Monitoring' }));
+  expect(screen.getByText('STALE')).toBeInTheDocument();
+  expect(screen.getByText('2026-09-20T09:59:01Z')).toBeInTheDocument();
+  expect(screen.getByText(/Recorded health results are historical observations/)).toBeInTheDocument();
   expect(screen.getByText('isolated-notice')).toBeInTheDocument();
   expect(screen.getByText(/"email":"FAILED"/)).toBeInTheDocument();
   expect(screen.getByText(/not independently verified message delivery/)).toBeInTheDocument();

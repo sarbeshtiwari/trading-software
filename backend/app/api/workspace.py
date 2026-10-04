@@ -1,6 +1,6 @@
 """Typed, read-only application state. Missing telemetry is never synthesized."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -193,6 +193,34 @@ class ComponentView(BaseModel):
     name: str
     status: str
     detail: str
+    checked_at: datetime | None = None
+    recorded_status: str | None = None
+    critical: bool | None = None
+
+
+def health_components(report, now, max_age_seconds):
+    if report is None:
+        return []
+    views = []
+    for item in report.results:
+        checked = item.checked_at
+        valid_times = (
+            checked is not None and checked.utcoffset() is not None
+            and report.generated_at.utcoffset() is not None
+        )
+        fresh = valid_times and (
+            timedelta(0) <= now - checked <= timedelta(seconds=max_age_seconds)
+            and checked <= report.generated_at <= now
+        )
+        views.append(ComponentView(
+            name=item.name,
+            status=item.status.value if fresh else "STALE" if valid_times else "UNAVAILABLE",
+            detail=item.detail,
+            checked_at=checked if valid_times else None,
+            recorded_status=item.status.value,
+            critical=item.critical,
+        ))
+    return views
 
 
 class NotificationView(Row):
@@ -425,13 +453,8 @@ async def workspace():
             view.unrealised_pnl = None
         position_views.append(view)
     report = get_health_registry().last_report
-    components = (
-        [
-            ComponentView(name=item.name, status=item.status.value, detail=item.detail)
-            for item in report.results
-        ]
-        if report
-        else []
+    components = health_components(
+        report, now, get_settings().healthcheck_interval_seconds * 2
     )
     delivery_state = notification_status()
     if delivery_state["status"] != "DISABLED" and any(

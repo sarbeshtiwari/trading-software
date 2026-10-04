@@ -6780,3 +6780,29 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   timestamps and stale-state handling) using actual recorded health reports,
   without exposing raw secret-bearing exception text or claiming current health
   from an old snapshot. PAPER stays default; owner services remain untouched.
+
+### Per-component health freshness integrated (2026-10-04)
+
+- **b916fd4a09a8152300e8fbdd087ddbce71866a1c** is pushed and remote-verified.
+- Workspace now exposes actual observation timestamps, recorded result and
+  criticality. Current component status cannot remain PASS for old/future/missing
+  or timezone-naive evidence, or inconsistent report chronology. Uses the existing
+  configured two-cadence freshness window; report contents and trading gates are
+  not mutated. Monitoring renders the distinction; generated API/types updated.
+- Authenticated API/readiness/notification regression **25 passed / 0 failed /
+  0 skipped**, 35.88s, session 74065 finished. Log:
+  `backend/logs/workspace-health-freshness-final.txt`. Exact boundary, stale,
+  future, missing/naive time and report chronology are tested.
+- Initial frontend fixture omitted nullable fields present in the real typed
+  response, hiding the timestamp column (66 passed / 1 failed). Corrected the
+  fixture to match the API. Final frontend **67 passed / 0 failed / 0 skipped**,
+  production build successful, session 60765 finished;
+  `backend/logs/frontend-health-freshness-final.txt`. Changed Python passes Ruff.
+- Corrected obsolete watchdog documentation: PAPER health already inspects the
+  active reference provider; absent observations are unavailable, not connected.
+  FE-015 remains partial. Counts unchanged: **228 verified / 145 partial / 10
+  unverified / 150 not started**. Last full backend baseline **1792 passed** is
+  before this scoped change. No Groww LIVE, remote delivery or M1/M2 claim.
+- Next: inspect portfolio/exposure acceptance against actual supported PAPER
+  equity/long-option fills and reconciliation, prioritizing a missing integrated
+  risk/accounting dependency rather than more cosmetic Monitoring changes.

@@ -71,9 +71,23 @@ fallback is DEGRADED, not falsely labelled websocket health. Nonfinite/nonpositi
 feed prices do not renew freshness. This is conservative tracked-observation
 health, not external proof of all exchange data or exchange timestamp fidelity.
 
-Runtime wiring remains unfinished: startup currently constructs a separate data
-provider from the worker. This unwired provider correctly remains unavailable.
-The next integration must bind health to the selected worker provider and refresh
-read-only data without granting entry permission or deadlocking behind the health
-gate. DEGRADED REST policy must retain explicit fresh-input evidence and truthful
-UI status. No external Groww connection or live order is verified by these tests.
+The PAPER lifespan registers `PaperMarketDataCheck` and `PaperMarketTransportCheck`,
+which inspect the active reference runtime/provider rather than treating a separate
+unused provider as connected. Missing worker observations remain unavailable;
+fresh audited input evidence is separate from transport state. No external Groww
+connection or live order is verified by these checks.
+
+## Dashboard observation freshness
+
+The workspace includes each health component's `checked_at`, `recorded_status`
+and `critical` flag. Its current display status uses the configured health cadence:
+an observation older than twice `HEALTHCHECK_INTERVAL_SECONDS` is `STALE`, even
+if its recorded result was PASS. Future observations/reports and inconsistent
+report ordering also cannot show a current PASS. Missing or timezone-naive
+timestamps show `UNAVAILABLE`, not an invented observation time.
+
+Monitoring renders these fields and explicitly distinguishes a recorded result
+from present health. Scheduler/notification task states have no health-check
+timestamp unless one actually exists. This read-only presentation never clears
+trading gates or rewrites the authoritative health report. Broader per-component
+and cross-mode acceptance remains partial.
