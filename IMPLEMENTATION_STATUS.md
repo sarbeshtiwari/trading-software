@@ -6355,3 +6355,47 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: freeze code/tests and run full PostgreSQL/Redis/Edge regression for both
   recovery units, then continue remaining runtime outage acceptance. Never claim
   connection termination proves a database/server restart; LIVE stays unverified.
+
+### Full owner-recovery regression running (2026-10-03)
+
+- **e820f42289b906db31d87d06db8af7583a81508c** is pushed and remote-verified
+  on origin/main, configured owner only, no co-author. Unrelated owner changes
+  remain excluded. Code/tests are frozen for full acceptance.
+- Full backend session **40399** is running with PostgreSQL, Redis and Edge
+  enabled. Log: `backend/logs/full-owner-recovery.txt`. No final result yet.
+  Poll this exact handle to terminal; do not restart because output is quiet.
+- Previous regression sessions 94195, 44744, 50214, 22406, 54906 and 38907 are
+  finished. The authoritative last whole-suite result remains **1750 passed**.
+- After acceptance, continue runtime outage/recovery work. Counts unchanged;
+  no claim of M1/M2, continuous market operation or Groww LIVE verification.
+
+### Interrupted acceptance revalidated and resumed (2026-10-04)
+
+- Previous session **40399 is missing**, and no Python process remains. Its log
+  stops at 16% with no final result. The interrupted observer is not evidence of
+  success or failure; retain `backend/logs/full-owner-recovery.txt` as incomplete.
+  This restart follows confirmed process absence, not merely quiet output.
+- Existing Docker PostgreSQL and Redis both report healthy. Neither container
+  was recreated/restarted by the agent. Source/tests remain unchanged and frozen.
+- Fresh full acceptance session **34497** uses PostgreSQL, Redis and Edge,
+  with per-test progress and slow-test timings for better observability. Log:
+  `backend/logs/full-owner-recovery-resumed.txt`. Poll this handle to terminal.
+- Last complete whole-suite result remains **1750 passed**. No requirement
+  promotion or external verification claim. After this run, address any failures,
+  publish the honest result, then continue remaining operational recovery work.
+
+### Full owner-recovery acceptance completed (2026-10-04)
+
+- Session **34497 finished**: **1762 passed / 0 failed / 0 skipped**, three
+  existing warnings, 1h10m09s. PostgreSQL, Redis and Edge were enabled. Source and
+  tests remained frozen. Log: `backend/logs/full-owner-recovery-resumed.txt`.
+  The earlier interrupted session 40399 remains incomplete, not passing evidence.
+- This verifies the committed owner recovery and replacement-cleanup changes
+  against the complete suite. Frontend remains **67 passed**, production build
+  successful. No new requirement promotion: **228 verified / 145 partial /
+  10 unverified / 150 not started**. No M1/M2 or Groww LIVE certification.
+- Next: exercise an actual network interruption through a tests-only loopback
+  transport to the disposable PostgreSQL fixture database. Verify blocked
+  execution during the outage, owner recovery after connectivity returns,
+  durable accounting and no duplicate orders. Do not stop/restart owner services
+  or label a connection-loss test as database/server restart verification.
