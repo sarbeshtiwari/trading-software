@@ -51,7 +51,8 @@ async def process_database(settings, storage, monkeypatch):
         with monkeypatch.context() as scoped:
             scoped.setattr(settings, "database_url", target.render_as_string(hide_password=False))
             scoped.setattr(db_session, "_sessionmaker", async_sessionmaker(
-                engine, expire_on_commit=False, autoflush=False
+                engine, expire_on_commit=False, autoflush=False,
+                info={"database_session_timeout_seconds": settings.database_session_timeout_seconds},
             ))
             yield
     finally:

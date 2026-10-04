@@ -220,6 +220,8 @@ Database waits are bounded by configurable positive, finite deadlines (maximum
 | `DATABASE_SESSION_TIMEOUT_SECONDS` | 20 | Entire application session, including checkout and commit |
 
 A session deadline applies to work inside `session_scope`, not just SQL execution.
+The validated deadline is captured at engine/session-factory initialization;
+changing process environment later does not reconfigure an existing factory.
 Timeout/cancellation invalidates the session; it must not be reused or blindly
 retried. A timeout during commit is not proof that the commit failed: reconcile
 durable state before acting again. PAPER storage failures block new entries and

@@ -46,9 +46,9 @@ async def test_database_network_outage_and_owner_recovery(
                 engine = create_async_engine(proxied, **db_session._engine_kwargs(bounded))
                 db_session.install_connection_cleanup(engine)
                 with monkeypatch.context() as scoped:
-                    scoped.setattr(worker.settings, "database_session_timeout_seconds", 10)
                     scoped.setattr(db_session, "_sessionmaker", async_sessionmaker(
-                        engine, expire_on_commit=False, autoflush=False
+                        engine, expire_on_commit=False, autoflush=False,
+                        info={"database_session_timeout_seconds": 10},
                     ))
                     await worker.executor.monitor_once()
                     async with db_session.session_scope() as session:

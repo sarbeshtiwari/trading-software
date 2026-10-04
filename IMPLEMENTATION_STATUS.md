@@ -6506,3 +6506,44 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   session deadlines affect a shared boundary. Preserve exact process/log evidence,
   then continue operational recovery acceptance rather than extending timeouts
   to conceal faults or retrying ambiguous trades.
+
+### Full database-deadline acceptance running (2026-10-04)
+
+- **e2c0be6aa337ad1461572176c8d8d0e5b5afee6a** is pushed and remote-verified
+  on origin/main, configured owner only, no co-author. Unrelated owner changes
+  remain excluded. Source/tests are frozen.
+- Full suite session **67782** is running with PostgreSQL, Redis and Edge.
+  Log: `backend/logs/full-database-deadlines.txt`. Poll this exact handle until
+  terminal; no final result yet. Previous session 86074 is finished (65 passed).
+- Last complete whole-suite remains **1762 passed**, before the TCP/deadline
+  changes. No new requirement completion or external verification claim.
+- Next: resolve any full-suite failures, publish acceptance, then continue
+  outstanding recovery failure classes and real PAPER operational requirements.
+- While the SAME session 67782 continues, both variants of
+  `test_actual_child_process_preserves_parent_and_persists_real_outcome` reported
+  failures at 17%. No traceback/final summary yet; source/tests remain frozen.
+  Do not label this run passing. Capture the complete result before fixing the
+  demonstrated historical subprocess/session integration regression.
+
+### Full database deadline regression findings (2026-10-04)
+
+- Session **67782 finished: 1783 passed / 4 failed / 0 skipped**, three existing
+  warnings, 1h44m09s. PostgreSQL, Redis and Edge enabled. Log:
+  `backend/logs/full-database-deadlines.txt`. This is not passing acceptance.
+- Two historical subprocess tests exposed `session_scope` consulting environment
+  settings again after the parent deliberately changed them. Session deadlines
+  now bind to the configured session factory at engine initialization; isolated
+  factories retain the declared default without reparsing unrelated environment.
+- Two discrepancy tests expected an existing ID from `submit` even after a
+  connection failure. The stronger fail-closed handler correctly required recovery.
+  Tests now require that refusal while retaining their exact no-duplicate-order,
+  accounting and audit assertions. The readiness gate was not weakened.
+- Targeted historical/discrepancy/transaction/TCP regression is running as session
+  **69241**, `backend/logs/database-deadline-corrections.txt`. Source/tests frozen
+  until result; no corrective commit yet. Keep last passing whole-suite **1762**
+  distinct from the current failed acceptance. Counts unchanged, no M1/M2 claim.
+- Session **69241 finished: 17 passed / 0 failed / 0 skipped**, 1m15s. This
+  includes all four failed cases, actual TCP refusal/stall recovery and transaction
+  timeout/cancellation. Changed tests and import ordering pass lint; diff checks
+  pass. This scoped result does not replace full acceptance. Next: publish the
+  correction and run a new frozen complete PostgreSQL/Redis/Edge suite.

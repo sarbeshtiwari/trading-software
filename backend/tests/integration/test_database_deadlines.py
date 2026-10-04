@@ -4,14 +4,13 @@ import asyncio
 
 import pytest
 
-from app.config import get_settings
 from app.db import session as db_session
 from app.db.models.system import Heartbeat
 
 
 @pytest.mark.parametrize("cancel", [False, True])
-async def test_interrupted_transaction_rolls_back(db_engine, fake_clock, monkeypatch, cancel):
-    monkeypatch.setattr(get_settings(), "database_session_timeout_seconds", 0.5)
+async def test_interrupted_transaction_rolls_back(db_engine, fake_clock, cancel):
+    db_session.get_sessionmaker().configure(info={"database_session_timeout_seconds": 0.5})
     flushed = asyncio.Event()
 
     async def interrupted_write():

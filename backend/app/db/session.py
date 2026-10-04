@@ -91,6 +91,7 @@ def init_engine(settings: Optional[Settings] = None, *, force: bool = False) -> 
         class_=AsyncSession,
         expire_on_commit=False,  # objects stay usable after commit, inside one request
         autoflush=False,
+        info={"database_session_timeout_seconds": resolved.database_session_timeout_seconds},
     )
     logger.info(
         "Database engine initialised",
@@ -118,7 +119,11 @@ async def session_scope() -> AsyncIterator[AsyncSession]:
     factory = get_sessionmaker()
     session = factory()
     try:
-        async with timeout(get_settings().database_session_timeout_seconds):
+        deadline = session.info.get(
+            "database_session_timeout_seconds",
+            Settings.model_fields["database_session_timeout_seconds"].default,
+        )
+        async with timeout(deadline):
             yield session
             await session.commit()
     except (asyncio.TimeoutError, asyncio.CancelledError):

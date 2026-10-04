@@ -95,7 +95,12 @@ async def test_order_failure_evidence_and_no_duplicate_submission(
         else:
             assert record["broker_state"]["orders"][0]["broker_order_id"]
         assert not get_trading_gate().new_entries_allowed
-        assert await engine.submit(proposal) == identifier
+        if fault in {"unavailable", "trades_unavailable"}:
+            assert not engine.ready
+            with pytest.raises(SafetyError, match="RECOVERY_REQUIRED"):
+                await engine.submit(proposal)
+        else:
+            assert await engine.submit(proposal) == identifier
         assert len(engine.broker._orders) == 1
         assert await accounting_state() == before
     finally:
