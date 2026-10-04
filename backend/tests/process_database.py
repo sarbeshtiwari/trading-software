@@ -23,7 +23,7 @@ async def process_database(settings, storage, monkeypatch):
     configured = make_url(os.environ["ATS_TEST_POSTGRES_URL"])
     database = "ats_recovery_test_" + uuid4().hex
     assert database != configured.database
-    admin = create_async_engine(configured, isolation_level="AUTOCOMMIT")
+    admin = create_async_engine(configured, isolation_level="AUTOCOMMIT", pool_pre_ping=True)
     target = configured.set(database=database)
     engine = None
     created = False

@@ -6578,3 +6578,28 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   infrastructure only. Existing owner PostgreSQL/Redis must remain untouched;
   distinguish application/process, transport and database-server recovery evidence.
   Reuse actual PAPER worker/OMS state rather than creating a parallel test pipeline.
+
+### Isolated database-server restart acceptance (2026-10-04)
+
+- Added an opt-in disposable Docker PostgreSQL crash/restart test using the real
+  reference worker, owner recovery API, protection checks, OMS and costed journal.
+  Both open-position and pending-entry cases retain identity, prohibit duplicate
+  execution and keep entries inhibited after recovery. Owner PostgreSQL/Redis
+  containers were not restarted; both were observed healthy before acceptance.
+- Initial fixture runs failed: local Unix-socket readiness preceded TCP readiness,
+  then an automatically assigned Docker endpoint was unsuitable for restart.
+  The fixture now checks TCP readiness and pins its loopback endpoint. These were
+  test-infrastructure corrections, not evidence of production success.
+- Final isolated crash/restart run: **2 passed / 0 failed / 0 skipped**, 28.02s,
+  session 17007 finished, `backend/logs/database-server-restart-confirmed.txt`.
+  Adjacent actual PostgreSQL/application-process/owner recovery regression:
+  **10 passed / 0 failed / 0 skipped**, 69.35s, session 66754 finished,
+  `backend/logs/database-server-restart-regression.txt`. Changed tests pass Ruff.
+- No production trading changes or requirement promotions. REC-008 remains
+  partial: database-server restart is now covered, not host reboot or every
+  broker-network failure. Counts **228 verified / 145 partial / 10 unverified /
+  150 not started**. Last complete suite **1787 passed**, frontend **67 passed**
+  and successful build; new opt-in crash tests are separate from that baseline.
+- Next: verify actual transport interruption during owner recovery, including
+  the success-audit boundary; never clear storage/entry gates after incomplete
+  recovery. Groww LIVE, real notification delivery and M1/M2 remain unverified.

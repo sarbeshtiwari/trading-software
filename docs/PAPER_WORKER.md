@@ -233,3 +233,22 @@ of waiting for graceful network cleanup on an unusable connection. This uses the
 which occurs before connection close. Normal healthy connections retain pooling;
 SQLite does not receive PostgreSQL driver options. These settings do not certify
 continuous protection during an outage or replace reconciliation.
+
+### Isolated database-server crash acceptance
+
+`tests/integration/test_database_server_restart.py` runs only when
+`ATS_TEST_DOCKER_RESTART=1`. It requires Docker and an already-cached PostgreSQL
+image (`ATS_TEST_POSTGRES_IMAGE`, default `timescale/timescaledb:2.17.2-pg16`);
+it never pulls images or stops owner services. The helper creates a uniquely
+labelled disposable container with generated test credentials and a loopback-only
+fixed endpoint. Destructive actions require its exact ID and matching ownership
+label; cleanup removes only that container and its anonymous test volumes.
+
+The real reference worker creates an open position or pending order, whose state
+is migrated to the disposable PostgreSQL database. The test kills the database
+server, verifies execution fails closed, restarts the same server/storage, and
+uses authenticated owner recovery. New entries remain blocked. The original
+order is not duplicated; protection is checked and a costed exit produces its
+journal through production services. This is database-server recovery evidence,
+not host reboot, uninterrupted outage protection, real-market PAPER eligibility,
+or Groww verification.
