@@ -6697,3 +6697,63 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: frozen full acceptance including the new opt-in isolated Docker restart
   cases, PostgreSQL/Redis and Edge. Preserve the running inspection app separately;
   do not enable its execution worker or confuse it with the test deployment.
+
+### Full notification/recovery acceptance running (2026-10-04)
+
+- **b36608c3758066c891424dc7b118234e28e4977c** is pushed and remote-verified
+  on origin/main, configured owner author only. Source/tests are frozen.
+- Full backend session **48041** is running with PostgreSQL, Redis, Edge and
+  `ATS_TEST_DOCKER_RESTART=1`; log
+  `backend/logs/full-notification-recovery-acceptance.txt`. Last observed progress
+  12%, no final result. Poll this exact session; do not restart a quiet process.
+- Frontend session **96705 finished: 66 passed / 1 failed**, 24.42s. Build did
+  not run after failure. `WorkspaceUpdates.test.tsx` coalescing case saw three
+  requests instead of two; do not report current frontend acceptance passing.
+  Log `backend/logs/frontend-notification-acceptance.txt`. Investigate whether
+  wall-clock polling/timeout overlaps the test or coalescing is defective; do not
+  weaken the assertion without establishing its cause. No source/test edits while
+  the full backend/browser acceptance is active.
+- Next: finish session 48041, preserve all evidence, correct demonstrated failures
+  and rerun affected acceptance before publishing another verified checkpoint.
+  Previous full backend 1787 and frontend 67/build remain historical baselines,
+  not evidence that this unfinished/failed acceptance passed. Counts unchanged.
+
+### Full backend acceptance completed; frontend timing investigation (2026-10-04)
+
+- Session **48041 finished: 1792 passed / 0 failed / 0 skipped**, three existing
+  warnings, 1h04m42s. Actual PostgreSQL, Redis, Edge and isolated Docker database
+  restart cases enabled; source/tests stayed frozen until terminal. Log:
+  `backend/logs/full-notification-recovery-acceptance.txt`. This replaces 1787 as
+  the current full backend baseline, not M1/M2 or external-market verification.
+- Original frontend failure remains preserved. Unchanged isolated/full reruns
+  passed, but interval control alone reproduced the extra request. Therefore the
+  initial hypothesis that wall-clock polling alone caused it is not established.
+  Temporary stack capture was timing-sensitive and has been removed. No production
+  refresh logic or request-count assertion has been weakened.
+- The test now explicitly awaits authenticated mount/initial pending request,
+  flushes React effects before concurrent clicks, resolves responses inside act,
+  and separately checks polling at 9999/10000ms. Repeated clean acceptance is
+  running as session **98308**, `backend/logs/workspace-refresh-mount-boundary.txt`.
+  Await that result, then full frontend tests/build before committing. Previous
+  stack-capture process handle disappeared after interruption; do not restart it
+  or treat its partial repetition log as a new complete acceptance.
+
+### Acceptance and refresh test checkpoint (2026-10-04)
+
+- Session **98308 finished successfully**: ten consecutive clean runs of the
+  three workspace-update tests, with no failed run hidden/retried. The final
+  fixture waits for React's authenticated mount and initial request before
+  asserting coalescing. It independently verifies that polling adds exactly one
+  request at 10000ms, not at 9999ms. Production refresh code is unchanged.
+- Session **38625 finished: 67 frontend tests passed / 0 failed / 0 skipped**;
+  TypeScript and production Vite build successful. Log:
+  `backend/logs/frontend-mount-boundary-final.txt`. Earlier intermittent failures
+  remain recorded rather than relabelled as passes. No diagnostic logging remains.
+- Backend complete acceptance is **1792 passed / 0 failed / 0 skipped**, session
+  48041 finished. Do not poll/restart either terminal session. Counts unchanged:
+  **228 verified / 145 partial / 10 unverified / 150 not started**. No M1/M2,
+  live broker, real-market PAPER or remote-delivery certification.
+- Next: inspect current health/notification operational gaps and expose genuine
+  failures through existing Monitoring APIs/UI. Do not spend another unit solely
+  repeating green suites; prefer missing integrated behavior. Recheck inspection
+  server process handles before claiming the dashboard is still running.
