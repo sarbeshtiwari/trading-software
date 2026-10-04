@@ -32,5 +32,20 @@ and API linkage, and cost-basis discrepancies despite matching quantity.
 The scheduled reference worker also runs the sourced fee-estimate lifecycle.
 This does not complete the full platform acceptance: derivative-specific rules,
 general multi-position/multi-entry execution policy, automatic legacy migration,
-continuous real input refresh, durable notifications and emergency UI remain
-separate work. Groww LIVE remains unverified.
+continuous real input refresh and broader cross-mode acceptance remain separate
+work. PAPER notifications/emergency UI have their own scoped acceptance in the
+status ledger. Groww LIVE remains unverified.
+
+## Current exposure evidence
+
+The production PAPER risk snapshot requires a finite positive `last_price` and
+an actual `marked_at` for each open position. Marks older than configured
+`TICK_STALENESS_SECONDS` are refused with `PAPER_POSITION_MARK_UNAVAILABLE`;
+the exact maximum-age boundary remains valid. Missing marks are not replaced by
+historical average entry prices and restamped as current risk evidence.
+
+The existing position monitor can restore availability by consuming a valid
+current quote and updating the position. This does not change FIFO lots or
+fabricate a fill. Closed positions do not require new market marks, and existing
+future-state checks remain authoritative. General derivative notional/net exposure
+and multi-position acceptance are not claimed complete by this guard.

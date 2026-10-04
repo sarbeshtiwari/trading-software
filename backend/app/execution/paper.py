@@ -388,6 +388,15 @@ class PaperExecution:
         exposures = []
         reserved = Decimal(0)
         for position in open_positions:
+            if (
+                position.last_price is None
+                or not position.last_price.is_finite()
+                or position.last_price <= 0
+                or position.marked_at is None
+                or not timedelta(0) <= as_of - _utc(position.marked_at)
+                <= timedelta(seconds=self.settings.tick_staleness_seconds)
+            ):
+                raise SafetyError("PAPER_POSITION_MARK_UNAVAILABLE")
             async with db_session.session_scope() as session:
                 instrument = await session.get(Instrument, position.instrument_id)
             exposures.append(
@@ -395,8 +404,7 @@ class PaperExecution:
                     instrument_id=position.instrument_id,
                     sector=instrument.sector,
                     underlying=instrument.underlying or instrument.trading_symbol,
-                    notional=abs(position.net_quantity)
-                    * (position.last_price or position.average_price),
+                    notional=abs(position.net_quantity) * position.last_price,
                 )
             )
             if position.stop_loss_price is None:

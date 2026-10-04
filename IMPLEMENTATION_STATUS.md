@@ -6806,3 +6806,29 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: inspect portfolio/exposure acceptance against actual supported PAPER
   equity/long-option fills and reconciliation, prioritizing a missing integrated
   risk/accounting dependency rather than more cosmetic Monitoring changes.
+
+### PAPER risk valuation freshness corrected (2026-10-04)
+
+- **3998a27a912fa98367d8be1688187daf13909b20** is pushed and remote-verified.
+- Reproduced a real risk-input defect using actual PAPER fills: missing prices,
+  absent mark timestamps and stale marks all produced a newly timestamped account
+  risk snapshot. The missing price silently fell back to historical entry basis.
+  Reproduction: **5 passed / 3 failed**, session 33748 finished,
+  `backend/logs/position-mark-reproduction.txt`; failures demonstrate the gap.
+- Open-position exposure now requires finite positive marked prices and real
+  timestamps within configured tick freshness. Unavailable evidence raises
+  `PAPER_POSITION_MARK_UNAVAILABLE` rather than relabelling entry cost as current
+  market exposure. Existing future-state vetoes remain. The actual quote monitor
+  restores valid marks, after which risk valuation resumes without another order.
+- Execution/reference-worker/long-option/account regression **49 passed / 0
+  failed / 0 skipped**, 83.98s, session 90682 finished. Additional absent/zero/
+  negative/stale/boundary and future-account checks **10 passed / 0 failed /
+  0 skipped**, 21.20s, session 86538 finished. Logs:
+  `backend/logs/position-mark-regression.txt`, `position-mark-boundaries.txt`.
+- PORT-003 remains partial with actual implementation/test traceability. Counts
+  unchanged **228 verified / 145 partial / 10 unverified / 150 not started**.
+  Whole-suite baseline remains **1792 passed**, before subsequent scoped changes;
+  frontend unchanged **67 passed/build successful**. No LIVE/M1/M2 claim.
+- Next: inspect exposure semantics for supported long options and pending capital
+  reservations; verify the decision pipeline uses the same instrument/sector/
+  underlying measures rather than claiming the generic portfolio contract done.

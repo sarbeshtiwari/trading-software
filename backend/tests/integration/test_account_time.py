@@ -23,6 +23,38 @@ from tests.unit.test_proposal import payload
 __all__ = ["credentials"]
 
 
+@pytest.mark.parametrize("invalid", ["price", "zero", "negative", "timestamp", "stale"])
+async def test_open_position_requires_current_mark_before_risk_snapshot(
+    db_engine, credentials, fake_clock, invalid
+):
+    engine, proposal_id, market, client, context = await setup_execution(credentials, fake_clock)
+    try:
+        await engine.submit(proposal_id)
+        async with db_session.session_scope() as session:
+            position = await session.scalar(sa.select(Position))
+            quantity = position.net_quantity
+            if invalid == "price":
+                position.last_price = None
+            elif invalid in {"zero", "negative"}:
+                position.last_price = Decimal(0) if invalid == "zero" else Decimal(-1)
+            elif invalid == "timestamp":
+                position.marked_at = None
+        if invalid == "stale":
+            fake_clock.advance_seconds(engine.settings.tick_staleness_seconds)
+            boundary = await engine.portfolio_state(context.strategy.id, context.market.data_origin)
+            assert boundary.exposures[0].notional == abs(quantity) * Decimal(100)
+            fake_clock.advance_seconds(1)
+        with pytest.raises(SafetyError, match="PAPER_POSITION_MARK_UNAVAILABLE"):
+            await engine.portfolio_state(context.strategy.id, context.market.data_origin)
+        market["observed"] = fake_clock.now()
+        await engine.monitor_once()
+        restored = await engine.portfolio_state(context.strategy.id, context.market.data_origin)
+        assert restored.exposures[0].notional == abs(quantity) * Decimal(100)
+        assert len(await engine.broker.list_orders()) == 1
+    finally:
+        await client.aclose()
+
+
 async def test_future_peak_does_not_contaminate_execution_risk(db_engine, credentials, fake_clock):
     engine, proposal_id, _market, client, context = await setup_execution(credentials, fake_clock)
     try:
