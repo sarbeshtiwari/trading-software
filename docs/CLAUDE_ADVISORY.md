@@ -335,3 +335,12 @@ integrated; broader research/schema dispatch, source-specific agents and full
 adversarial failure parity remain pending. Strict malformed JSON is rejected and
 re-asked rather than extracted from arbitrary prose. LLM ledger items therefore
 remain partial instead of claiming the entire AI layer complete.
+
+Budget reservation denial emits a `LLM_BUDGET_EXHAUSTED` WARNING through the
+existing transactional notification outbox, linked to the exact unavailable
+advisory audit receipt and correlation ID. Missing tariff/model configuration
+remains `LLM_DEGRADED`, not claimed spend exhaustion. The warning means the
+configured reservation cannot be authorized; it does not establish actual vendor
+billing. No paid HTTP call is made, and an eligible deterministic fallback still
+passes the normal decision/risk gates. External notification delivery remains
+unverified; local receipt creation is not delivery acknowledgement.

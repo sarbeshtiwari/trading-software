@@ -87,7 +87,7 @@ async def _notify(session, event, clock, code):
     await enqueue(
         session,
         key=event.id,
-        event_type="LLM_DEGRADED",
+        event_type="LLM_BUDGET_EXHAUSTED" if code == "BUDGET_EXCEEDED" else "LLM_DEGRADED",
         severity="WARNING",
         message="LLM advisory degraded: " + code + ". Deterministic gates remain mandatory.",
         clock=clock,

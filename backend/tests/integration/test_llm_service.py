@@ -190,6 +190,21 @@ async def test_denied_budget_never_calls_http(db_engine, fake_clock, monkeypatch
     async with db_session.session_scope() as session:
         call = await session.get(LLMCall, identifier)
         assert call.provider == "fallback" and call.request_context["reason"] == code
+        notices = list(await session.scalars(sa.select(AuditEvent).where(
+            AuditEvent.event_type == "NOTIFICATION_REQUESTED"
+        )))
+        assert len(notices) == 1
+        notice = notices[0].result["notification"]
+        assert notice["event_type"] == (
+            "LLM_BUDGET_EXHAUSTED" if code == "BUDGET_EXCEEDED" else "LLM_DEGRADED"
+        )
+        assert notice["severity"] == "WARNING"
+        source = await session.get(AuditEvent, notices[0].result["source_audit_id"])
+        assert source.result["reason"] == code
+        assert source.correlation_id == call.correlation_id
+        assert await session.scalar(sa.select(sa.func.count()).select_from(LLMCall).where(
+            LLMCall.provider == "claude"
+        )) == 0
 
 
 async def test_grounding_failure_bounded_repair_and_safe_quant_fallback(

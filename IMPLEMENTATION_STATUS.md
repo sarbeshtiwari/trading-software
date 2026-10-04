@@ -6650,3 +6650,26 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Next: continue integrated PAPER gaps while keeping this inspection runtime
   disabled for orders. Do not mistake fixture lifecycle acceptance for real-market
   eligibility, or token authentication for working Groww market-data access.
+
+### Typed advisory budget notification (2026-10-04)
+
+- Local startup documentation checkpoint **e38479cf4a4bc542ac48350af14d6c04823997f4**
+  is pushed on origin/main, owner author only. Existing inspection processes remain
+  distinct from a trading deployment; no worker or external delivery was enabled.
+- Advisory reservation rejection already had generic audited degradation; it now
+  emits the distinct `LLM_BUDGET_EXHAUSTED` WARNING. Missing tariff/model remains
+  generic degradation. Tests verify source audit/correlation linkage, fallback,
+  no remote call/reservation and exact notification classification. No risk or
+  strategy eligibility gate changes, and no actual vendor spend/delivery claim.
+- Initial new assertion incorrectly expected the audit's `outcome` rather than
+  its existing `reason` field (17 passed / 3 failed). Corrected the assertion,
+  not the production audit schema. Final advisory/outbox/runtime regression:
+  **36 passed / 0 failed / 0 skipped**, 41.94s, session 57315 finished;
+  `backend/logs/llm-budget-notification-final.txt`. An aiosqlite event-loop
+  deprecation warning was emitted; no test failed. Changed code passes Ruff.
+- NOTIF-003 remains partial, now tracing actual budget producer coverage. Counts
+  remain **228 verified / 145 partial / 10 unverified / 150 not started**. Full
+  baseline stays **1787 passed**; frontend unchanged **67 passed/build successful**.
+- Next: inspect remaining integrated notification coverage and operational PAPER
+  readiness dependencies, rather than treating a notification request as external
+  delivery. Do not bypass the owner login or Groww market-data HTTP 403 blocker.
