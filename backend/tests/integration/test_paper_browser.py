@@ -39,6 +39,22 @@ __all__ = ["catalog_database", "credentials", "isolated_database"]
 ROOT = Path(__file__).resolve().parents[3]
 pytestmark = [pytest.mark.integration, pytest.mark.e2e]
 
+#: Browser scripts enforce their own deadlines, so this only catches a browser
+#: that never answers at all. It must clear the script's longest wait plus
+#: Playwright/Edge teardown — measured at 16s under a loaded host — or the
+#: harness preempts the script and reports a hang instead of the real failure.
+HUNG_BROWSER_SECONDS = 90
+
+
+async def browser_output(process, seconds=HUNG_BROWSER_SECONDS):
+    """Collect a finished browser script's output, or report what it managed to say."""
+    try:
+        return await asyncio.wait_for(process.communicate(), seconds)
+    except asyncio.TimeoutError:
+        process.kill()
+        stdout, stderr = await process.communicate()
+        pytest.fail(f"browser never exited: {stdout!r} {stderr.decode(errors='replace')}")
+
 
 @pytest.mark.skipif(os.environ.get("ATS_TEST_BROWSER") != "1", reason="set ATS_TEST_BROWSER=1")
 async def test_real_browser_replaces_unfilled_entry(

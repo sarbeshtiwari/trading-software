@@ -14,7 +14,12 @@ from app.core.events import RedisStreamEventBus
 from app.monitoring.runtime_events import RuntimeEventPublisher
 from app.security.auth import OwnerAuth
 from tests.integration.test_auth import credentials
-from tests.integration.test_paper_browser import ROOT, live_dashboard
+from tests.integration.test_paper_browser import (
+    HUNG_BROWSER_SECONDS,
+    ROOT,
+    browser_output,
+    live_dashboard,
+)
 from tests.integration.test_paper_execution import setup_execution
 from tests.integration.test_redis_events import URL, redis_events
 
@@ -109,7 +114,9 @@ async def test_browser_refreshes_committed_order_without_polling(
             env={**os.environ, "ATS_TEST_OWNER_PASSWORD": credentials[1]},
             stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )
-        assert await asyncio.wait_for(process.stdout.readline(), 45) == b"STREAM_READY\n"
+        assert await asyncio.wait_for(
+            process.stdout.readline(), HUNG_BROWSER_SECONDS
+        ) == b"STREAM_READY\n"
         order = await engine.submit(proposal)
         publisher = RuntimeEventPublisher(
             engine.settings, bus=RedisStreamEventBus(client, stream_prefix=prefix), clock=fake_clock
@@ -117,11 +124,13 @@ async def test_browser_refreshes_committed_order_without_polling(
         assert await publisher.publish_once() >= 3
         process.stdin.write((order + "\n").encode())
         await process.stdin.drain()
-        assert await asyncio.wait_for(process.stdout.readline(), 15) == b"ENTRY_STREAM_VERIFIED\n"
+        assert await asyncio.wait_for(
+            process.stdout.readline(), HUNG_BROWSER_SECONDS
+        ) == b"ENTRY_STREAM_VERIFIED\n"
         current = (await api.get("/api/v1/workspace")).json()
         await engine.exit(current["positions"][0]["id"], ExitReason.EMERGENCY)
         assert await publisher.publish_once() > 0
-        stdout, stderr = await asyncio.wait_for(process.communicate(), 30)
+        stdout, stderr = await browser_output(process)
         assert process.returncode == 0, stderr.decode(errors="replace")
         assert stdout == b"EXECUTION_STREAM_BROWSER_VERIFIED\n"
         assert len(await engine.broker.list_orders()) == 2

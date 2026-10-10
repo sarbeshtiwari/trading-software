@@ -19,7 +19,12 @@ from app.risk import safety as safety_module
 from app.risk.safety import RiskSafety
 from tests.integration.test_auth import credentials
 from tests.integration.test_health_watchdog import setup_watchdog
-from tests.integration.test_paper_browser import ROOT, live_dashboard
+from tests.integration.test_paper_browser import (
+    HUNG_BROWSER_SECONDS,
+    ROOT,
+    browser_output,
+    live_dashboard,
+)
 from tests.integration.test_paper_execution import setup_execution
 from tests.integration.test_redis_events import URL, redis_events
 
@@ -47,14 +52,16 @@ async def test_risk_health_transitions_reach_stream_and_current_api(
                 env={**os.environ, "ATS_TEST_OWNER_PASSWORD": credentials[1]},
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
-            assert await asyncio.wait_for(process.stdout.readline(), 45) == b"RISK_STREAM_READY\n"
+            assert await asyncio.wait_for(
+                process.stdout.readline(), HUNG_BROWSER_SECONDS
+            ) == b"RISK_STREAM_READY\n"
         await RiskSafety(clock=fake_clock).trip_error("PAPER", "SYNTHETIC")
         await RiskSafety(clock=fake_clock).trip_error("PAPER", "SYNTHETIC")
         assert await publisher.publish_once() == 1
         assert (await api.get("/api/v1/risk")).json()["latches"]["SYNTHETIC"]["engine_error"]
         assert not (await api.get("/api/v1/workspace")).json()["new_entries_allowed"]
         if process is not None:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), 30)
+            stdout, stderr = await browser_output(process)
             assert process.returncode == 0, stderr.decode(errors="replace")
             assert stdout == b"RISK_STREAM_BROWSER_VERIFIED\n"
         watchdog, check, gate = setup_watchdog(fake_clock)

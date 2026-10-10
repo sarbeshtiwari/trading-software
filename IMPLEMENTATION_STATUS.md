@@ -6892,3 +6892,73 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   Next: frozen full PostgreSQL/Redis/Edge/Docker acceptance for the shared risk/
   snapshot changes, then address any demonstrated failures before progressing.
   Groww LIVE, real-market PAPER evidence and external delivery remain unverified.
+
+### Full accounting regression completed (2026-10-04, resumed 2026-10-10)
+
+- Remote main verified at **35cc555a22ca90ee67b8e46af6bd0e3d87bb883b**;
+  existing Docker PostgreSQL and Redis both healthy. No owner services recreated.
+- Ran frozen full backend acceptance with PostgreSQL, Redis, Edge browser and
+  isolated test-owned Docker restart coverage enabled. Process session **92923**;
+  log `backend/logs/full-pending-commitments-acceptance.txt`.
+- Session 92923 no longer exists; its log terminates with the real summary
+  **1 failed, 1813 passed, 3 warnings in 2943.38s (0:49:03)**. This supersedes
+  the previous **1792 passed** baseline for the pending-commitment accounting
+  changes. Every accounting, portfolio, pending-commitment, risk-snapshot and
+  PostgreSQL recovery test in that run passed.
+- The one failure was **not** an accounting defect: `tests/integration/
+  test_workspace_stream.py::test_browser_refreshes_committed_order_without_polling`
+  raised `asyncio.exceptions.TimeoutError` from the harness guard
+  `asyncio.wait_for(process.communicate(), 30)` after the browser had already
+  reported `ENTRY_STREAM_VERIFIED`. Diagnosed and fixed in the next checkpoint.
+
+### Browser handshake hang guards corrected (2026-10-10)
+
+- Measured the failure instead of assuming load. Phase instrumentation of the
+  real browser script under CPU contention: stream-ready **12.4s**, entry
+  verified **22.0s**, CLOSED observed **32.0s** (the script's own 15s stream
+  deadline, 10s of it used), Playwright/Edge teardown **+16.4s** → **48.4s**.
+  The 30s guard therefore could not cover the script's 15s product deadline plus
+  teardown, so teardown time was being reported as a missed stream update.
+- Reproduction ladder, all real runs: isolated **8.26s** (passes); under load
+  **30.17s** against the 30s guard (passes by 0.17s); the full suite exceeded it
+  and failed. After the fix, the same loaded run takes **38.06s** and passes —
+  a duration the old guard would have failed.
+- The same handshake shape (`*_READY` → test triggers event → 15s inner deadline
+  → teardown) exists in exactly two browser scripts. The second,
+  `frontend/tests/risk-stream-browser.mjs` driven by `test_control_event_stream.py
+  ::test_risk_health_transitions_reach_stream_and_current_api`, had an identical
+  15s deadline inside a 30s guard and failed the same way in the regression
+  selection. Both now share one guard rather than being patched one at a time.
+- Added `HUNG_BROWSER_SECONDS = 90` and `browser_output()` to
+  `backend/tests/integration/test_paper_browser.py`; both handshake tests use it.
+  The guard only catches a browser that never answers at all — every product
+  deadline stays in the `.mjs` scripts, which are unchanged. On expiry the helper
+  now reports what the browser managed to emit instead of a bare `TimeoutError`.
+- **Negative check** proving the widened guard did not weaken the assertion: with
+  the exit event suppressed so the browser can never see CLOSED, the test still
+  **fails in 21.22s** with the real diagnostic `locator.waitFor: Timeout 15000ms
+  exceeded — waiting for getByRole('cell', { name: 'CLOSED', exact: true })`.
+  The 15s stream deadline still bites; only the hang guard moved.
+- Clean verification: workspace+control pair **7 passed / 0 failed / 0 skipped**,
+  20.13s (`backend/logs/browser-hang-guard-clean.txt`); `-k "workspace or stream"`
+  selection **19 passed / 1 skipped / 0 failed**, 45.23s
+  (`backend/logs/browser-hang-guard-regression-2.txt`). Ruff clean on all three
+  changed modules. **Test-only change — no production code touched**, so
+  requirement counts are unchanged: **228 verified / 146 partial / 10 unverified
+  / 149 not started**.
+- Recorded rather than concealed: (a) under a synthetic all-core saturation load
+  (18 busy processes on 18 cores) the node script can be starved past even the
+  90s guard, which now reports `browser never exited: b''` with empty stderr —
+  an artifact of total CPU starvation, not of the suite; (b)
+  `test_market_stream.py::test_stream_auth_freshness_and_revocation[False]`
+  failed once during a run contaminated by that same load (that run took 139.46s
+  versus 45.23s clean). Its 5s client budget sits over the server's ~2.1s push
+  cadence in `app/api/market_stream.py` — thin but not breached: re-verified
+  **5/5 passes isolated** and green in two clean selections. Neither is evidence
+  of a product defect; both remain watch items.
+- Next: re-run the frozen full backend acceptance to confirm the whole-suite
+  result with these guards in place, then resume portfolio exposure integration —
+  PORT-004 generalized signed/net exposure, derivative underlying notional and
+  multi-position execution remain partial. PAPER stays default; Groww LIVE,
+  real-market PAPER evidence and external delivery remain unverified; no M1/M2
+  claim.
