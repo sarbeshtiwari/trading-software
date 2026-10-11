@@ -9,6 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.data_origin import DataOrigin
+from app.core.enums import SignalDirection
 from app.risk import engine, rules
 from app.risk.config import RiskLimits
 from app.risk.engine import evaluate
@@ -168,11 +169,20 @@ def test_max_exposure_limit():
         "sector": "OTHER",
         "underlying": "OTHER",
         "notional": 290001,
+        "direction": SignalDirection.LONG,
     }
     rejected = verdict(account=portfolio(exposures=(existing,)))
     assert rejected.rejection_code == "MAX_EXPOSURE_EXCEEDED"
     existing["notional"] = 290000
     assert verdict(account=portfolio(exposures=(existing,))).approved
+    # A short consumes gross capacity exactly as a long does; the limit is on
+    # exposure carried, not on the directional net, so it cannot be offset away.
+    existing["notional"] = 290001
+    existing["direction"] = SignalDirection.SHORT
+    assert (
+        verdict(account=portfolio(exposures=(existing,))).rejection_code
+        == "MAX_EXPOSURE_EXCEEDED"
+    )
 
 
 def test_daily_loss_limit_blocks_entries():

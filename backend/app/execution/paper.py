@@ -413,6 +413,11 @@ class PaperExecution:
                     * await self._exposure_per_unit(
                         instrument, position.last_price, as_of=as_of, origin=data_origin
                     ),
+                    direction=(
+                        SignalDirection.LONG
+                        if position.net_quantity > 0
+                        else SignalDirection.SHORT
+                    ),
                 )
             )
             if position.stop_loss_price is None:
@@ -1587,7 +1592,7 @@ class PaperExecution:
                     realised_pnl=self.broker.account.realised_pnl,
                     unrealised_pnl=self.broker.account.unrealised_pnl(),
                     charges=self.broker.account.charges_paid,
-                    gross_exposure=sum((item.notional for item in account.exposures), Decimal(0)),
+                    gross_exposure=account.gross_exposure,
                     available_margin=account.available_margin,
                     used_margin=self.broker.account.used_margin,
                     open_positions=account.open_and_pending_positions,

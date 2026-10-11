@@ -100,7 +100,7 @@ def per_trade(proposal, portfolio, market, config):
 
 
 def exposure(proposal, portfolio, market, config):
-    existing = sum((item.notional for item in portfolio.exposures), Decimal(0))
+    existing = portfolio.gross_exposure
     proposed = proposal.quantity * proposal.exposure_per_unit
     limit = exposure_limit(portfolio.equity, config)
     return (
@@ -158,10 +158,7 @@ def concentration(proposal, portfolio, market, config):
     for dimension in ("instrument", "sector", "underlying"):
         attribute = "instrument_id" if dimension == "instrument" else dimension
         key = getattr(proposal, attribute)
-        existing = sum(
-            (item.notional for item in portfolio.exposures if getattr(item, attribute) == key),
-            Decimal(0),
-        )
+        existing = portfolio.exposure_for(attribute, key)
         proposed = proposal.quantity * proposal.exposure_per_unit
         limit = capital(portfolio, config) * getattr(config, f"max_{dimension}_exposure_pct") / 100
         limit = stricter(limit, getattr(config, f"max_{dimension}_exposure_amount"))

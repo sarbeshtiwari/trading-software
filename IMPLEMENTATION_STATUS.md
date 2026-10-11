@@ -47,9 +47,9 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 231 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 147 | Partial implementation/integration; limitations recorded below |
+| `[~]` In progress | 145 | Partial implementation/integration; limitations recorded below |
 | `[ ]` Not started | 147 | |
 | **Total** | **533** | |
 
@@ -7047,3 +7047,53 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   net/signed exposure to finish PORT-004. PAPER stays default; Groww LIVE,
   real-market PAPER evidence and external delivery remain unverified; no M1/M2
   claim.
+
+### Gross, net and per-dimension exposure consolidated (2026-10-11) — PORT-004
+
+- Builds on **94bd1dcda07eece493029bb441d0fb76168c3910** (pushed, remote-verified).
+- **The remaining gap.** `Exposure.notional` was unsigned with no side recorded,
+  so net exposure could not be computed at all; and four callers each re-summed
+  `exposures` inline — `risk/rules.py` twice (gross and per-dimension),
+  `agents/pipeline.py` (gross and per-instrument sizing inputs) and
+  `execution/paper.py` (the `gross_exposure` persisted on every portfolio
+  snapshot and surfaced by the workspace API to the dashboard). A limit
+  evaluated against a measure another caller computes differently is the hazard
+  itself, so the duplication mattered as much as the missing measure.
+- `Exposure` now records `direction` and exposes `signed_notional`; `notional`
+  stays unsigned so gross and net can never be read off the same number.
+  `PortfolioState.gross_exposure`, `.net_exposure` and `.exposure_for(attribute,
+  key)` are the single definitions, and all four call sites now read them.
+- **Net is defined narrowly and labelled.** It is signed by the side actually
+  traded, *not* delta-adjusted: a long put contributes positive notional even
+  though it is directionally short the underlying. Delta-weighted directional
+  exposure belongs to the GRK requirements. **No risk limit consumes net**,
+  because no requirement specifies a net limit — inventing one would be
+  inventing a business rule. Gross remains the measure every limit uses.
+- **A short cannot buy capacity.** Offsetting is a net concept only; the gross
+  and concentration limits are on exposure carried. `test_max_exposure_limit`
+  now also proves a SHORT exposure of 290001 still trips MAX_EXPOSURE_EXCEEDED,
+  alongside the existing 290001-rejects/290000-approves boundary, which is
+  unchanged.
+- **Evidence, all exit code 0.** Hand-computed aggregation over a mixed
+  long/short book — gross 75000, net 25000, sector BANK 65000, underlying
+  BANKNIFTY 65000, fully offsetting book flat net but 80000 gross —
+  `tests/unit/portfolio/` **28 passed** 0.80s (`logs/port004-aggregation.txt`).
+  Whole unit suite plus option, pending, account-time, paper execution,
+  pipeline, contract production and reference worker **891 passed / 1 skipped**
+  168.00s (`logs/port004-regression.txt`). PostgreSQL + Redis pending/exposure/
+  workspace/risk-evidence/orphan/recovery-plan **27 passed** 56.48s
+  (`logs/port004-postgres.txt`). Ruff clean on every changed file.
+- One existing test genuinely failed first (**1 failed / 890 passed**):
+  `test_max_exposure_limit` built its exposure dict without the new required
+  side. Supplying `SignalDirection.LONG` preserves its intent exactly; the
+  boundary literals were not touched and no assertion was weakened.
+- **Ledger, counted directly from the table:** **231 verified / 10 unverified /
+  145 partial / 147 not started = 533**. PORT-004 `[~]` -> `[✓]` and TEST-010
+  `[~]` -> `[✓]`.
+- Scope limits: net exposure is computed and tested but unconsumed and not
+  delta-adjusted; futures notional still has no PAPER futures lifecycle to
+  exercise; correlated-exposure aggregation (FNOR-007) remains not started.
+- Next: the authoritative full acceptance over FNOR-001 plus PORT-004, then
+  EXCH-004 (tick-size and lot-multiple compliance), which shares these
+  instrument conventions. PAPER stays default; Groww LIVE, real-market PAPER
+  evidence and external delivery remain unverified; no M1/M2 claim.

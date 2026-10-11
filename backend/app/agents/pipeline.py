@@ -739,15 +739,8 @@ class DecisionPipeline:
             data_origin=context.market.data_origin,
             equity=account.equity,
             available_margin=account.available_margin,
-            gross_exposure=sum((item.notional for item in account.exposures), Decimal(0)),
-            instrument_exposure=sum(
-                (
-                    item.notional
-                    for item in account.exposures
-                    if item.instrument_id == instrument.id
-                ),
-                Decimal(0),
-            ),
+            gross_exposure=account.gross_exposure,
+            instrument_exposure=account.exposure_for("instrument_id", instrument.id),
             daily_loss=max(Decimal(0), -account.realised_day_pnl - account.unrealised_day_pnl),
             reserved_risk=account.reserved_risk,
             entry=proposal.entry,

@@ -67,6 +67,7 @@ async def pending_entries(session, *, now, origin):
                 instrument_id=proposal.instrument_id, sector=proposal.sector,
                 underlying=proposal.underlying,
                 notional=remaining * proposal.exposure_per_unit,
+                direction=proposal.direction,
             ),
             margin=remaining * (proposal.margin_per_unit + proposal.risk_cost_per_unit),
             risk=remaining * proposal.planned_risk_per_unit,

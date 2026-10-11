@@ -54,7 +54,21 @@ class Exposure(EvidenceModel):
     instrument_id: str = Field(min_length=1)
     sector: str = Field(min_length=1)
     underlying: str = Field(min_length=1)
+    #: Always the absolute size of the exposure; the sign lives in ``direction``
+    #: so gross and net can never be read off the same number by accident.
     notional: Decimal = Field(ge=0)
+    direction: Literal[SignalDirection.LONG, SignalDirection.SHORT]
+
+    @property
+    def signed_notional(self) -> Decimal:
+        """Notional signed by the side actually traded.
+
+        This is a sum over trade sides, *not* a delta-adjusted figure: a long put
+        contributes positive notional here even though it is directionally short
+        the underlying. Delta-weighted directional exposure is a Greeks concern
+        (GRK-*), and no risk limit consumes this measure.
+        """
+        return self.notional if self.direction == SignalDirection.LONG else -self.notional
 
 
 class PortfolioState(EvidenceTime):
@@ -78,6 +92,27 @@ class PortfolioState(EvidenceTime):
         if self.strategy_open_and_pending_positions > self.open_and_pending_positions:
             raise ValueError("strategy count exceeds global count")
         return self
+
+    # PORT-004 defines these three measures, and every consumer reads them from
+    # here rather than re-summing `exposures`: a limit evaluated against a
+    # measure some other caller computed differently is the whole hazard.
+
+    @property
+    def gross_exposure(self) -> Decimal:
+        """Total exposure carried, long and short alike. Limits use this."""
+        return sum((item.notional for item in self.exposures), Decimal(0))
+
+    @property
+    def net_exposure(self) -> Decimal:
+        """Longs less shorts. Never a substitute for gross, and never capacity."""
+        return sum((item.signed_notional for item in self.exposures), Decimal(0))
+
+    def exposure_for(self, attribute: str, key: str) -> Decimal:
+        """Gross exposure on one concentration dimension."""
+        return sum(
+            (item.notional for item in self.exposures if getattr(item, attribute) == key),
+            Decimal(0),
+        )
 
 
 class BookLevel(EvidenceModel):
