@@ -34,6 +34,12 @@ from tests.unit.test_costs import schedule
 
 __all__ = ["credentials"]
 
+#: The underlying the fixture chain reports. A strike-1000 contract is
+#: written on an underlying near 1000, while its premium is near 100, so
+#: the two measures differ by an order of magnitude — exactly the gap
+#: FNOR-001 closes. Four units therefore carry 4000 of exposure, not 404.
+UNDERLYING_SPOT = Decimal(1000)
+
 
 class FixtureProvider:
     data_origin = DataOrigin.SYNTHETIC
@@ -73,6 +79,7 @@ async def fixture(clock):
         instrument.underlying,
         instrument.expiry_date,
         clock.now(),
+        spot=UNDERLYING_SPOT,
         strikes=(OptionStrike(instrument.strike_price, call=leg),),
         data_origin=DataOrigin.SYNTHETIC,
     )
@@ -390,7 +397,8 @@ async def verify_option_lifecycle(
         )
         assert committed.open_and_pending_positions == 1
         assert committed.reserved_risk == Decimal("416.28")
-        assert sum(item.notional for item in committed.exposures) == Decimal(404)
+        # 4 unfilled units measured on the underlying, not on the 101 ask.
+        assert sum(item.notional for item in committed.exposures) == 4 * UNDERLYING_SPOT
         assert committed.available_margin == (
             worker.executor.broker.account.available_margin - Decimal("416.28")
         )
@@ -402,6 +410,9 @@ async def verify_option_lifecycle(
             "long-option-breakout", DataOrigin.SYNTHETIC
         )
         assert account.reserved_risk == Decimal("412.28")
+        # The filled path must land on the same measure as the pending one
+        # did for the same 4 units; the premium mark of 100 is not exposure.
+        assert sum(item.notional for item in account.exposures) == 4 * UNDERLYING_SPOT
     assert await worker.executor.submit(proposal_id) == order.id
     await worker.executor.verify_protection()
     await worker.stop()

@@ -26,6 +26,7 @@ from app.core.clock import IST, UTC, get_clock
 from app.core.data_origin import DataOrigin, ExecutionRealism
 from app.core.enums import (
     ExitReason,
+    InstrumentType,
     OrderStatus,
     OrderType,
     PositionSide,
@@ -52,6 +53,7 @@ from app.execution.freshness import require_entry_sources
 from app.execution.hygiene import PaperOrderHygiene
 from app.execution.replacement_state import replacement_parent
 from app.execution.state import transition
+from app.fno.chain.snapshots import ChainSnapshotStore
 from app.marketdata.circuits import circuit_status
 from app.marketdata.models import InstrumentRef
 from app.modes import TradingMode
@@ -71,6 +73,7 @@ from app.risk.engine import evaluate
 from app.risk.entry_history import load_entry_history
 from app.risk.entry_policy import apply_entry_policy, entry_rules
 from app.risk.evidence import bind_decision
+from app.risk.exposure_fno import ExposureUnavailable, notional_per_unit
 from app.risk.models import BookLevel, Exposure, PortfolioState, RiskProposal
 from app.risk.safety import RiskSafety
 from app.strategies.base import StrategySpec
@@ -406,7 +409,10 @@ class PaperExecution:
                     instrument_id=position.instrument_id,
                     sector=instrument.sector,
                     underlying=instrument.underlying or instrument.trading_symbol,
-                    notional=abs(position.net_quantity) * position.last_price,
+                    notional=abs(position.net_quantity)
+                    * await self._exposure_per_unit(
+                        instrument, position.last_price, as_of=as_of, origin=data_origin
+                    ),
                 )
             )
             if position.stop_loss_price is None:
@@ -441,6 +447,53 @@ class PaperExecution:
             entries_blocked=False,
             drawdown_disarmed=False,
         )
+
+    async def _exposure_per_unit(self, instrument, marked_price, *, as_of, origin):
+        """FNOR-001: one unit of exposure, measured per instrument type.
+
+        Cash and futures are measured on their own marked price. An option is
+        measured on its underlying, taken from the audited chain snapshot the
+        option producer already captured, so the pending and filled paths share
+        one basis. An unobserved or stale underlying is unavailable, never the
+        premium: a premium-based measure would read many times smaller than the
+        exposure the contract actually carries.
+        """
+        if instrument.instrument_type != InstrumentType.OPTION:
+            return notional_per_unit(instrument.instrument_type, traded_price=marked_price)
+        try:
+            return notional_per_unit(
+                InstrumentType.OPTION,
+                traded_price=marked_price,
+                underlying_price=await self._underlying_mark(
+                    instrument, as_of=as_of, origin=origin
+                ),
+            )
+        except ExposureUnavailable as error:
+            raise SafetyError("PAPER_POSITION_UNDERLYING_UNAVAILABLE") from error
+
+    async def _underlying_mark(self, instrument, *, as_of, origin):
+        """Latest audited chain spot for this contract, within mark freshness.
+
+        A stored chain that no longer validates is not a usable underlying, so a
+        malformed ladder reads as unavailable rather than escaping as an untyped
+        error that some caller upstream might treat as a mere bad request.
+        """
+        if instrument.underlying is None or instrument.expiry_date is None:
+            return None
+        window = timedelta(seconds=self.settings.tick_staleness_seconds)
+        try:
+            chains = await ChainSnapshotStore(
+                cadence=timedelta(microseconds=1), clock=self.clock
+            ).read(
+                instrument.underlying,
+                instrument.expiry_date,
+                as_of=as_of,
+                start=as_of - window,
+            )
+        except ValueError:
+            return None
+        fresh = [chain for chain in chains if chain.data_origin == origin]
+        return fresh[-1].spot if fresh else None
 
     async def _position_reserved_risk(self, position, instrument):
         if not instrument.is_option:

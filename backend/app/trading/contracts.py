@@ -19,6 +19,7 @@ from app.fno.options import option_contract
 from app.marketdata.models import InstrumentRef
 from app.modes import TradingMode
 from app.portfolio.cost_store import CostStore
+from app.risk.exposure_fno import ExposureUnavailable, notional_per_unit
 from app.trading.options import require_option_observation
 
 
@@ -78,6 +79,7 @@ async def derive_contract_costs(
         or instrument.lot_size <= 0
     ):
         raise ValueError("PAPER contract inputs unavailable or inconsistent")
+    chain = None
     if long_option:
         if (
             select_expiry(
@@ -86,7 +88,7 @@ async def derive_contract_costs(
             != instrument.expiry_date
         ):
             raise ValueError("option minimum days to expiry not satisfied")
-        await require_option_observation(
+        chain = await require_option_observation(
             instrument,
             option_evidence,
             as_of=now,
@@ -96,6 +98,17 @@ async def derive_contract_costs(
     price = max(quote.ltp, quote.best_ask, quote.best_bid)
     if not price.is_finite() or price <= 0:
         raise ValueError("invalid PAPER contract price")
+    # FNOR-001: an option carries its underlying's exposure, never its premium.
+    # The chain was already validated for freshness, identity and a positive
+    # spot; an absent spot stands the cycle down rather than measuring small.
+    try:
+        exposure = notional_per_unit(
+            instrument.instrument_type,
+            traded_price=price,
+            underlying_price=chain.spot if chain is not None else None,
+        )
+    except ExposureUnavailable as error:
+        raise ValueError("PAPER option exposure requires an observed underlying") from error
     identifier = new_id("cst")
     request = OrderRequest(
         reference_id=identifier[:19],
@@ -124,7 +137,7 @@ async def derive_contract_costs(
         available_at=now,
         source_id=identifier,
         data_origin=quote.data_origin,
-        exposure_per_unit=price,
+        exposure_per_unit=exposure,
         margin_per_unit=margin,
         risk_cost_per_unit=source.risk_cost_reserve_per_unit,
         valid_until=min(source.valid_until, tariff.effective_to),
@@ -144,6 +157,7 @@ async def derive_contract_costs(
                 "reference_publication_id": inputs.publication_id,
                 "market_snapshot_id": observation.chain_id,
                 "option_evidence": option_evidence.model_dump(mode="json") if long_option else None,
+                "underlying_price": str(chain.spot) if chain is not None else None,
                 "policy": source.model_dump(mode="json"),
                 "fee_schedule": tariff.model_dump(mode="json"),
                 "margin_model": asdict(executor.broker.account.margin_model),

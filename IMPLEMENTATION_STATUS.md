@@ -47,10 +47,10 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 228 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 229 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 146 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 149 | |
+| `[~]` In progress | 147 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 147 | |
 | **Total** | **533** | |
 
 ---
@@ -6960,5 +6960,90 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   result with these guards in place, then resume portfolio exposure integration —
   PORT-004 generalized signed/net exposure, derivative underlying notional and
   multi-position execution remain partial. PAPER stays default; Groww LIVE,
+  real-market PAPER evidence and external delivery remain unverified; no M1/M2
+  claim.
+
+### Derivative exposure measured on the underlying (2026-10-11) — FNOR-001
+
+- Builds on **fe622eb14e3ab65b82911bea0fcab51baeb34859** (pushed, remote-verified).
+- **The defect.** A long option's exposure was measured on its premium in both
+  places it is measured: `derive_contract_costs` sealed `exposure_per_unit=price`
+  into the proposal that `portfolio/pending.py` reserves, and `execution/paper.py`
+  valued open positions at `net_quantity * last_price`. For the fixture contract
+  that reads 404 where the underlying carries 4000 — so the 3x gross limit and
+  the instrument/sector/underlying concentration limits were being evaluated
+  against roughly a tenth of the real exposure. RISK-004 was marked tested while
+  depending on an unimplemented FNOR-001, which is how it went unnoticed.
+- **Units established from code, not assumed.** `round_lots` returns
+  `int(quantity/lot_size) * lot_size`, so quantity is in **units** and lot size
+  is applied exactly once through quantity; a lot-size factor inside the per-unit
+  measure would double-count it. Equity and futures are measured on the traded
+  price — a futures price *is* its notional basis — so only options change.
+- `app/risk/exposure_fno.py` is the single measure both paths call; no formula is
+  duplicated. An option takes `max(underlying, premium)` so a deep in-the-money
+  put, whose premium can exceed spot, never reads below the capital committed.
+- The underlying comes from evidence that already existed: `require_option_observation`
+  returns the validated chain at contract production, and `ChainSnapshotStore.read()`
+  supplies it at mark time, constraining observation *and* receipt time and
+  re-validating the ladder. No schema change and no new provider.
+- **Fails closed on both paths, never on the premium.** Absent, zero, negative,
+  non-finite, stale (beyond the configured `tick_staleness_seconds`) or
+  foreign-origin underlying makes the open-position measure
+  `PAPER_POSITION_UNDERLYING_UNAVAILABLE`; at contract production it stands the
+  cycle down as `CONTRACT_DERIVATION_UNAVAILABLE` with no order and no position.
+- **A real defect found by its own test:** a corrupted stored ladder made
+  `ChainSnapshotStore.read()` raise a bare `ValueError`/pydantic error that
+  escaped `portfolio_state` instead of failing closed, where an upstream
+  `except (ValidationError, ValueError)` could have degraded it to a mere bad
+  request. Invalid stored chain data is now unavailable. Found as 4 failed / 3
+  passed, fixed, re-verified.
+- **Fixture recalibration, mathematically justified.** The fixture chain carried
+  **no underlying at all**, which is what let premium stand in for exposure; a
+  real provider chain reports one. It now reports `UNDERLYING_SPOT = 1000`
+  against a strike-1000 contract with a ~100 premium. Pending exposure moves
+  404 -> 4000 for the same 4 units, and the filled path gained the exposure
+  assertion it never had — that pairing is what proves both paths share one
+  measure. No production limit was changed and no assertion weakened: against
+  100000 capital the 50% concentration cap (50000) and 3x gross cap (300000) are
+  untouched, and the sized quantity stays 4 because the risk budget remains
+  binding (caps of 50 and 300 units respectively).
+- **Evidence, all exit code 0.** Pure measure **19 passed** 0.72s
+  (`logs/exposure-fno-unit.txt`). Fail-closed both paths **8 passed** 57.04s
+  (`logs/fnor001-failclosed.txt`). Consumer regression across risk, sizing,
+  contract production, pipeline, pending account, account time, paper execution,
+  option account and reference worker **167 passed / 1 skipped** 335.55s
+  (`logs/fnor001-regression-final.txt`). PostgreSQL + Redis pending/exposure/
+  workspace/risk-evidence/orphan selection **47 passed** 129.18s
+  (`logs/fnor001-postgres-api.txt`). Frontend **67 passed (30 files)** and
+  production build successful (`logs/fnor001-frontend.txt`, `-build.txt`).
+  Ruff clean on every changed file; `app/execution/paper.py` retains 9
+  **pre-existing** violations (`sync`/`_reconcile_state` complexity and E501),
+  identical on the committed parent — none introduced here, none fixed here.
+- **Ledger, counted directly from the table:** **229 verified / 10 unverified /
+  147 partial / 147 not started = 533**. FNOR-001 `[ ]` -> `[✓]`. TEST-010
+  `[ ]` -> `[~]`: CASH/futures/option notional is covered in
+  `tests/unit/portfolio/`, but per-sector/underlying concentration aggregation is
+  still only covered generically in `tests/unit/test_risk.py`.
+- **PORT-004 deliberately stays `[~]`.** Derivative notional is now correct and
+  shared, and gross plus per-instrument/sector/underlying aggregation feeds the
+  risk engine — but **net/signed exposure is still not computed**:
+  `Exposure.notional` is unsigned (`ge=0`), so long and short cannot offset. The
+  requirement names net exposure explicitly, so it is not done.
+- **Scope limits, not claims.** Futures notional is implemented and unit-tested
+  but has no PAPER futures lifecycle to integration-exercise. The hand-computed
+  lot uses a declared fixture lot size; no real NSE lot size or live NIFTY
+  contract is asserted as fact. No full-suite acceptance is claimed for this
+  change yet — see the run recorded below.
+- **Pre-change acceptance runs did not complete and are not evidence.** The
+  first (session 92923 successor) was killed by the harness at 31% with only
+  `[killed]` recorded; the second, launched detached as PID 30692, reached 17%
+  with **zero failures** before being stopped deliberately so these files could
+  be edited (`logs/full-acceptance-prechange-partial.txt`). That second run is
+  useful for one thing: it passed cleanly through the 15-19% range where the
+  first run showed two failures on the identical commit and flags, which is
+  evidence those two were non-deterministic rather than defects. Neither run
+  supports any "full acceptance passed" claim.
+- Next: run the authoritative full acceptance over this state, then compute
+  net/signed exposure to finish PORT-004. PAPER stays default; Groww LIVE,
   real-market PAPER evidence and external delivery remain unverified; no M1/M2
   claim.
