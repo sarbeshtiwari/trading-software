@@ -47,10 +47,10 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 235 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 236 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
 | `[~]` In progress | 147 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 141 | |
+| `[ ]` Not started | 140 | |
 | **Total** | **533** | |
 
 ---
@@ -7369,3 +7369,30 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   unverified. **M1 and M2 are not met.**
 - Ledger unchanged by this run: **235 verified / 10 unverified / 147 partial /
   141 not started = 533**. A passing suite is not requirement coverage.
+
+### Pre-execution re-check acceptance (2026-10-12) — RISK-018 `[ ]` -> `[✓]`
+
+- Builds on **21b81033ab399634ebb6e5576e65c3729cbfa7a3** (the clean full-suite
+  baseline, pushed and remote-verified).
+- Another ledger error rather than a gap. `submit` already re-reconciles,
+  rebuilds the market snapshot from the current quote, re-runs the risk engine
+  and seals the outcome as an audit-bound `is_preflight` decision; an unapproved
+  re-check raises before any order row is written or any broker call is made.
+- What was missing was the requirement's **own** acceptance case. Existing
+  preflight tests exercise *contract* changes between proposal and dispatch — a
+  changed product (`test_entry_contract.py`), a calendar publication
+  (`test_event_controls.py`), an entry window (`test_entry_windows.py`) — but
+  none moved the account so that a risk *limit* breached while the proposal
+  stayed exactly as approved.
+- `tests/integration/test_preexecution_recheck.py` commits almost all of the
+  account's margin after approval and touches nothing else: submission aborts on
+  a margin rule, no order row exists, the broker holds nothing, and the refusal
+  is **sealed as a preflight decision** rather than merely raised. The companion
+  test confirms an unchanged account still submits, so the guard does not refuse
+  the path it protects.
+- Evidence: **2 passed** 9.18s, exit 0 (`logs/risk018-recheck.txt`). Ruff clean.
+  Test-only change; no production code touched.
+- The row names an `execution/preflight.py` the repository does not have — the
+  logic lives in `execution/paper.py::submit`. Recorded rather than relocated:
+  moving a core execution path to satisfy a filename would be churn.
+- Ledger: **236 verified / 10 unverified / 147 partial / 140 not started = 533**.
