@@ -47,10 +47,10 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 236 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 237 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
 | `[~]` In progress | 147 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 140 | |
+| `[ ]` Not started | 139 | |
 | **Total** | **533** | |
 
 ---
@@ -7396,3 +7396,36 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   logic lives in `execution/paper.py::submit`. Recorded rather than relocated:
   moving a core execution path to satisfy a filename would be churn.
 - Ledger: **236 verified / 10 unverified / 147 partial / 140 not started = 533**.
+
+### Entry mutations locked while trading is disabled (2026-10-12) — BE-011 `[ ]` -> `[✓]`
+
+- Builds on **695e190c4c004a132520b039d0fab9c9283a7d14** (pushed, remote-verified).
+- The gate already knew how to refuse (`TradingGate.require_new_entries_allowed()`
+  raises `TradingDisabledError` carrying every blocking component), but no HTTP
+  endpoint consulted it: `api/deps.py` does authentication only. A replacement —
+  which creates a *new* entry order — could therefore be accepted while health
+  checks or the kill switch had trading disabled, and would fail deeper in the
+  stack as a generic 409 rather than a lock naming the failing component.
+- `replace` now calls the gate, and the handler maps `TradingDisabledError` to
+  **423** while every other refusal stays 409. The existing
+  `OWNER_REPLACE_REFUSED` audit record is still written, so the refusal is
+  evidence rather than a dropped request.
+- **The guard is deliberately asymmetric.** Cancellation (single and bulk) and
+  the emergency endpoints are *not* gated: they reduce exposure, and locking
+  them would trap the owner in a position they are trying to close — precisely
+  the wrong behaviour when trading has just been halted. A test asserts the
+  cancel path stays available while entries are blocked.
+- **Two findings from writing the tests.** The refusal audit stores its payload
+  under `result`, not `data_used`, so the first assertion was wrong rather than
+  the code. And after `submit`, the engine independently blocks entries with
+  `paper_protection: PAPER_POSITION_REQUIRES_MONITORING` until the new position
+  is monitored — correct behaviour, which invalidated a test that expected the
+  lock to disappear once *my* blocker cleared. That test now asserts which
+  component is cited, blocker by blocker, which is the truthful claim.
+- Evidence: **3 passed** 14.60s; with the existing replacement regression,
+  **14 passed** 59.54s, exit 0 (`logs/be011-guard.txt`). Ruff clean.
+- Scope recorded, not overstated: `replace` is the only entry-creating API
+  mutation today. The guard lives at that call site rather than in `deps.py` as
+  the row names — a single-caller indirection would be churn, and the row's path
+  is recorded as divergent.
+- Ledger: **237 verified / 10 unverified / 147 partial / 139 not started = 533**.

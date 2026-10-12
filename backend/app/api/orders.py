@@ -12,7 +12,7 @@ from app.agents.validation import _utc
 from app.analysis.equity import EvidenceModel
 from app.audit.service import AuditIdentity, AuditService
 from app.config import get_settings
-from app.core.errors import SafetyError
+from app.core.errors import SafetyError, TradingDisabledError
 from app.core.ids import new_id
 from app.db import session as db_session
 from app.db.models.decision import Proposal
@@ -21,6 +21,7 @@ from app.execution.bulk_cancel import cancel_entries
 from app.execution.owner_cancel import cancel_entry
 from app.execution.replacement import replace_entry
 from app.modes import TradingMode
+from app.monitoring.gate import get_trading_gate
 from app.trading.worker import active_worker
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -121,6 +122,11 @@ async def replace(identifier: str, body: ReplacementRequest, request: Request):
             raise SafetyError("PAPER_MODE_REQUIRED")
         if body.confirmation != "REPLACE PAPER ENTRY":
             raise SafetyError("REPLACEMENT_CONFIRMATION_REQUIRED")
+        # BE-011: a replacement creates a new entry, so it is refused outright
+        # while entries are blocked. The cancel endpoints below are deliberately
+        # not gated — they reduce exposure, and must stay usable precisely when
+        # trading has been halted.
+        get_trading_gate().require_new_entries_allowed()
         return await replace_entry(
             active_worker(),
             identifier,
@@ -147,7 +153,9 @@ async def replace(identifier: str, body: ReplacementRequest, request: Request):
                 },
             },
         )
-        raise HTTPException(409, error.message) from None
+        # 423 Locked names the blocking component; other refusals stay 409.
+        status = 423 if isinstance(error, TradingDisabledError) else 409
+        raise HTTPException(status, error.message) from None
 
 
 @router.post("/cancel-entries", response_model=BulkCancelResult)
