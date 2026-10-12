@@ -47,10 +47,10 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 233 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 235 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
 | `[~]` In progress | 147 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 143 | |
+| `[ ]` Not started | 141 | |
 | **Total** | **533** | |
 
 ---
@@ -7240,3 +7240,43 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   FNOR-004, FNOR-003 and TEST-004 together. PAPER stays default; Groww LIVE,
   real-market PAPER evidence and external delivery remain unverified; no M1/M2
   claim.
+
+### Unrealised P&L and sizing/P&L test ledger (2026-10-12)
+
+- Builds on **a499577ec8587b3b269cb505f078a211c4fdef3c** (pushed, remote-verified).
+- **PNL-002 (`[~]` -> `[✓]`).** Realised FIFO, costs, reversals and restart
+  rounding already had hand-computed unit coverage; the mark-to-market half had
+  none. `tests/unit/portfolio/test_pnl_unrealised.py` covers long and short using
+  the signed quantity, offsetting positions netting rather than taking the larger
+  side, F&O lot multiples (4 lots of 75 = 300 units of premium), quantisation to
+  paise at the total rather than per unit, equity tracking the latest mark rather
+  than accumulating every mark seen, and an unmarked position contributing
+  nothing rather than being valued at its own entry basis. The row names a
+  `portfolio/pnl.py` the repository does not have; the logic lives in
+  `brokers/paper/account.py`.
+- Two assertions in the first draft were weaker than they looked and were
+  tightened before commit: a bare `pytest.raises(Exception)` now names
+  `ValidationError` with its message, and a "never double counts" case that
+  merely read `equity` twice now re-marks at a new price and checks the figure is
+  replaced, not added to.
+- **TEST-003 (`[ ]` -> `[✓]`), another ledger error.** `tests/unit/test_sizing.py`
+  already carried one test per SIZE-001…SIZE-007 — risk-based, lot rounding
+  down, zero-size NO TRADE, margin-constrained, volatility-adjusted,
+  exposure-aware and daily-budget — plus a combined never-exceeds-any-cap case
+  and the Kelly default-off case. Nothing was missing but the record.
+- **TEST-005 stays `[~]`, deliberately.** PNL-001, PNL-002 and PNL-003 now all
+  have hand-computed unit coverage, but the row claims PNL-001…PNL-006 and
+  **PNL-004 aggregates and PNL-005 attribution are not started** — there is no
+  `portfolio/aggregates.py` or `attribution.py` to test. Marking it complete
+  would be claiming coverage of code that does not exist.
+- Evidence: `tests/unit/portfolio/test_pnl_unrealised.py` **8 passed** 1.53s,
+  exit 0; Ruff clean. Test-only change, no production code touched.
+- Ledger, counted directly from the table: **235 verified / 10 unverified /
+  147 partial / 141 not started = 533**.
+- **Known backward-compatibility defect, not yet fixed.** `app/api/risk.py`
+  replays a stored `PortfolioState` out of an audit record to clear a drawdown
+  latch. `used_margin` and exposure `direction` became required fields in
+  `3c769d0`, so a record persisted before that commit now fails validation and
+  surfaces as a 500 rather than the truthful 409 that path uses for unusable
+  evidence. It fails closed — no latch is cleared — but the handling is wrong and
+  is the next fix queued after the running acceptance.
