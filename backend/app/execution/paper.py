@@ -47,6 +47,7 @@ from app.db.models.system import SINGLETON_ID, PortfolioSnapshot, SystemState
 from app.db.models.trading import Order, Position, Trade
 from app.emergency.rejections import observe_rejection
 from app.execution import discrepancies, orphans
+from app.execution.compliance import enforce as enforce_exchange_grid
 from app.execution.event_types import PAPER_EVENT_TYPES
 from app.execution.expiry import warn_expiring_positions
 from app.execution.freshness import require_entry_sources
@@ -820,6 +821,12 @@ class PaperExecution:
                 quantity=order.quantity,
                 reference_id=order.broker_reference_id,
                 price=order.price,
+            )
+            # EXCH-004: the grid check happens here, before any provider sees the
+            # request, so LIVE is protected by the same rule as PAPER.
+            contract = await session.get(Instrument, order.instrument_id)
+            enforce_exchange_grid(
+                request, tick_size=contract.tick_size, lot_size=contract.lot_size
             )
             await self._audit(
                 session, order, "ORDER_SUBMITTED", {"reference_id": request.reference_id}

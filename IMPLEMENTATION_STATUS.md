@@ -47,10 +47,10 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 231 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 232 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
 | `[~]` In progress | 145 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 147 | |
+| `[ ]` Not started | 146 | |
 | **Total** | **533** | |
 
 ---
@@ -7097,3 +7097,58 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   EXCH-004 (tick-size and lot-multiple compliance), which shares these
   instrument conventions. PAPER stays default; Groww LIVE, real-market PAPER
   evidence and external delivery remain unverified; no M1/M2 claim.
+
+### Exchange grid enforced before dispatch (2026-10-12) — EXCH-004
+
+- Builds on **3c769d077a87eca6edc34e64c2fd66838aa4eb9d** (pushed, remote-verified).
+- **The gap.** Off-tick and off-lot orders were only caught *inside* the paper
+  simulator (`brokers/paper/engine.py`), which models the venue rejecting us.
+  In LIVE that rejection would arrive only after the order had been sent, so
+  nothing stopped a non-compliant order from leaving the system. The named
+  module `app/execution/compliance.py` did not exist.
+- `app/execution/compliance.py` now guards the single `OrderRequest` construction
+  and dispatch point in `execution/paper.py`, which every order passes through
+  for either provider, so PAPER and LIVE are covered by one rule. It reads
+  `tick_size` and `lot_size` from the instrument master and refuses an order
+  whose price or trigger is off-tick, whose F&O quantity is not a whole number of
+  lots, whose quantity is unusable, or whose contract specification is missing —
+  master data is never guessed into a default grid.
+- **It rejects and does not correct, deliberately.** The dispatch path already
+  asserts the order still carries the approved price
+  (`DISPATCH_ORDER_APPROVAL_MISMATCH`), so moving a price there would break the
+  binding to what risk approved; and silently resizing an order would change the
+  approved risk and can round down to zero. Correction already lives upstream in
+  `core/money.round_to_tick` (itself labelled EXCH-004) and
+  `sizing/lots.protective_ticks`. An earlier draft added a `compliant_limit_price`
+  wrapper here; it was removed before commit because nothing called it and it
+  duplicated the upstream rule. Trigger prices are rejected rather than moved
+  because the non-worsening direction depends on protective intent this layer
+  cannot see.
+- Lot multiples are enforced for F&O only, per the requirement; a single cash
+  share remains a valid order.
+- **Evidence, all exit code 0.** `tests/unit/test_compliance.py` **19 passed**
+  0.79s, covering both halves of the acceptance criterion — upstream correction
+  onto the grid with buy-down/sell-up directions, and rejection of off-tick
+  price, off-tick trigger, off-lot quantity, zero/negative quantity and absent
+  tick/lot master data. With the integration proof, **21 passed** 5.35s
+  (`logs/exch004-unit.txt`, `logs/exch004-integration.txt`). Order-path
+  regression across the whole unit suite plus paper execution, option evidence
+  and exposure, order compliance, pending account, account time, emergency, exit
+  replacement, expiry cancellation, reference worker and paper option account:
+  **917 passed / 1 skipped** (`logs/exch004-regression.txt`; its 21-hour wall
+  time is host sleep, not test time). Ruff clean on both new files;
+  `app/execution/paper.py` still carries exactly its 9 pre-existing violations.
+- The integration proof leaves the order exactly as risk approved it and instead
+  revises the instrument master — the way this actually goes wrong — then shows
+  dispatch refused with `EXCH_PRICE_OFF_TICK` and the broker holding zero orders,
+  plus that the ordinary compliant path still reaches the broker. The off-lot
+  branch is covered at unit level only: reaching it from an integration fixture
+  meant mutating the cash fixture into a half-formed derivative, which then
+  tripped `FNO_BAN_SCOPE_UNAVAILABLE` and `FNO_EXPIRY_UNAVAILABLE` — those tests
+  would have been exercising other gates, not this one.
+- **Ledger, counted directly from the table:** **232 verified / 10 unverified /
+  145 partial / 146 not started = 533**. EXCH-004 `[ ]` -> `[✓]`.
+- Next: the authoritative full acceptance over FNOR-001, PORT-004 and EXCH-004
+  together, then FNOR-004 (margin-utilisation limit) and FNOR-003 (computable
+  maximum loss before approval). PAPER stays default; Groww LIVE, real-market
+  PAPER evidence and external delivery remain unverified; no M1/M2 claim.
