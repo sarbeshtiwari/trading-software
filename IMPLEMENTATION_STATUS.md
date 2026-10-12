@@ -47,10 +47,10 @@ skipped: 3 PostgreSQL-only schema tests (need ATS_TEST_POSTGRES_URL)
 
 | Status | Count | Meaning |
 |---|---|---|
-| `[✓]` Tested | 232 | Requirement-specific evidence; not blanket end-to-end or external certification |
+| `[✓]` Tested | 233 | Requirement-specific evidence; not blanket end-to-end or external certification |
 | `[x]` Implemented | 10 | Code exists; some requirement-specific acceptance remains unverified |
-| `[~]` In progress | 145 | Partial implementation/integration; limitations recorded below |
-| `[ ]` Not started | 146 | |
+| `[~]` In progress | 147 | Partial implementation/integration; limitations recorded below |
+| `[ ]` Not started | 143 | |
 | **Total** | **533** | |
 
 ---
@@ -7101,11 +7101,16 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 ### Exchange grid enforced before dispatch (2026-10-12) — EXCH-004
 
 - Builds on **3c769d077a87eca6edc34e64c2fd66838aa4eb9d** (pushed, remote-verified).
-- **The gap.** Off-tick and off-lot orders were only caught *inside* the paper
-  simulator (`brokers/paper/engine.py`), which models the venue rejecting us.
-  In LIVE that rejection would arrive only after the order had been sent, so
-  nothing stopped a non-compliant order from leaving the system. The named
-  module `app/execution/compliance.py` did not exist.
+- **The gap, stated precisely.** Two checks already existed, and neither covers
+  the broker boundary: the risk engine's `lot_tick` rule validates tick
+  alignment and lot multiples when a *proposal* is evaluated, and the paper
+  simulator (`brokers/paper/engine.py`) rejects an off-grid order the way a
+  venue would. The first runs at approval, before anything can change; the
+  second only models the venue, so in LIVE that rejection would arrive after the
+  order had been sent. Nothing checked the request actually being dispatched,
+  which is where a revised instrument master or any future non-proposal order
+  path would slip through. The named module `app/execution/compliance.py` did
+  not exist.
 - `app/execution/compliance.py` now guards the single `OrderRequest` construction
   and dispatch point in `execution/paper.py`, which every order passes through
   for either provider, so PAPER and LIVE are covered by one rule. It reads
@@ -7152,3 +7157,86 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   together, then FNOR-004 (margin-utilisation limit) and FNOR-003 (computable
   maximum loss before approval). PAPER stays default; Groww LIVE, real-market
   PAPER evidence and external delivery remain unverified; no M1/M2 claim.
+
+### Margin utilisation, defined risk and limit boundaries (2026-10-12)
+
+- Builds on **b941e2303d471bfcb0486df40c4ddecde703eaa9** (pushed, remote-verified).
+
+**FNOR-004 — margin utilisation (`[ ]` -> `[~]`)**
+
+- The existing `margin` rule only asked whether *this* order could be funded
+  from free margin. Nothing asked whether the book as a whole would still sit
+  inside its configured headroom once funded, so an account could be walked up
+  to full commitment one individually-affordable order at a time.
+- `PortfolioState` now carries `used_margin` and exposes `margin_capacity`
+  (used plus available). Unfilled entry commitments are counted once: they are
+  already deducted from `available_margin`, and are added to `used_margin`, so
+  the two still sum to total margin capital.
+- The rule returns a second result, `margin_utilisation` /
+  `MARGIN_UTILISATION_EXCEEDED`, kept separate from `INSUFFICIENT_MARGIN`
+  because they answer different questions — a small order can be affordable
+  while pushing a nearly-committed account over the line.
+- **Owner decision recorded, not invented.** The requirement says "a configured
+  fraction" but names no value, and no default exists anywhere in the repository
+  or the audit. Rather than invent one, the rule uses the existing validated
+  `margin_buffer_pct` — already the owner-settable margin-headroom figure. If
+  the owner wants a utilisation percentage *distinct* from the buffer, that is a
+  new limit and their decision; this checkpoint does not create it.
+- Stays **`[~]`**: the rejection half is verified, but "utilisation uses broker
+  margin when available" is satisfied only against the simulated PAPER broker's
+  own account figures. Groww-reported margin (GRW-015) remains unverified, and
+  cannot be verified without live credentials.
+
+**FNOR-003 — defined risk (`[ ]` -> `[✓]`), a ledger error rather than a gap**
+
+- The rule already existed: `rules.py` refuses an option with no computable
+  maximum loss as `UNDEFINED_OPTION_RISK`. Its only coverage was a single line
+  inside `test_risk_rejects_invalid_contract_inputs`, so the requirement had no
+  test of its own and was still recorded as not started. The implementation was
+  not missing; the record was wrong.
+- Added `test_defined_risk_requirement` covering what that line did not: the
+  approving case, that cash equities are unaffected, and that an unbounded loss
+  cannot even be expressed (`defined_max_loss_per_unit` is constrained finite
+  and positive, so there is no "loss is unlimited" proposal to admit).
+- **The row's naked-short exception does not exist, deliberately.**
+  `allow_naked_short_options` is declared in Settings and the DB config model but
+  is read by nothing; the deterministic engine takes `RiskLimits` only, so no
+  configuration can reach the `NAKED_SHORT_DISABLED` veto. Short options are
+  refused outright — stricter than the requirement allows, and the safe
+  direction. The test asserts the absence of that path rather than exercising it.
+
+**TEST-004 — limit boundaries (`[ ]` -> `[~]`)**
+
+- The rejecting side of every boundary was already covered; the accepting side
+  was missing for three: concurrent positions, stop distance and evidence
+  freshness. An off-by-one there refuses legitimate trades rather than admitting
+  illegitimate ones, which is why it had gone unnoticed.
+- `test_rules_pass_exactly_at_each_limit` adds them. The minimum-stop-distance
+  case initially asserted overall approval and **failed correctly**: a 0.10 stop
+  allows only 0.01 of slippage, which the fixture book exceeds, so `liquidity`
+  binds. The test now asserts the `stop_loss` rule itself passed and records
+  that the verdict is refused by a rule it does not own — the fixture was not
+  bent to force an approval.
+- Stays **`[~]`**: a per-requirement audit mapping each of RISK-003…RISK-014 to
+  its own pass/fail/at-limit trio has not been done, and the row names a
+  `tests/unit/risk/` package the repository does not use.
+
+**Evidence, all exit code 0**
+
+- FNOR-004 combined regression — whole unit suite plus paper execution, option
+  evidence and exposure, order compliance, pending account, account time,
+  pipeline, sizing, reference worker and emergency: **916 passed / 1 skipped**,
+  264.89s (`logs/fnor004-regression.txt`).
+- Unit suite after the boundary and defined-risk additions: **830 passed**,
+  19.00s (`logs/test004-unit.txt`). Ruff clean on every changed file.
+- Ledger, counted directly from the table: **233 verified / 10 unverified /
+  147 partial / 143 not started = 533**.
+- Also corrected the EXCH-004 entry above, which overstated its gap: the risk
+  engine's `lot_tick` rule already validated tick and lot alignment at *proposal*
+  time. The boundary gate's contribution is the dispatched request — where a
+  revised instrument master or any future non-proposal order path would slip
+  through — not the existence of any tick check at all.
+- Next: the authoritative full acceptance over FNOR-001, PORT-004, EXCH-004,
+  FNOR-004, FNOR-003 and TEST-004 together. PAPER stays default; Groww LIVE,
+  real-market PAPER evidence and external delivery remain unverified; no M1/M2
+  claim.

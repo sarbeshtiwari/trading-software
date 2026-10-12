@@ -255,11 +255,37 @@ def reward_risk(proposal, portfolio, market, config):
 
 
 def margin(proposal, portfolio, market, config):
+    """FNOR-004: this order must fit, and total utilisation must stay inside the
+    configured headroom.
+
+    The first check asks whether the order can be funded now; the second asks
+    whether the book as a whole would still sit inside the configured margin
+    buffer once it is funded. They are separate questions — a small order can be
+    affordable while pushing a nearly fully committed account over the line — so
+    they carry separate rejection codes.
+
+    The configured fraction is `margin_buffer_pct`, the repository's existing
+    validated margin-headroom setting; no new default is invented here. A
+    dedicated utilisation percentage, if the owner wants one distinct from the
+    buffer, is an owner decision recorded in IMPLEMENTATION_STATUS.md.
+    """
     required = proposal.quantity * proposal.margin_per_unit
     usable = portfolio.available_margin * (1 - config.margin_buffer_pct / 100)
+    headroom = portfolio.margin_capacity * (1 - config.margin_buffer_pct / 100)
+    projected = portfolio.used_margin + required
     return (
         result(
             "margin", required <= usable, "INSUFFICIENT_MARGIN", required=required, usable=usable
+        ),
+        result(
+            "margin_utilisation",
+            projected <= headroom,
+            "MARGIN_UTILISATION_EXCEEDED",
+            used=portfolio.used_margin,
+            required=required,
+            projected=projected,
+            capacity=portfolio.margin_capacity,
+            limit=headroom,
         ),
     )
 

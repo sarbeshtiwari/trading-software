@@ -438,6 +438,9 @@ class PaperExecution:
                     (entry.margin for entry in pending), Decimal(0)
                 )
             ),
+            used_margin=self.broker.account.used_margin + sum(
+                (entry.margin for entry in pending), Decimal(0)
+            ),
             reserved_risk=reserved,
             exposures=tuple(exposures),
             open_and_pending_positions=len(

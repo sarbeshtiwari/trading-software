@@ -77,6 +77,10 @@ class PortfolioState(EvidenceTime):
     realised_day_pnl: Decimal
     unrealised_day_pnl: Decimal
     available_margin: Decimal = Field(ge=0)
+    #: Margin already committed, including unfilled entry commitments — the same
+    #: commitments `available_margin` has already been reduced by, so the two sum
+    #: to total margin capital and utilisation cannot be double-counted.
+    used_margin: Decimal = Field(ge=0)
     reserved_risk: Decimal = Field(ge=0)
     exposures: tuple[Exposure, ...]
     open_and_pending_positions: int = Field(ge=0, strict=True)
@@ -96,6 +100,11 @@ class PortfolioState(EvidenceTime):
     # PORT-004 defines these three measures, and every consumer reads them from
     # here rather than re-summing `exposures`: a limit evaluated against a
     # measure some other caller computed differently is the whole hazard.
+
+    @property
+    def margin_capacity(self) -> Decimal:
+        """Total margin capital: what is committed plus what is still free."""
+        return self.used_margin + self.available_margin
 
     @property
     def gross_exposure(self) -> Decimal:

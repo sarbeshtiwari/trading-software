@@ -84,6 +84,7 @@ def portfolio(**changes):
         "realised_day_pnl": 0,
         "unrealised_day_pnl": 0,
         "available_margin": 100000,
+        "used_margin": 0,
         "reserved_risk": 0,
         "exposures": (),
         "open_and_pending_positions": 0,
@@ -185,6 +186,28 @@ def test_max_exposure_limit():
     )
 
 
+def test_margin_utilisation_limit():
+    """FNOR-004: affordability and total utilisation are separate questions."""
+    # The fixture order needs 10000 of margin (100 units at 100 per unit) and the
+    # buffer is 20%, so utilisation may reach 80% of total margin capital.
+    assert verdict(account=portfolio()).approved
+
+    # Capacity 100000, so headroom is 80000. Already committed 70001 plus this
+    # order's 10000 is 80001 — one rupee past the line — while the order remains
+    # affordable on its own: 10000 fits inside 29999 x 0.8 = 23999.20 free.
+    rejected = verdict(account=portfolio(used_margin=70001, available_margin=29999))
+    assert rejected.rejection_code == "MARGIN_UTILISATION_EXCEEDED"
+
+    # Exactly on the line approves: 70000 + 10000 == 80000.
+    assert verdict(account=portfolio(used_margin=70000, available_margin=30000)).approved
+
+    # Affordability still has its own code when nothing is free for this order.
+    assert (
+        verdict(account=portfolio(used_margin=0, available_margin=1000)).rejection_code
+        == "INSUFFICIENT_MARGIN"
+    )
+
+
 def test_daily_loss_limit_blocks_entries():
     rejected = verdict(account=portfolio(realised_day_pnl=-1000, unrealised_day_pnl=-1000))
     assert rejected.rejection_code == "DAILY_LOSS_LIMIT"
@@ -257,6 +280,38 @@ def test_slippage_limit():
     )
     levels = ({"price": "100.05", "quantity": 50}, {"price": "100.35", "quantity": 50})
     assert verdict(prices=market(asks=levels)).approved
+
+
+def test_rules_pass_exactly_at_each_limit():
+    """TEST-004: each limit must admit the value sitting exactly on it.
+
+    The rejecting side of every boundary is covered by the tests above; these are
+    the accepting sides, where an off-by-one in a comparison would quietly refuse
+    legitimate trades rather than permit illegitimate ones.
+    """
+    # A fifth concurrent position is the fifth, not a sixth; likewise the second
+    # for this strategy against its cap of two.
+    assert verdict(
+        account=portfolio(open_and_pending_positions=4, strategy_open_and_pending_positions=1)
+    ).approved
+
+    # Stop distance exactly at the 0.1% minimum: 100 -> 99.90. The decision as a
+    # whole is refused here, and rightly so — a 0.10 stop allows only 0.01 of
+    # slippage, which the fixture book exceeds — so this asserts the boundary
+    # rule itself rather than the verdict it does not own.
+    at_minimum = verdict(proposed=proposal(stop=Decimal("99.90")))
+    assert next(check for check in at_minimum.rules if check.rule == "stop_loss").passed
+    assert at_minimum.rejection_code == "SLIPPAGE_OR_DEPTH_LIMIT"
+
+    # Stop distance exactly at the 10% maximum, sized so per-trade risk also
+    # lands exactly on its own 500 limit: 50 units x 10.00 of risk each.
+    at_maximum = verdict(proposed=proposal(quantity=50, stop=90, first_target=115))
+    assert at_maximum.approved
+    assert at_maximum.risk_amount == 500
+
+    # Evidence exactly as old as the configured ages is still current.
+    assert verdict(prices=market(observed_at=OBSERVED - timedelta(seconds=60))).approved
+    assert verdict(account=portfolio(observed_at=OBSERVED - timedelta(seconds=30))).approved
 
 
 def test_risk_rejects_stale_inputs():
@@ -354,6 +409,45 @@ def test_short_liquidity_and_greek_freshness():
         verdict(proposed=proposal(is_option=True), prices=market(greeks=greek)).rejection_code
         == "STALE_GREEKS"
     )
+
+
+def test_defined_risk_requirement():
+    """FNOR-003: an option with no computable maximum loss is never approved."""
+    prices = market(greeks=provenance())
+    defined = {
+        "is_option": True,
+        "quantity": 1,
+        "defined_max_loss_per_unit": 100,
+        "first_target": 300,
+    }
+    assert verdict(proposed=proposal(**defined), prices=prices).approved
+
+    # Omit the maximum loss and the proposal is refused on its own code.
+    undefined = {key: value for key, value in defined.items() if key != "defined_max_loss_per_unit"}
+    assert (
+        verdict(proposed=proposal(**undefined), prices=prices).rejection_code
+        == "UNDEFINED_OPTION_RISK"
+    )
+
+    # A cash equity carries no option premium and is unaffected by the rule.
+    assert verdict(proposed=proposal(quantity=1, first_target=300)).approved
+
+    # An unbounded or nonsensical maximum loss cannot be expressed at all: the
+    # field is constrained finite and positive, so there is no proposal shaped
+    # like "loss is unlimited" for the engine to have to reason about.
+    for unbounded in (Decimal("Infinity"), Decimal("NaN"), Decimal(0), Decimal("-1")):
+        with pytest.raises(ValidationError):
+            proposal(**(defined | {"defined_max_loss_per_unit": unbounded}))
+
+    # The requirement allows an exception when a naked-short override is on.
+    # There is deliberately no such path: `allow_naked_short_options` is declared
+    # in Settings but the deterministic engine takes RiskLimits only, so no
+    # configuration can reach this veto. Short options stay closed outright.
+    short = defined | {"direction": "SHORT", "stop": 102, "first_target": 1}
+    assert (
+        verdict(proposed=proposal(**short), prices=prices).rejection_code == "NAKED_SHORT_DISABLED"
+    )
+    assert "allow_naked_short_options" not in RiskLimits.model_fields
 
 
 def test_option_premium_bounds_and_naked_short_veto_are_independent():

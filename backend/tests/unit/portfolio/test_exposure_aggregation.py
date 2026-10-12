@@ -55,6 +55,7 @@ def portfolio(exposures=BOOK):
         realised_day_pnl=Decimal(0),
         unrealised_day_pnl=Decimal(0),
         available_margin=Decimal(50000),
+        used_margin=Decimal(0),
         reserved_risk=Decimal(0),
         exposures=exposures,
         open_and_pending_positions=len(exposures),
