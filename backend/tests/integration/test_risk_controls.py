@@ -12,6 +12,7 @@ from app.db.models.event_outbox import RuntimeEventOutbox
 from app.db.models.system import SINGLETON_ID, SystemState
 from app.main import create_app
 from app.monitoring.gate import get_trading_gate
+from app.risk.models import PortfolioState
 from app.risk.safety import RiskSafety
 from app.security.auth import OwnerAuth
 from tests.integration.test_auth import credentials
@@ -28,6 +29,77 @@ __all__ = ["credentials"]
 @pytest.fixture(autouse=True)
 def now(fake_clock):
     fake_clock.set_to(OBSERVED)
+
+
+async def test_rearm_refuses_account_evidence_from_an_older_risk_schema(
+    db_engine, credentials, fake_clock, monkeypatch
+):
+    """A snapshot written before a risk-schema change is unusable evidence.
+
+    `used_margin` became a required field of PortfolioState when the margin
+    utilisation limit landed, so a record persisted before that cannot be
+    replayed as current account state. Refusing it is right — clearing a
+    drawdown latch from a partially-understood snapshot would be worse — but it
+    is unusable evidence, which is a 409, not a 500.
+    """
+    _, password = credentials
+    access, _ = await OwnerAuth().login("owner", password)
+    headers = {"Authorization": f"Bearer {access}"}
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app()), base_url="http://test", headers=headers
+    ) as client:
+        change = {
+            "limits": limits().model_dump(mode="json"),
+            "expected_version": 0,
+            "reason": "Explicit test-only owner configuration",
+        }
+        assert (await client.post("/api/v1/risk/configuration", json=change)).status_code == 200
+        safety = RiskSafety()
+        await safety.observe(portfolio(realised_day_pnl=-2000, equity=90000), market(), limits())
+        async with db_session.session_scope() as session:
+            session.add(
+                SystemState(
+                    id=SINGLETON_ID,
+                    last_reconciliation_at=fake_clock.now().astimezone(UTC),
+                    open_discrepancies=0,
+                )
+            )
+        # Record the evidence in the previous schema's shape. The field is
+        # dropped only on the audited serialisation, so the ledger hash is
+        # computed over the legacy payload exactly as older code would have
+        # written it — editing a recorded event afterwards is refused outright
+        # by the safety ledger's own integrity check.
+        original = PortfolioState.model_dump
+
+        def legacy(self, *args, **kwargs):
+            payload = original(self, *args, **kwargs)
+            if kwargs.get("mode") == "json":
+                payload.pop("used_margin", None)
+            return payload
+
+        monkeypatch.setattr(PortfolioState, "model_dump", legacy)
+        await safety.observe(portfolio(), market(), limits())
+        monkeypatch.undo()
+        async with db_session.session_scope() as session:
+            rows = list(
+                (
+                    await session.scalars(
+                        sa.select(AuditEvent).order_by(AuditEvent.sequence.desc())
+                    )
+                ).all()
+            )
+            row = next(item for item in rows if item.data_used and "portfolio" in item.data_used)
+            assert "used_margin" not in row.data_used["portfolio"]
+        response = await client.post(
+            "/api/v1/risk/rearm",
+            json={
+                "origin": "SYNTHETIC",
+                "reason": "Reviewed synthetic test account recovery",
+                "confirmation": "REARM PAPER RISK",
+            },
+        )
+        assert response.status_code == 409, response.text
+        assert "evidence" in response.json()["detail"].lower()
 
 
 async def test_authenticated_rearm_preserves_daily_and_unrelated_blocks(

@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query, Request
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from app.analysis.equity import EvidenceModel
 from app.audit.service import AuditIdentity, AuditService
@@ -378,7 +378,14 @@ async def rearm(body: Rearm, request: Request):
         )
         if source is None:
             raise HTTPException(409, "Trusted account evidence unavailable")
-        account = PortfolioState.model_validate(source.data_used["portfolio"])
+        try:
+            account = PortfolioState.model_validate(source.data_used["portfolio"])
+        except ValidationError as error:
+            # A record written before a risk-schema change cannot be replayed as
+            # current account evidence. Refusing it is correct — clearing a
+            # drawdown latch on a partially-understood snapshot would be worse —
+            # but it is unusable evidence, not a server fault.
+            raise HTTPException(409, "Trusted account evidence unavailable") from error
         if (
             account.data_origin != body.origin
             or not account.observed_at <= account.available_at <= clock.now()

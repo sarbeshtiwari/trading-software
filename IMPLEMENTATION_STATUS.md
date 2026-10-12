@@ -7309,3 +7309,31 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - The partial run is kept at `logs/full-acceptance-partial-7fail.txt`. It is not
   evidence of a passing suite — it was stopped deliberately once its failures
   were known and attributed.
+
+### Risk-schema replay fails closed with the right status (2026-10-12)
+
+- Builds on **ca7625dfad0ce9fd7e48fe41f271794455e6581f** (pushed, remote-verified).
+- `used_margin` became a required field of `PortfolioState` in `3c769d0`.
+  `POST /api/v1/risk/rearm` replays a stored portfolio snapshot out of the audit
+  ledger to decide whether a drawdown latch may be cleared, so a record written
+  before that commit no longer validated and surfaced as a **500** instead of
+  the 409 that endpoint already uses for unusable evidence. It failed closed —
+  no latch was cleared — but the status and message were wrong, and a 500 on a
+  safety endpoint reads as a server fault rather than a refusal.
+- The replay now catches `ValidationError` and refuses with 409. Refusing is the
+  right behaviour: clearing a drawdown latch from a snapshot the current schema
+  cannot fully interpret would be worse than declining.
+- **The regression test had to be built honestly.** The first attempt edited a
+  recorded audit event to drop the field and was rejected by the safety ledger's
+  own integrity check (`risk safety ledger integrity failure`) — which is the
+  desired behaviour and an incidental verification that recorded evidence cannot
+  be tampered with. The test now drops the field only on the audited
+  serialisation, so the ledger hash is computed over the legacy payload exactly
+  as older code would have written it.
+- Verified both ways: with the guard, `test_risk_controls.py` **3 passed** 4.39s;
+  with the guard reverted, the new test fails on the raw
+  `ValidationError: used_margin Field required`, confirming it tests the guard
+  rather than passing incidentally (`logs/risk-schema-replay.txt`). Ruff clean.
+- Older persisted records remain unusable for re-arming by design. No migration
+  back-fills them: inventing a `used_margin` figure for a historical snapshot
+  would fabricate risk evidence, and 0 would understate utilisation.
