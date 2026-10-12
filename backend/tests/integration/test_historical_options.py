@@ -67,6 +67,10 @@ def recorded_option():
         "TEST",
         expiry,
         now,
+        # FNOR-001: a real provider chain reports the underlying it is written
+        # on, and exposure is now measured against it rather than the premium.
+        # 1000 matches the strike below; the premium is a tenth of it.
+        spot=Decimal(1000),
         strikes=(
             OptionStrike(
                 Decimal(1000),

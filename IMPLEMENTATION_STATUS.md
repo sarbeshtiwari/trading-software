@@ -7280,3 +7280,32 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
   surfaces as a 500 rather than the truthful 409 that path uses for unusable
   evidence. It fails closed — no latch is cleared — but the handling is wrong and
   is the next fix queued after the running acceptance.
+
+### Full acceptance failures diagnosed and fixed (2026-10-12)
+
+- Builds on **771e44ad1374c2073fa5026cbb46cad7da1afe19** (pushed, remote-verified).
+- The full acceptance run over FNOR-001/PORT-004/EXCH-004/FNOR-004 showed
+  failures while still in progress. Rather than wait out a 1882-test run to read
+  its end summary, the failing tests were identified by mapping the progress
+  stream's outcome characters onto `--collect-only` order: **7 failures**, in
+  `test_historical_options.py` (3), `test_option_walkforward.py` (2) and
+  `test_paper_browser.py` (2) — the `long_option=True` parametrisations.
+- **Single root cause, and it was mine.** All three modules draw their option
+  contract from `recorded_option()` in `test_historical_options.py`, whose
+  `OptionChain` carried no `spot`. FNOR-001 correctly refuses to measure an
+  option's exposure without an observed underlying, so contract derivation stood
+  the cycle down. The fixture now reports `spot=Decimal(1000)` against its
+  strike-1000 contract, exactly as `test_option_evidence` already did.
+- **The miss was in regression scope, not in the change.** The FNOR-001
+  checkpoint ran targeted and consumer regressions across risk, sizing, contract
+  production, pipeline, pending account, account time, paper execution, option
+  account and reference worker — but not the historical-replay, walkforward or
+  browser modules that also build option contracts. Changing a shared contract
+  means every module that constructs one, not only the obvious consumers.
+- Verified: `test_historical_options.py` + `test_option_walkforward.py`
+  **18 passed** 146.09s (`logs/fnor001-historical-fix.txt`); the two browser
+  tests across both parametrisations **4 passed** 178.14s
+  (`logs/fnor001-browser-option.txt`). Both exit code 0.
+- The partial run is kept at `logs/full-acceptance-partial-7fail.txt`. It is not
+  evidence of a passing suite — it was stopped deliberately once its failures
+  were known and attributed.
