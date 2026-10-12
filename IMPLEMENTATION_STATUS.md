@@ -7337,3 +7337,35 @@ LIVE or substitute synthetic fixtures for time-based PAPER/OOS evidence.
 - Older persisted records remain unusable for re-arming by design. No migration
   back-fills them: inventing a `used_margin` figure for a historical snapshot
   would fabricate risk evidence, and 0 would understate utilisation.
+
+### Full acceptance passed (2026-10-12) — authoritative baseline
+
+- State under test: **c055541b2eb09836aaffeb5af0e1ceba2c646b55** (pushed, remote-verified).
+- **`1883 passed, 0 failed, 0 skipped, 0 errors` in 3132.00s (52:12)**, process
+  exit clean, `logs/full-acceptance-verified.txt`, stderr empty
+  (`full-acceptance-verified.err`, 0 bytes). Verified by reading the log's own
+  summary and confirming zero `FAILED`/`ERROR` lines, not from a watcher message.
+- Run configuration: real PostgreSQL (`ats-db-1`), real Redis (`ats-redis-1`),
+  `ATS_TEST_BROWSER=1` (Edge over the production React bundle) and
+  `ATS_TEST_DOCKER_RESTART=1` (isolated, test-owned, loopback-only PostgreSQL
+  containers for crash/restart coverage). Nothing was skipped, which is itself
+  evidence every opt-in gate was enabled — prior runs with PostgreSQL unset
+  reported one skip.
+- Count reconciles: the 1882 collected before this checkpoint plus the single
+  schema-replay regression test added in `c055541`.
+- **This supersedes every earlier full-suite figure.** The previous baselines
+  were `1 failed, 1813 passed` (session 92923, a harness timeout since fixed in
+  `fe622eb`) and before that `1792 passed`. The two intervening attempts are not
+  evidence and are labelled as such: one killed by the harness at 31%, one
+  stopped deliberately at 17%, plus a third stopped at ~44% once its 7 failures
+  were diagnosed and attributed (`logs/full-acceptance-partial-7fail.txt`).
+- **What this does and does not establish.** It establishes that the whole
+  automated suite — unit, API, PostgreSQL-backed, Redis-backed, migration,
+  browser/E2E over the real bundle, broker-adapter contract, order lifecycle,
+  risk and portfolio boundary, concurrency, restart and failure-injection tests —
+  passes together on one frozen tree. It establishes nothing about Groww LIVE
+  execution, real-market data, remote notification delivery, regulatory
+  onboarding or elapsed paper-trading evidence, all of which remain externally
+  unverified. **M1 and M2 are not met.**
+- Ledger unchanged by this run: **235 verified / 10 unverified / 147 partial /
+  141 not started = 533**. A passing suite is not requirement coverage.
